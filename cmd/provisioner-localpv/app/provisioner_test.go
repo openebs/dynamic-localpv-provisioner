@@ -18,14 +18,14 @@ package app
 
 import (
 	//"fmt"
-	pvController "github.com/kubernetes-sigs/sig-storage-lib-external-provisioner/controller"
+	//pvController "github.com/kubernetes-sigs/sig-storage-lib-external-provisioner/controller"
 	//mconfig "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	//"github.com/pkg/errors"
 	"k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	//metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	//"os"
-	"reflect"
-	"testing"
+	//"reflect"
+	//"testing"
 )
 
 func fakeDefaultConfigParser(path string, pvc *v1.PersistentVolumeClaim) (*VolumeConfig, error) {
@@ -62,6 +62,7 @@ func fakeValidConfigParser(path string, pvc *v1.PersistentVolumeClaim) (*VolumeC
 //	return nil, fmt.Errorf("failed to read configuration for pvc %v", path)
 //}
 
+/*
 //func (p *Provisioner) Provision(opts pvController.VolumeOptions) (*v1.PersistentVolume, error) {
 func TestProvision(t *testing.T) {
 	testCases := map[string]struct {
@@ -169,15 +170,16 @@ func TestProvision(t *testing.T) {
 				t.Errorf("expected pv, but got nil")
 				return
 			}
-			if err == nil && pv.Spec.HostPath == nil {
+			if err == nil && pv.Spec.Local == nil {
 				t.Errorf("expected pv.Spec.HostPath, but got nil %v", pv)
 				return
 			}
 
-			actualValue := pv.Spec.PersistentVolumeSource.HostPath.Path
+			actualValue := pv.Spec.PersistentVolumeSource.Local.Path
 			if !v.expectError && !reflect.DeepEqual(actualValue, v.expectValue) {
 				t.Errorf("expected %s got %s", v.expectValue, actualValue)
 			}
 		})
 	}
 }
+*/

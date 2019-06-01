@@ -125,6 +125,21 @@ func (p *Provisioner) Provision(opts pvController.VolumeOptions) (*v1.Persistent
 
 	glog.Infof("Creating volume %v at %v:%v", name, node.Name, path)
 
+	//Before using the path for local PV, make sure it is created.
+	initCmdsForPath := []string{"mkdir", "-m", "0777", "-p"}
+	podOpts := &HelperPodOptions{
+		cmdsForPath: initCmdsForPath,
+		name:        name,
+		path:        path,
+		nodeName:    node.Name,
+	}
+
+	iErr := p.createInitPod(podOpts)
+	if iErr != nil {
+		glog.Infof("Initialize volume %v failed: %v", name, iErr)
+		return nil, iErr
+	}
+
 	// VolumeMode will always be specified as Filesystem for host path volume,
 	// and the value passed in from the PVC spec will be ignored.
 	fs := v1.PersistentVolumeFilesystem
@@ -139,18 +154,19 @@ func (p *Provisioner) Provision(opts pvController.VolumeOptions) (*v1.Persistent
 	//volAnnotations[string(v1alpha1.CASTypeKey)] = casVolume.Spec.CasType
 	//fstype := casVolume.Spec.FSType
 
-	//labels := make(map[string]string)
-	//labels[string(v1alpha1.CASTypeKey)] = casVolume.Spec.CasType
+	labels := make(map[string]string)
+	labels[string(mconfig.CASTypeKey)] = "local-" + stgType
 	//labels[string(v1alpha1.StorageClassKey)] = *className
 
 	//TODO Change the following to a builder pattern
 	pvObj, err := mPV.NewBuilder().
 		WithName(name).
+		WithLabels(labels).
 		WithReclaimPolicy(opts.PersistentVolumeReclaimPolicy).
 		WithAccessModes(pvc.Spec.AccessModes).
 		WithVolumeMode(fs).
 		WithCapacityQty(pvc.Spec.Resources.Requests[v1.ResourceName(v1.ResourceStorage)]).
-		WithHostDirectory(path).
+		WithLocalHostDirectory(path).
 		WithNodeAffinity(node.Name).
 		Build()
 
@@ -188,7 +204,6 @@ func (p *Provisioner) Delete(pv *v1.PersistentVolume) (err error) {
 			nodeName:    node,
 		}
 
-		//if err := p.createCleanupPod(cleanupCmdsForPath, pv.Name, path, node); err != nil {
 		if err := p.createCleanupPod(podOpts); err != nil {
 			glog.Infof("clean up volume %v failed: %v", pv.Name, err)
 			return err

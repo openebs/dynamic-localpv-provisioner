@@ -17,6 +17,10 @@ limitations under the License.
 
 package app
 
+import (
+	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
+)
+
 // HelperPodOptions contains the options that
 // will be extracted from the persistent volume
 type HelperPodOptions struct {
@@ -24,4 +28,15 @@ type HelperPodOptions struct {
 	name        string
 	path        string
 	nodeName    string
+}
+
+// validate checks that the required fields to launch
+// helper pods are valid. helper pods are used to either
+// create or delete a directory (path) on a given node (nodeName).
+// name refers to the volume being created or deleted.
+func (pOpts *HelperPodOptions) validate() error {
+	if pOpts.name == "" || pOpts.path == "" || pOpts.nodeName == "" {
+		return errors.Errorf("invalid empty name or path or node")
+	}
+	return nil
 }
