@@ -34,7 +34,7 @@ import (
 	container "github.com/openebs/maya/pkg/kubernetes/container/v1alpha1"
 	pod "github.com/openebs/maya/pkg/kubernetes/pod/v1alpha1"
 	volume "github.com/openebs/maya/pkg/kubernetes/volume/v1alpha1"
-	"k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -51,7 +51,7 @@ var (
 //  Note: This function also takes care of deleting OpenEBS Local PVs
 //  provisioned in 0.9, which were using HostPathVolumeSource to
 //  specify the path.
-func (p *Provisioner) getPathAndNodeForPV(pv *v1.PersistentVolume) (string, string, error) {
+func (p *Provisioner) getPathAndNodeForPV(pv *corev1.PersistentVolume) (string, string, error) {
 	path := ""
 	local := pv.Spec.PersistentVolumeSource.Local
 	if local == nil {
@@ -77,7 +77,7 @@ func (p *Provisioner) getPathAndNodeForPV(pv *v1.PersistentVolume) (string, stri
 	node := ""
 	for _, selectorTerm := range required.NodeSelectorTerms {
 		for _, expression := range selectorTerm.MatchExpressions {
-			if expression.Key == KeyNode && expression.Operator == v1.NodeSelectorOpIn {
+			if expression.Key == KeyNode && expression.Operator == corev1.NodeSelectorOpIn {
 				if len(expression.Values) != 1 {
 					return "", "", errors.Errorf("multiple values for the node affinity")
 				}
@@ -114,11 +114,11 @@ func (p *Provisioner) createInitPod(pOpts *HelperPodOptions) error {
 		return vErr
 	}
 
-	conObj, _ := container.Builder().
+	conObj, _ := container.NewBuilder().
 		WithName("local-path-init").
 		WithImage(p.helperImage).
 		WithCommand(append(pOpts.cmdsForPath, filepath.Join("/data/", volumeDir))).
-		WithVolumeMounts([]v1.VolumeMount{
+		WithVolumeMounts([]corev1.VolumeMount{
 			{
 				Name:      "data",
 				ReadOnly:  false,
@@ -136,7 +136,7 @@ func (p *Provisioner) createInitPod(pOpts *HelperPodOptions) error {
 
 	helperPod, _ := pod.NewBuilder().
 		WithName("init-" + pOpts.name).
-		WithRestartPolicy(v1.RestartPolicyNever).
+		WithRestartPolicy(corev1.RestartPolicyNever).
 		WithNodeName(pOpts.nodeName).
 		WithContainer(conObj).
 		WithVolume(*volObj).
@@ -161,7 +161,7 @@ func (p *Provisioner) createInitPod(pOpts *HelperPodOptions) error {
 		checkPod, err := p.kubeClient.CoreV1().Pods(p.namespace).Get(hPod.Name, metav1.GetOptions{})
 		if err != nil {
 			return err
-		} else if checkPod.Status.Phase == v1.PodSucceeded {
+		} else if checkPod.Status.Phase == corev1.PodSucceeded {
 			completed = true
 			break
 		}
@@ -196,11 +196,11 @@ func (p *Provisioner) createCleanupPod(pOpts *HelperPodOptions) error {
 		return vErr
 	}
 
-	conObj, _ := container.Builder().
+	conObj, _ := container.NewBuilder().
 		WithName("local-path-cleanup").
 		WithImage(p.helperImage).
 		WithCommand(append(pOpts.cmdsForPath, filepath.Join("/data/", volumeDir))).
-		WithVolumeMounts([]v1.VolumeMount{
+		WithVolumeMounts([]corev1.VolumeMount{
 			{
 				Name:      "data",
 				ReadOnly:  false,
@@ -218,7 +218,7 @@ func (p *Provisioner) createCleanupPod(pOpts *HelperPodOptions) error {
 
 	helperPod, _ := pod.NewBuilder().
 		WithName("cleanup-" + pOpts.name).
-		WithRestartPolicy(v1.RestartPolicyNever).
+		WithRestartPolicy(corev1.RestartPolicyNever).
 		WithNodeName(pOpts.nodeName).
 		WithContainer(conObj).
 		WithVolume(*volObj).
@@ -243,7 +243,7 @@ func (p *Provisioner) createCleanupPod(pOpts *HelperPodOptions) error {
 		checkPod, err := p.kubeClient.CoreV1().Pods(p.namespace).Get(hPod.Name, metav1.GetOptions{})
 		if err != nil {
 			return err
-		} else if checkPod.Status.Phase == v1.PodSucceeded {
+		} else if checkPod.Status.Phase == corev1.PodSucceeded {
 			completed = true
 			break
 		}
