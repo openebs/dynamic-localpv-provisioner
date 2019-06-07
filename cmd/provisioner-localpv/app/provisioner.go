@@ -40,7 +40,6 @@ import (
 
 	pvController "github.com/kubernetes-sigs/sig-storage-lib-external-provisioner/controller"
 	mconfig "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	mPV "github.com/openebs/maya/pkg/kubernetes/persistentvolume/v1alpha1"
 	"k8s.io/api/core/v1"
 	//metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"
@@ -97,7 +96,7 @@ func (p *Provisioner) Provision(opts pvController.VolumeOptions) (*v1.Persistent
 			return nil, fmt.Errorf("Only support ReadWriteOnce access mode")
 		}
 	}
-	node := opts.SelectedNode
+	//node := opts.SelectedNode
 	if opts.SelectedNode == nil {
 		return nil, fmt.Errorf("configuration error, no node was specified")
 	}
@@ -114,68 +113,14 @@ func (p *Provisioner) Provision(opts pvController.VolumeOptions) (*v1.Persistent
 
 	//TODO: Determine if hostpath or device based Local PV should be created
 	stgType := pvCASConfig.GetStorageType()
-	if stgType != "hostpath" {
-		return nil, fmt.Errorf("PV with StorageType %v is not supported", stgType)
+	if stgType == "hostpath" {
+		return p.ProvisionHostPath(opts, pvCASConfig)
+	}
+	if stgType == "device" {
+		return p.ProvisionBlockDevice(opts, pvCASConfig)
 	}
 
-	path, err := pvCASConfig.GetPath()
-	if err != nil {
-		return nil, err
-	}
-
-	glog.Infof("Creating volume %v at %v:%v", name, node.Name, path)
-
-	//Before using the path for local PV, make sure it is created.
-	initCmdsForPath := []string{"mkdir", "-m", "0777", "-p"}
-	podOpts := &HelperPodOptions{
-		cmdsForPath: initCmdsForPath,
-		name:        name,
-		path:        path,
-		nodeName:    node.Name,
-	}
-
-	iErr := p.createInitPod(podOpts)
-	if iErr != nil {
-		glog.Infof("Initialize volume %v failed: %v", name, iErr)
-		return nil, iErr
-	}
-
-	// VolumeMode will always be specified as Filesystem for host path volume,
-	// and the value passed in from the PVC spec will be ignored.
-	fs := v1.PersistentVolumeFilesystem
-
-	// It is possible that the HostPath doesn't already exist on the node.
-	// Set the Local PV to create it.
-	//hostPathType := v1.HostPathDirectoryOrCreate
-
-	// TODO initialize the Labels and annotations
-	// Use annotations to specify the context using which the PV was created.
-	//volAnnotations := make(map[string]string)
-	//volAnnotations[string(v1alpha1.CASTypeKey)] = casVolume.Spec.CasType
-	//fstype := casVolume.Spec.FSType
-
-	labels := make(map[string]string)
-	labels[string(mconfig.CASTypeKey)] = "local-" + stgType
-	//labels[string(v1alpha1.StorageClassKey)] = *className
-
-	//TODO Change the following to a builder pattern
-	pvObj, err := mPV.NewBuilder().
-		WithName(name).
-		WithLabels(labels).
-		WithReclaimPolicy(opts.PersistentVolumeReclaimPolicy).
-		WithAccessModes(pvc.Spec.AccessModes).
-		WithVolumeMode(fs).
-		WithCapacityQty(pvc.Spec.Resources.Requests[v1.ResourceName(v1.ResourceStorage)]).
-		WithLocalHostDirectory(path).
-		WithNodeAffinity(node.Name).
-		Build()
-
-	if err != nil {
-		return nil, err
-	}
-
-	return pvObj, nil
-
+	return nil, fmt.Errorf("PV with StorageType %v is not supported", stgType)
 }
 
 // Delete is invoked by the PVC controller to perform clean-up
@@ -187,29 +132,16 @@ func (p *Provisioner) Delete(pv *v1.PersistentVolume) (err error) {
 		err = errors.Wrapf(err, "failed to delete volume %v", pv.Name)
 	}()
 
-	//Determine the path and node of the Local PV.
-	path, node, err := p.getPathAndNodeForPV(pv)
-	if err != nil {
-		return err
-	}
-
 	//Initiate clean up only when reclaim policy is not retain.
 	if pv.Spec.PersistentVolumeReclaimPolicy != v1.PersistentVolumeReclaimRetain {
-		glog.Infof("Deleting volume %v at %v:%v", pv.Name, node, path)
-		cleanupCmdsForPath := []string{"rm", "-rf"}
-		podOpts := &HelperPodOptions{
-			cmdsForPath: cleanupCmdsForPath,
-			name:        pv.Name,
-			path:        path,
-			nodeName:    node,
+		//TODO: Determine the type of PV
+		pvType := GetLocalPVType(pv)
+		if pvType == "local-device" {
+			return p.DeleteBlockDevice(pv)
 		}
-
-		if err := p.createCleanupPod(podOpts); err != nil {
-			glog.Infof("clean up volume %v failed: %v", pv.Name, err)
-			return err
-		}
-		return nil
+		return p.DeleteHostPath(pv)
 	}
+
 	glog.Infof("Retained volume %v", pv.Name)
 	return nil
 }

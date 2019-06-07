@@ -43,6 +43,33 @@ var (
 	CmdTimeoutCounts = 120
 )
 
+// HelperPodOptions contains the options that
+// will launch a Pod on a specific node (nodeName)
+// to execute a command (cmdsForPath) on a given
+// volume path (path)
+type HelperPodOptions struct {
+	//nodeName represents the host where pod should be launched.
+	nodeName string
+	//name is the name of the PV for which the pod is being launched
+	name string
+	//cmdsForPath represent either create (mkdir) or delete(rm)
+	//commands that need to be executed on the volume path.
+	cmdsForPath []string
+	//path is the volume hostpath directory
+	path string
+}
+
+// validate checks that the required fields to launch
+// helper pods are valid. helper pods are used to either
+// create or delete a directory (path) on a given node (nodeName).
+// name refers to the volume being created or deleted.
+func (pOpts *HelperPodOptions) validate() error {
+	if pOpts.name == "" || pOpts.path == "" || pOpts.nodeName == "" {
+		return errors.Errorf("invalid empty name or path or node")
+	}
+	return nil
+}
+
 // getPathAndNodeForPV inspects the PV spec to determine the hostpath
 //  and the node of OpenEBS Local PV. Both types of OpenEBS Local PV
 //  (storage type = hostpath and device) use:

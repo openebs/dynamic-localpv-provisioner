@@ -190,3 +190,12 @@ func GetStorageClassName(pvc *v1.PersistentVolumeClaim) *string {
 	}
 	return pvc.Spec.StorageClassName
 }
+
+// GetLocalPVType extracts the Local PV Type from PV
+func GetLocalPVType(pv *v1.PersistentVolume) string {
+	casType, found := pv.Labels[string(mconfig.CASTypeKey)]
+	if found {
+		return casType
+	}
+	return ""
+}
