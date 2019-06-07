@@ -96,12 +96,6 @@ func (p *Provisioner) createBlockDeviceClaim(blkDevOpts *HelperBlockDeviceOption
 		return err
 	}
 
-	//if blkDevOpts.hasBDC() {
-	//	//already created
-	//	glog.Infof("Volume %v has been initialized with BDC:%v", blkDevOpts.name, blkDevOpts.bdcName)
-	//	return nil
-	//}
-
 	//Create a BDC for this PV (of type device). NDM will
 	//look for the device matching the capacity and node on which
 	//pod is being scheduled. Since this BDC is specific to a PV
@@ -109,6 +103,18 @@ func (p *Provisioner) createBlockDeviceClaim(blkDevOpts *HelperBlockDeviceOption
 	//TODO: Look into setting the labels and owner references
 	//on BDC with PV/PVC details.
 	bdcName := "bdc-" + blkDevOpts.name
+
+	//Check if the BDC is already created. This can happen
+	//if the previous reconcilation of PVC-PV, resulted in
+	//creating a BDC, but BD was not yet available for 60+ seconds
+	_, err := blockdeviceclaim.NewKubeClient().
+		WithNamespace(p.namespace).
+		Get(bdcName, metav1.GetOptions{})
+	if err == nil {
+		blkDevOpts.bdcName = bdcName
+		glog.Infof("Volume %v has been initialized with BDC:%v", blkDevOpts.name, bdcName)
+		return nil
+	}
 
 	bdcObj, err := blockdeviceclaim.NewBuilder().
 		WithNamespace(p.namespace).
@@ -129,7 +135,7 @@ func (p *Provisioner) createBlockDeviceClaim(blkDevOpts *HelperBlockDeviceOption
 	if err != nil {
 		//TODO : Need to relook at this error
 		//If the error is about BDC being already present, then return nil
-		return errors.Wrapf(err, "failed to create BDC{%v}", blkDevOpts.name)
+		return errors.Wrapf(err, "failed to create BDC{%v}", bdcName)
 	}
 
 	blkDevOpts.bdcName = bdcName
