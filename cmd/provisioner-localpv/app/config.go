@@ -41,17 +41,20 @@ const (
 	//KeyPVBasePath defines base directory for hostpath volumes
 	// can be configured via the StorageClass annotations.
 	KeyPVBasePath = "BasePath"
+	//KeyPVFSType defines filesystem type to be used with devices
+	// and can be configured via the StorageClass annotations.
+	KeyPVFSType = "FSType"
 	//KeyPVRelativePath defines the alternate folder name under the BasePath
 	// By default, the pv name will be used as the folder name.
 	// KeyPVBasePath can be useful for providing the same underlying folder
 	// name for all replicas in a Statefulset.
 	// Will be a property of the PVC annotations.
-	KeyPVRelativePath = "RelativePath"
+	//KeyPVRelativePath = "RelativePath"
 	//KeyPVAbsolutePath specifies a complete hostpath instead of
 	// auto-generating using BasePath and RelativePath. This option
 	// is specified with PVC and is useful for granting shared access
 	// to underlying hostpaths across multiple pods.
-	KeyPVAbsolutePath = "AbsolutePath"
+	//KeyPVAbsolutePath = "AbsolutePath"
 )
 
 const (
@@ -120,6 +123,17 @@ func (c *VolumeConfig) GetStorageType() string {
 		return "hostpath"
 	}
 	return stgType
+}
+
+//GetFSType returns the FSType value configured
+// in StorageClass. Default is "", auto-determined
+// by Local PV
+func (c *VolumeConfig) GetFSType() string {
+	fsType := c.getValue(KeyPVFSType)
+	if len(strings.TrimSpace(fsType)) == 0 {
+		return ""
+	}
+	return fsType
 }
 
 //GetPath returns a valid PV path based on the configuration
