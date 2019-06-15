@@ -40,7 +40,11 @@ import (
 
 	pvController "github.com/kubernetes-sigs/sig-storage-lib-external-provisioner/controller"
 	mconfig "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	"k8s.io/api/core/v1"
+	menv "github.com/openebs/maya/pkg/env/v1alpha1"
+	analytics "github.com/openebs/maya/pkg/usage"
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
+
 	//metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"
 )
@@ -113,13 +117,18 @@ func (p *Provisioner) Provision(opts pvController.VolumeOptions) (*v1.Persistent
 
 	//TODO: Determine if hostpath or device based Local PV should be created
 	stgType := pvCASConfig.GetStorageType()
+	size := resource.Quantity{}
+	reqMap := pvc.Spec.Resources.Requests
+	if reqMap != nil {
+		size = pvc.Spec.Resources.Requests["storage"]
+	}
+	sendEventOrIgnore(name, size.String(), stgType, analytics.VolumeProvision)
 	if stgType == "hostpath" {
 		return p.ProvisionHostPath(opts, pvCASConfig)
 	}
 	if stgType == "device" {
 		return p.ProvisionBlockDevice(opts, pvCASConfig)
 	}
-
 	return nil, fmt.Errorf("PV with StorageType %v is not supported", stgType)
 }
 
@@ -131,17 +140,38 @@ func (p *Provisioner) Delete(pv *v1.PersistentVolume) (err error) {
 	defer func() {
 		err = errors.Wrapf(err, "failed to delete volume %v", pv.Name)
 	}()
-
 	//Initiate clean up only when reclaim policy is not retain.
 	if pv.Spec.PersistentVolumeReclaimPolicy != v1.PersistentVolumeReclaimRetain {
 		//TODO: Determine the type of PV
 		pvType := GetLocalPVType(pv)
+		size := resource.Quantity{}
+		reqMap := pv.Spec.Capacity
+		if reqMap != nil {
+			size = pv.Spec.Capacity["storage"]
+		}
+
+		sendEventOrIgnore(pv.Name, size.String(), pvType, analytics.VolumeDeprovision)
 		if pvType == "local-device" {
 			return p.DeleteBlockDevice(pv)
 		}
 		return p.DeleteHostPath(pv)
 	}
-
 	glog.Infof("Retained volume %v", pv.Name)
 	return nil
+}
+
+// sendEventOrIgnore sends anonymous local-pv provision/delete events
+func sendEventOrIgnore(pvName, capacity, stgType, method string) {
+	if method == analytics.VolumeProvision {
+		stgType = "local-" + stgType
+	}
+	if menv.Truthy(menv.OpenEBSEnableAnalytics) {
+		analytics.New().Build().ApplicationBuilder().
+			SetVolumeType(stgType, method).
+			SetDocumentTitle(pvName).
+			SetLabel(analytics.EventLabelCapacity).
+			SetReplicaCount(analytics.LocalPVReplicaCount, method).
+			SetCategory(method).
+			SetVolumeCapacity(capacity).Send()
+	}
 }
