@@ -20,13 +20,10 @@ and modified to work with the configuration options used by OpenEBS
 package app
 
 import (
-	//"fmt"
 	"path/filepath"
-	//"strings"
 	"time"
 
 	"github.com/golang/glog"
-	//"github.com/pkg/errors"
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 
 	hostpath "github.com/openebs/maya/pkg/hostpath/v1alpha1"
@@ -69,60 +66,6 @@ func (pOpts *HelperPodOptions) validate() error {
 		return errors.Errorf("invalid empty name or path or node")
 	}
 	return nil
-}
-
-// getPathAndNodeForPV inspects the PV spec to determine the hostpath
-//  and the node of OpenEBS Local PV. Both types of OpenEBS Local PV
-//  (storage type = hostpath and device) use:
-//  -  LocalVolumeSource to specify the path and
-//  -  NodeAffinity to specify the node.
-//  Note: This function also takes care of deleting OpenEBS Local PVs
-//  provisioned in 0.9, which were using HostPathVolumeSource to
-//  specify the path.
-func (p *Provisioner) getPathAndNodeForPV(pv *corev1.PersistentVolume) (string, string, error) {
-	path := ""
-	local := pv.Spec.PersistentVolumeSource.Local
-	if local == nil {
-		//Handle the case of Local PV created in 0.9 using
-		//HostPathVolumeSource
-		hostPath := pv.Spec.PersistentVolumeSource.HostPath
-		if hostPath == nil {
-			return "", "", errors.Errorf("no HostPath set")
-		}
-		path = hostPath.Path
-	} else {
-		path = local.Path
-	}
-
-	nodeAffinity := pv.Spec.NodeAffinity
-	if nodeAffinity == nil {
-		return "", "", errors.Errorf("no NodeAffinity set")
-	}
-	required := nodeAffinity.Required
-	if required == nil {
-		return "", "", errors.Errorf("no NodeAffinity.Required set")
-	}
-
-	node := ""
-	for _, selectorTerm := range required.NodeSelectorTerms {
-		for _, expression := range selectorTerm.MatchExpressions {
-			if expression.Key == KeyNode &&
-				expression.Operator == corev1.NodeSelectorOpIn {
-				if len(expression.Values) != 1 {
-					return "", "", errors.Errorf("multiple values for the node affinity")
-				}
-				node = expression.Values[0]
-				break
-			}
-		}
-		if node != "" {
-			break
-		}
-	}
-	if node == "" {
-		return "", "", errors.Errorf("cannot find affinited node")
-	}
-	return path, node, nil
 }
 
 // createInitPod launches a helper(busybox) pod, to create the host path.
@@ -197,7 +140,6 @@ func (p *Provisioner) createInitPod(pOpts *HelperPodOptions) error {
 		return errors.Errorf("create process timeout after %v seconds", CmdTimeoutCounts)
 	}
 
-	//glog.Infof("Volume %v has been initialized on %v:%v", pOpts.name, pOpts.nodeName, pOpts.path)
 	return nil
 }
 
@@ -275,6 +217,5 @@ func (p *Provisioner) createCleanupPod(pOpts *HelperPodOptions) error {
 		return errors.Errorf("create process timeout after %v seconds", CmdTimeoutCounts)
 	}
 
-	glog.Infof("Volume %v has been cleaned on %v:%v", pOpts.name, pOpts.nodeName, pOpts.path)
 	return nil
 }

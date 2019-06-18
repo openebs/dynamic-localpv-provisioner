@@ -22,9 +22,8 @@ import (
 
 	pvController "github.com/kubernetes-sigs/sig-storage-lib-external-provisioner/controller"
 	mconfig "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	mPV "github.com/openebs/maya/pkg/kubernetes/persistentvolume/v1alpha1"
+	persistentvolume "github.com/openebs/maya/pkg/kubernetes/persistentvolume/v1alpha1"
 	"k8s.io/api/core/v1"
-	//metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // ProvisionHostPath is invoked by the Provisioner which expect HostPath PV
@@ -76,7 +75,7 @@ func (p *Provisioner) ProvisionHostPath(opts pvController.VolumeOptions, volumeC
 	//labels[string(v1alpha1.StorageClassKey)] = *className
 
 	//TODO Change the following to a builder pattern
-	pvObj, err := mPV.NewBuilder().
+	pvObj, err := persistentvolume.NewBuilder().
 		WithName(name).
 		WithLabels(labels).
 		WithReclaimPolicy(opts.PersistentVolumeReclaimPolicy).
@@ -105,9 +104,15 @@ func (p *Provisioner) DeleteHostPath(pv *v1.PersistentVolume) (err error) {
 	}()
 
 	//Determine the path and node of the Local PV.
-	path, node, err := p.getPathAndNodeForPV(pv)
-	if err != nil {
-		return err
+	pvObj := persistentvolume.NewForAPIObject(pv)
+	path := pvObj.GetPath()
+	if path == "" {
+		return errors.Errorf("no HostPath set")
+	}
+
+	node := pvObj.GetAffinitedNode()
+	if node == "" {
+		return errors.Errorf("cannot find affinited node")
 	}
 
 	//Initiate clean up only when reclaim policy is not retain.
