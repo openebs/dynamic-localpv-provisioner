@@ -95,8 +95,8 @@ func (p *Provisioner) createInitPod(pOpts *HelperPodOptions) error {
 			container.NewBuilder().
 				WithName("local-path-init").
 				WithImage(p.helperImage).
-				WithCommand(append(pOpts.cmdsForPath, filepath.Join("/data/", volumeDir))).
-				WithVolumeMounts([]corev1.VolumeMount{
+				WithCommandNew(append(pOpts.cmdsForPath, filepath.Join("/data/", volumeDir))).
+				WithVolumeMountsNew([]corev1.VolumeMount{
 					{
 						Name:      "data",
 						ReadOnly:  false,
@@ -172,8 +172,8 @@ func (p *Provisioner) createCleanupPod(pOpts *HelperPodOptions) error {
 			container.NewBuilder().
 				WithName("local-path-cleanup").
 				WithImage(p.helperImage).
-				WithCommand(append(pOpts.cmdsForPath, filepath.Join("/data/", volumeDir))).
-				WithVolumeMounts([]corev1.VolumeMount{
+				WithCommandNew(append(pOpts.cmdsForPath, filepath.Join("/data/", volumeDir))).
+				WithVolumeMountsNew([]corev1.VolumeMount{
 					{
 						Name:      "data",
 						ReadOnly:  false,
