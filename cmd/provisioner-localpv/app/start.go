@@ -75,6 +75,11 @@ func Start(cmd *cobra.Command) error {
 		return errors.Wrap(err, "Cannot start Provisioner: failed to get Kubernetes server version")
 	}
 
+	err = performPreupgradeTasks(kubeClient)
+	if err != nil {
+		return errors.Wrap(err, "failure in preupgrade tasks")
+	}
+
 	//Create a channel to receive shutdown signal to help
 	// with graceful exit of the provisioner.
 	stopCh := make(chan struct{})
