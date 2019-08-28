@@ -213,3 +213,12 @@ func GetLocalPVType(pv *v1.PersistentVolume) string {
 	}
 	return ""
 }
+
+// GetNodeHostname extracts the Hostname from the labels on the Node
+func GetNodeHostname(n *v1.Node) string {
+	hostname, found := n.Labels[KeyNodeHostname]
+	if found {
+		return hostname
+	}
+	return n.Name
+}

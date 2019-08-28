@@ -30,7 +30,7 @@ import (
 //  to be provisioned and a valid PV spec returned.
 func (p *Provisioner) ProvisionHostPath(opts pvController.VolumeOptions, volumeConfig *VolumeConfig) (*v1.PersistentVolume, error) {
 	pvc := opts.PVC
-	node := opts.SelectedNode
+	nodeHostname := GetNodeHostname(opts.SelectedNode)
 	name := opts.PVName
 	stgType := volumeConfig.GetStorageType()
 
@@ -39,7 +39,7 @@ func (p *Provisioner) ProvisionHostPath(opts pvController.VolumeOptions, volumeC
 		return nil, err
 	}
 
-	glog.Infof("Creating volume %v at %v:%v", name, node.Name, path)
+	glog.Infof("Creating volume %v at %v:%v", name, nodeHostname, path)
 
 	//Before using the path for local PV, make sure it is created.
 	initCmdsForPath := []string{"mkdir", "-m", "0777", "-p"}
@@ -47,7 +47,7 @@ func (p *Provisioner) ProvisionHostPath(opts pvController.VolumeOptions, volumeC
 		cmdsForPath: initCmdsForPath,
 		name:        name,
 		path:        path,
-		nodeName:    node.Name,
+		nodeName:    nodeHostname,
 	}
 
 	iErr := p.createInitPod(podOpts)
@@ -83,7 +83,7 @@ func (p *Provisioner) ProvisionHostPath(opts pvController.VolumeOptions, volumeC
 		WithVolumeMode(fs).
 		WithCapacityQty(pvc.Spec.Resources.Requests[v1.ResourceName(v1.ResourceStorage)]).
 		WithLocalHostDirectory(path).
-		WithNodeAffinity(node.Name).
+		WithNodeAffinity(nodeHostname).
 		Build()
 
 	if err != nil {

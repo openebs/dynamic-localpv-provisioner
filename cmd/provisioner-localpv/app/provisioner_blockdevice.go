@@ -31,7 +31,7 @@ import (
 //  with a Block Device
 func (p *Provisioner) ProvisionBlockDevice(opts pvController.VolumeOptions, volumeConfig *VolumeConfig) (*v1.PersistentVolume, error) {
 	pvc := opts.PVC
-	node := opts.SelectedNode
+	nodeHostname := GetNodeHostname(opts.SelectedNode)
 	name := opts.PVName
 	capacity := opts.PVC.Spec.Resources.Requests[v1.ResourceName(v1.ResourceStorage)]
 	stgType := volumeConfig.GetStorageType()
@@ -39,7 +39,7 @@ func (p *Provisioner) ProvisionBlockDevice(opts pvController.VolumeOptions, volu
 
 	//Extract the details to create a Block Device Claim
 	blkDevOpts := &HelperBlockDeviceOptions{
-		nodeName: node.Name,
+		nodeName: nodeHostname,
 		name:     name,
 		capacity: capacity.String(),
 	}
@@ -49,7 +49,7 @@ func (p *Provisioner) ProvisionBlockDevice(opts pvController.VolumeOptions, volu
 		glog.Infof("Initialize volume %v failed: %v", name, err)
 		return nil, err
 	}
-	glog.Infof("Creating volume %v on %v at %v(%v)", name, node.Name, path, blkPath)
+	glog.Infof("Creating volume %v on %v at %v(%v)", name, nodeHostname, path, blkPath)
 	if path == "" {
 		path = blkPath
 		glog.Infof("Using block device{%v} with fs{%v}", blkPath, fsType)
@@ -84,7 +84,7 @@ func (p *Provisioner) ProvisionBlockDevice(opts pvController.VolumeOptions, volu
 		WithVolumeMode(fs).
 		WithCapacityQty(pvc.Spec.Resources.Requests[v1.ResourceName(v1.ResourceStorage)]).
 		WithLocalHostPathFormat(path, fsType).
-		WithNodeAffinity(node.Name).
+		WithNodeAffinity(nodeHostname).
 		Build()
 
 	if err != nil {

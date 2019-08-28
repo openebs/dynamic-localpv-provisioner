@@ -50,9 +50,9 @@ import (
 )
 
 const (
-	//KeyNode represents the key values used for specifying the Node Affinity
+	//KeyNodeHostname represents the key values used for specifying the Node Affinity
 	// based on the hostname
-	KeyNode = "kubernetes.io/hostname"
+	KeyNodeHostname = "kubernetes.io/hostname"
 )
 
 // NewProvisioner will create a new Provisioner object and initialize
