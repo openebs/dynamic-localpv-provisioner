@@ -61,6 +61,10 @@ const (
 	// Some of the PVCs launched with older helm charts, still
 	// refer to the StorageClass via beta annotations.
 	betaStorageClassAnnotation = "volume.beta.kubernetes.io/storage-class"
+
+	// k8sNodeLabelKeyHostname is the label key used by Kubernetes
+	// to store the hostname on the node resource.
+	k8sNodeLabelKeyHostname = "kubernetes.io/hostname"
 )
 
 //GetVolumeConfig creates a new VolumeConfig struct by
@@ -80,7 +84,7 @@ func (p *Provisioner) GetVolumeConfig(pvName string, pvc *v1.PersistentVolumeCla
 
 	// extract and merge the cas config from storageclass
 	scCASConfigStr := sc.ObjectMeta.Annotations[string(mconfig.CASConfigKey)]
-	glog.Infof("SC %v has config:%v", *scName, scCASConfigStr)
+	glog.V(4).Infof("SC %v has config:%v", *scName, scCASConfigStr)
 	if len(strings.TrimSpace(scCASConfigStr)) != 0 {
 		scCASConfig, err := cast.UnMarshallToConfig(scCASConfigStr)
 		if err == nil {
@@ -215,10 +219,12 @@ func GetLocalPVType(pv *v1.PersistentVolume) string {
 }
 
 // GetNodeHostname extracts the Hostname from the labels on the Node
+// If hostname label `kubernetes.io/hostname` is not present
+// an empty string is returned.
 func GetNodeHostname(n *v1.Node) string {
-	hostname, found := n.Labels[KeyNodeHostname]
-	if found {
-		return hostname
+	hostname, found := n.Labels[k8sNodeLabelKeyHostname]
+	if !found {
+		return ""
 	}
-	return n.Name
+	return hostname
 }

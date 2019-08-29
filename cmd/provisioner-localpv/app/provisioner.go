@@ -49,12 +49,6 @@ import (
 	clientset "k8s.io/client-go/kubernetes"
 )
 
-const (
-	//KeyNodeHostname represents the key values used for specifying the Node Affinity
-	// based on the hostname
-	KeyNodeHostname = "kubernetes.io/hostname"
-)
-
 // NewProvisioner will create a new Provisioner object and initialize
 //  it with global information used across PV create and delete operations.
 func NewProvisioner(stopCh chan struct{}, kubeClient *clientset.Clientset) (*Provisioner, error) {
@@ -100,9 +94,13 @@ func (p *Provisioner) Provision(opts pvController.VolumeOptions) (*v1.Persistent
 			return nil, fmt.Errorf("Only support ReadWriteOnce access mode")
 		}
 	}
-	//node := opts.SelectedNode
+
 	if opts.SelectedNode == nil {
 		return nil, fmt.Errorf("configuration error, no node was specified")
+	}
+
+	if GetNodeHostname(opts.SelectedNode) == "" {
+		return nil, fmt.Errorf("configuration error, node{%v} hostname is empty", opts.SelectedNode.Name)
 	}
 
 	name := opts.PVName

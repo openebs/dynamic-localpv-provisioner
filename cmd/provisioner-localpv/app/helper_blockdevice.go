@@ -56,11 +56,11 @@ var (
 )
 
 // HelperBlockDeviceOptions contains the options that
-// will launch a BDC on a specific node (nodeName)
+// will launch a BDC on a specific node (nodeHostname)
 type HelperBlockDeviceOptions struct {
-	nodeName string
-	name     string
-	capacity string
+	nodeHostname string
+	name         string
+	capacity     string
 	//	deviceType string
 	bdcName string
 }
@@ -68,23 +68,23 @@ type HelperBlockDeviceOptions struct {
 // validate checks that the required fields to create BDC
 // are available
 func (blkDevOpts *HelperBlockDeviceOptions) validate() error {
-	glog.Infof("Validate Block Device Options")
-	if blkDevOpts.name == "" || blkDevOpts.nodeName == "" {
-		return errors.Errorf("invalid empty name or node")
+	glog.V(4).Infof("Validate Block Device Options")
+	if blkDevOpts.name == "" || blkDevOpts.nodeHostname == "" {
+		return errors.Errorf("invalid empty name or node hostname")
 	}
 	return nil
 }
 
 // hasBDC checks if the bdcName has already been determined
 func (blkDevOpts *HelperBlockDeviceOptions) hasBDC() bool {
-	glog.Infof("Already has BDC %t", blkDevOpts.bdcName != "")
+	glog.V(4).Infof("Already has BDC %t", blkDevOpts.bdcName != "")
 	return blkDevOpts.bdcName != ""
 }
 
 // setBlcokDeviceClaimFromPV inspects the PV and fetches the BDC associated
 //  with the Local PV.
 func (blkDevOpts *HelperBlockDeviceOptions) setBlockDeviceClaimFromPV(pv *corev1.PersistentVolume) {
-	glog.Infof("Setting Block Device Claim From PV")
+	glog.V(4).Infof("Setting Block Device Claim From PV")
 	bdc, found := pv.Annotations[bdcStorageClassAnnotation]
 	if found {
 		blkDevOpts.bdcName = bdc
@@ -94,7 +94,7 @@ func (blkDevOpts *HelperBlockDeviceOptions) setBlockDeviceClaimFromPV(pv *corev1
 // createBlockDeviceClaim creates a new BlockDeviceClaim for a given
 //  Local PV
 func (p *Provisioner) createBlockDeviceClaim(blkDevOpts *HelperBlockDeviceOptions) error {
-	glog.Infof("Creating Block Device Claim")
+	glog.V(4).Infof("Creating Block Device Claim")
 	if err := blkDevOpts.validate(); err != nil {
 		return err
 	}
@@ -122,7 +122,7 @@ func (p *Provisioner) createBlockDeviceClaim(blkDevOpts *HelperBlockDeviceOption
 	bdcObj, err := blockdeviceclaim.NewBuilder().
 		WithNamespace(p.namespace).
 		WithName(bdcName).
-		WithHostName(blkDevOpts.nodeName).
+		WithHostName(blkDevOpts.nodeHostname).
 		WithCapacity(blkDevOpts.capacity).
 		WithFinalizer(LocalPVFinalizer).
 		Build()
@@ -151,7 +151,7 @@ func (p *Provisioner) createBlockDeviceClaim(blkDevOpts *HelperBlockDeviceOption
 // or creates one. From the BDC, fetch the BD and get the path
 func (p *Provisioner) getBlockDevicePath(blkDevOpts *HelperBlockDeviceOptions) (string, string, error) {
 
-	glog.Infof("Getting Block Device Path")
+	glog.V(4).Infof("Getting Block Device Path")
 	if !blkDevOpts.hasBDC() {
 		err := p.createBlockDeviceClaim(blkDevOpts)
 		if err != nil {
@@ -206,7 +206,7 @@ func (p *Provisioner) getBlockDevicePath(blkDevOpts *HelperBlockDeviceOptions) (
 // deleteBlockDeviceClaim deletes the BlockDeviceClaim associated with the
 //  PV being deleted.
 func (p *Provisioner) deleteBlockDeviceClaim(blkDevOpts *HelperBlockDeviceOptions) error {
-	glog.Infof("Delete Block Device Claim")
+	glog.V(4).Infof("Delete Block Device Claim")
 	if !blkDevOpts.hasBDC() {
 		return nil
 	}
@@ -230,7 +230,7 @@ func (p *Provisioner) deleteBlockDeviceClaim(blkDevOpts *HelperBlockDeviceOption
 
 //
 func (p *Provisioner) removeFinalizer(blkDevOpts *HelperBlockDeviceOptions) error {
-	glog.Info("removing local-pv finalizer on the BDC")
+	glog.V(4).Info("removing local-pv finalizer on the BDC")
 
 	bdc, err := blockdeviceclaim.NewKubeClient().
 		WithNamespace(p.namespace).

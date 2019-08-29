@@ -42,28 +42,31 @@ var (
 )
 
 // HelperPodOptions contains the options that
-// will launch a Pod on a specific node (nodeName)
+// will launch a Pod on a specific node (nodeHostname)
 // to execute a command (cmdsForPath) on a given
 // volume path (path)
 type HelperPodOptions struct {
-	//nodeName represents the host where pod should be launched.
-	nodeName string
+	//nodeHostname represents the hostname of the node where pod should be launched.
+	nodeHostname string
+
 	//name is the name of the PV for which the pod is being launched
 	name string
+
 	//cmdsForPath represent either create (mkdir) or delete(rm)
 	//commands that need to be executed on the volume path.
 	cmdsForPath []string
+
 	//path is the volume hostpath directory
 	path string
 }
 
 // validate checks that the required fields to launch
 // helper pods are valid. helper pods are used to either
-// create or delete a directory (path) on a given node (nodeName).
+// create or delete a directory (path) on a given node hostname (nodeHostname).
 // name refers to the volume being created or deleted.
 func (pOpts *HelperPodOptions) validate() error {
-	if pOpts.name == "" || pOpts.path == "" || pOpts.nodeName == "" {
-		return errors.Errorf("invalid empty name or path or node")
+	if pOpts.name == "" || pOpts.path == "" || pOpts.nodeHostname == "" {
+		return errors.Errorf("invalid empty name or hostpath or hostname")
 	}
 	return nil
 }
@@ -90,7 +93,7 @@ func (p *Provisioner) createInitPod(pOpts *HelperPodOptions) error {
 	initPod, _ := pod.NewBuilder().
 		WithName("init-" + pOpts.name).
 		WithRestartPolicy(corev1.RestartPolicyNever).
-		WithNodeName(pOpts.nodeName).
+		WithNodeSelectorHostnameNew(pOpts.nodeHostname).
 		WithContainerBuilder(
 			container.NewBuilder().
 				WithName("local-path-init").
@@ -167,7 +170,7 @@ func (p *Provisioner) createCleanupPod(pOpts *HelperPodOptions) error {
 	cleanerPod, _ := pod.NewBuilder().
 		WithName("cleanup-" + pOpts.name).
 		WithRestartPolicy(corev1.RestartPolicyNever).
-		WithNodeName(pOpts.nodeName).
+		WithNodeSelectorHostnameNew(pOpts.nodeHostname).
 		WithContainerBuilder(
 			container.NewBuilder().
 				WithName("local-path-cleanup").
