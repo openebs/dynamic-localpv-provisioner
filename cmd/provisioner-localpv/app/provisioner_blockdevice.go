@@ -17,13 +17,14 @@ limitations under the License.
 package app
 
 import (
-	"github.com/golang/glog"
 	"github.com/pkg/errors"
+	"k8s.io/klog"
 
-	pvController "github.com/kubernetes-sigs/sig-storage-lib-external-provisioner/controller"
+	pvController "sigs.k8s.io/sig-storage-lib-external-provisioner/controller"
+	//pvController "github.com/kubernetes-sigs/sig-storage-lib-external-provisioner/controller"
 	mconfig "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	mPV "github.com/openebs/maya/pkg/kubernetes/persistentvolume/v1alpha1"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	//metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -46,13 +47,13 @@ func (p *Provisioner) ProvisionBlockDevice(opts pvController.VolumeOptions, volu
 
 	path, blkPath, err := p.getBlockDevicePath(blkDevOpts)
 	if err != nil {
-		glog.Infof("Initialize volume %v failed: %v", name, err)
+		klog.Infof("Initialize volume %v failed: %v", name, err)
 		return nil, err
 	}
-	glog.Infof("Creating volume %v on %v at %v(%v)", name, nodeHostname, path, blkPath)
+	klog.Infof("Creating volume %v on %v at %v(%v)", name, nodeHostname, path, blkPath)
 	if path == "" {
 		path = blkPath
-		glog.Infof("Using block device{%v} with fs{%v}", blkPath, fsType)
+		klog.Infof("Using block device{%v} with fs{%v}", blkPath, fsType)
 	}
 
 	// TODO
@@ -113,10 +114,10 @@ func (p *Provisioner) DeleteBlockDevice(pv *v1.PersistentVolume) (err error) {
 	//Initiate clean up only when reclaim policy is not retain.
 	//TODO: this part of the code could be eliminated by setting up
 	// BDC owner reference to PVC.
-	glog.Infof("Release the Block Device Claim %v for PV %v", blkDevOpts.bdcName, pv.Name)
+	klog.Infof("Release the Block Device Claim %v for PV %v", blkDevOpts.bdcName, pv.Name)
 
 	if err := p.deleteBlockDeviceClaim(blkDevOpts); err != nil {
-		glog.Infof("clean up volume %v failed: %v", pv.Name, err)
+		klog.Infof("clean up volume %v failed: %v", pv.Name, err)
 		return err
 	}
 	return nil

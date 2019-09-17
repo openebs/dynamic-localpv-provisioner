@@ -21,7 +21,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 )
 
 //RegisterShutdownChannel closes the channel when signaled for termination
@@ -30,7 +30,7 @@ func RegisterShutdownChannel(done chan struct{}) {
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
 		sig := <-sigs
-		glog.Infof("Receive %v to exit", sig)
+		klog.Infof("Receive %v to exit", sig)
 		close(done)
 	}()
 }

@@ -20,11 +20,12 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/golang/glog"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"k8s.io/klog"
 
-	pvController "github.com/kubernetes-sigs/sig-storage-lib-external-provisioner/controller"
+	pvController "sigs.k8s.io/sig-storage-lib-external-provisioner/controller"
+	//	pvController "github.com/kubernetes-sigs/sig-storage-lib-external-provisioner/controller"
 	mKube "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
 )
@@ -57,7 +58,7 @@ func StartProvisioner() (*cobra.Command, error) {
 
 // Start will initialize and run the dynamic provisioner daemon
 func Start(cmd *cobra.Command) error {
-	glog.Infof("Starting Provisioner...")
+	klog.Infof("Starting Provisioner...")
 
 	// Dynamic Provisioner can run successfully if it can establish
 	// connection to the Kubernetes Cluster. mKube helps with
@@ -101,10 +102,10 @@ func Start(cmd *cobra.Command) error {
 		provisioner,
 		serverVersion.GitVersion,
 	)
-	glog.V(4).Info("Provisioner started")
+	klog.V(4).Info("Provisioner started")
 	//Run the provisioner till a shutdown signal is received.
 	pc.Run(stopCh)
-	glog.V(4).Info("Provisioner stopped")
+	klog.V(4).Info("Provisioner stopped")
 
 	return nil
 }

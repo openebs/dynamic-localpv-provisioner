@@ -23,8 +23,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/golang/glog"
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
+	"k8s.io/klog"
 
 	hostpath "github.com/openebs/maya/pkg/hostpath/v1alpha1"
 
@@ -123,7 +123,7 @@ func (p *Provisioner) createInitPod(pOpts *HelperPodOptions) error {
 	defer func() {
 		e := p.kubeClient.CoreV1().Pods(p.namespace).Delete(iPod.Name, &metav1.DeleteOptions{})
 		if e != nil {
-			glog.Errorf("unable to delete the helper pod: %v", e)
+			klog.Errorf("unable to delete the helper pod: %v", e)
 		}
 	}()
 
@@ -200,7 +200,7 @@ func (p *Provisioner) createCleanupPod(pOpts *HelperPodOptions) error {
 	defer func() {
 		e := p.kubeClient.CoreV1().Pods(p.namespace).Delete(cPod.Name, &metav1.DeleteOptions{})
 		if e != nil {
-			glog.Errorf("unable to delete the helper pod: %v", e)
+			klog.Errorf("unable to delete the helper pod: %v", e)
 		}
 	}()
 

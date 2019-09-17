@@ -18,18 +18,17 @@ limitations under the License.
 package app
 
 import (
-	//"fmt"
-	//"path/filepath"
 	"strings"
 
-	"github.com/golang/glog"
 	mconfig "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	cast "github.com/openebs/maya/pkg/castemplate/v1alpha1"
 	hostpath "github.com/openebs/maya/pkg/hostpath/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
+	"k8s.io/klog"
+
 	//"github.com/pkg/errors"
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	//storagev1 "k8s.io/api/storage/v1"
 )
@@ -84,7 +83,7 @@ func (p *Provisioner) GetVolumeConfig(pvName string, pvc *v1.PersistentVolumeCla
 
 	// extract and merge the cas config from storageclass
 	scCASConfigStr := sc.ObjectMeta.Annotations[string(mconfig.CASConfigKey)]
-	glog.V(4).Infof("SC %v has config:%v", *scName, scCASConfigStr)
+	klog.V(4).Infof("SC %v has config:%v", *scName, scCASConfigStr)
 	if len(strings.TrimSpace(scCASConfigStr)) != 0 {
 		scCASConfig, err := cast.UnMarshallToConfig(scCASConfigStr)
 		if err == nil {

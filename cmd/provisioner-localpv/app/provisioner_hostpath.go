@@ -17,13 +17,14 @@ limitations under the License.
 package app
 
 import (
-	"github.com/golang/glog"
 	"github.com/pkg/errors"
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/klog"
 
-	pvController "github.com/kubernetes-sigs/sig-storage-lib-external-provisioner/controller"
+	pvController "sigs.k8s.io/sig-storage-lib-external-provisioner/controller"
+	//pvController "github.com/kubernetes-sigs/sig-storage-lib-external-provisioner/controller"
 	mconfig "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	persistentvolume "github.com/openebs/maya/pkg/kubernetes/persistentvolume/v1alpha1"
-	"k8s.io/api/core/v1"
 )
 
 // ProvisionHostPath is invoked by the Provisioner which expect HostPath PV
@@ -39,7 +40,7 @@ func (p *Provisioner) ProvisionHostPath(opts pvController.VolumeOptions, volumeC
 		return nil, err
 	}
 
-	glog.Infof("Creating volume %v at %v:%v", name, nodeHostname, path)
+	klog.Infof("Creating volume %v at %v:%v", name, nodeHostname, path)
 
 	//Before using the path for local PV, make sure it is created.
 	initCmdsForPath := []string{"mkdir", "-m", "0777", "-p"}
@@ -52,7 +53,7 @@ func (p *Provisioner) ProvisionHostPath(opts pvController.VolumeOptions, volumeC
 
 	iErr := p.createInitPod(podOpts)
 	if iErr != nil {
-		glog.Infof("Initialize volume %v failed: %v", name, iErr)
+		klog.Infof("Initialize volume %v failed: %v", name, iErr)
 		return nil, iErr
 	}
 
@@ -116,7 +117,7 @@ func (p *Provisioner) DeleteHostPath(pv *v1.PersistentVolume) (err error) {
 	}
 
 	//Initiate clean up only when reclaim policy is not retain.
-	glog.Infof("Deleting volume %v at %v:%v", pv.Name, hostname, path)
+	klog.Infof("Deleting volume %v at %v:%v", pv.Name, hostname, path)
 	cleanupCmdsForPath := []string{"rm", "-rf"}
 	podOpts := &HelperPodOptions{
 		cmdsForPath:  cleanupCmdsForPath,

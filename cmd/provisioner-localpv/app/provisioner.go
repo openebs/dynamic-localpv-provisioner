@@ -35,10 +35,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/golang/glog"
 	"github.com/pkg/errors"
+	"k8s.io/klog"
 
-	pvController "github.com/kubernetes-sigs/sig-storage-lib-external-provisioner/controller"
+	pvController "sigs.k8s.io/sig-storage-lib-external-provisioner/controller"
+	//pvController "github.com/kubernetes-sigs/sig-storage-lib-external-provisioner/controller"
 	mconfig "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	menv "github.com/openebs/maya/pkg/env/v1alpha1"
 	analytics "github.com/openebs/maya/pkg/usage"
@@ -154,7 +155,7 @@ func (p *Provisioner) Delete(pv *v1.PersistentVolume) (err error) {
 		}
 		return p.DeleteHostPath(pv)
 	}
-	glog.Infof("Retained volume %v", pv.Name)
+	klog.Infof("Retained volume %v", pv.Name)
 	return nil
 }
 
