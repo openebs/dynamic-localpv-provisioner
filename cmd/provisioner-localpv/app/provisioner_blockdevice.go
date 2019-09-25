@@ -17,6 +17,7 @@ limitations under the License.
 package app
 
 import (
+	"github.com/openebs/maya/pkg/alertlog"
 	"github.com/pkg/errors"
 	"k8s.io/klog"
 
@@ -48,6 +49,13 @@ func (p *Provisioner) ProvisionBlockDevice(opts pvController.VolumeOptions, volu
 	path, blkPath, err := p.getBlockDevicePath(blkDevOpts)
 	if err != nil {
 		klog.Infof("Initialize volume %v failed: %v", name, err)
+		alertlog.Logger.Errorw("",
+			"eventcode", "cstor.local.pv.provision.failure",
+			"msg", "Failed to provision CStor Local PV",
+			"rname", opts.PVName,
+			"reason", "Block device initialization failed",
+			"storagetype", stgType,
+		)
 		return nil, err
 	}
 	klog.Infof("Creating volume %v on %v at %v(%v)", name, nodeHostname, path, blkPath)
@@ -89,11 +97,22 @@ func (p *Provisioner) ProvisionBlockDevice(opts pvController.VolumeOptions, volu
 		Build()
 
 	if err != nil {
+		alertlog.Logger.Errorw("",
+			"eventcode", "cstor.local.pv.provision.failure",
+			"msg", "Failed to provision CStor Local PV",
+			"rname", opts.PVName,
+			"reason", "Building volume failed",
+			"storagetype", stgType,
+		)
 		return nil, err
 	}
-
+	alertlog.Logger.Infow("",
+		"eventcode", "cstor.local.pv.provision.success",
+		"msg", "Successfully provisioned CStor Local PV",
+		"rname", opts.PVName,
+		"storagetype", stgType,
+	)
 	return pvObj, nil
-
 }
 
 // DeleteBlockDevice is invoked by the PVC controller to perform clean-up

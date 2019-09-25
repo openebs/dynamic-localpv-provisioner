@@ -33,11 +33,11 @@ package app
 
 import (
 	"fmt"
+	"github.com/openebs/maya/pkg/alertlog"
 	"strings"
 
 	"github.com/pkg/errors"
 	"k8s.io/klog"
-
 	pvController "sigs.k8s.io/sig-storage-lib-external-provisioner/controller"
 	//pvController "github.com/kubernetes-sigs/sig-storage-lib-external-provisioner/controller"
 	mconfig "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
@@ -128,6 +128,13 @@ func (p *Provisioner) Provision(opts pvController.VolumeOptions) (*v1.Persistent
 	if stgType == "device" {
 		return p.ProvisionBlockDevice(opts, pvCASConfig)
 	}
+	alertlog.Logger.Errorw("",
+		"eventcode", "cstor.local.pv.provision.failure",
+		"msg", "Failed to provision CStor Local PV",
+		"rname", opts.PVName,
+		"reason", "StorageType not supported",
+		"storagetype", stgType,
+	)
 	return nil, fmt.Errorf("PV with StorageType %v is not supported", stgType)
 }
 
@@ -151,11 +158,37 @@ func (p *Provisioner) Delete(pv *v1.PersistentVolume) (err error) {
 
 		sendEventOrIgnore(pv.Name, size.String(), pvType, analytics.VolumeDeprovision)
 		if pvType == "local-device" {
-			return p.DeleteBlockDevice(pv)
+			err := p.DeleteBlockDevice(pv)
+			if err != nil {
+				alertlog.Logger.Errorw("",
+					"eventcode", "cstor.local.pv.delete.failure",
+					"msg", "Failed to delete CStor Local PV",
+					"rname", pv.Name,
+					"reason", "failed to delete block device",
+					"storagetype", pvType,
+				)
+			}
+			return err
 		}
-		return p.DeleteHostPath(pv)
+
+		err = p.DeleteHostPath(pv)
+		if err != nil {
+			alertlog.Logger.Errorw("",
+				"eventcode", "cstor.local.pv.delete.failure",
+				"msg", "Failed to delete CStor Local PV",
+				"rname", pv.Name,
+				"reason", "failed to delete host path",
+				"storagetype", pvType,
+			)
+		}
+		return err
 	}
 	klog.Infof("Retained volume %v", pv.Name)
+	alertlog.Logger.Infow("",
+		"eventcode", "cstor.local.pv.delete.success",
+		"msg", "Successfully deleted CStor Local PV",
+		"rname", pv.Name,
+	)
 	return nil
 }
 
