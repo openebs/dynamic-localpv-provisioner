@@ -17,6 +17,7 @@ limitations under the License.
 package app
 
 import (
+	"github.com/openebs/maya/pkg/alertlog"
 	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/klog"
@@ -37,6 +38,13 @@ func (p *Provisioner) ProvisionHostPath(opts pvController.VolumeOptions, volumeC
 
 	path, err := volumeConfig.GetPath()
 	if err != nil {
+		alertlog.Logger.Errorw("",
+			"eventcode", "cstor.local.pv.provision.failure",
+			"msg", "Failed to provision CStor Local PV",
+			"rname", opts.PVName,
+			"reason", "Unable to get volume config",
+			"storagetype", stgType,
+		)
 		return nil, err
 	}
 
@@ -54,6 +62,13 @@ func (p *Provisioner) ProvisionHostPath(opts pvController.VolumeOptions, volumeC
 	iErr := p.createInitPod(podOpts)
 	if iErr != nil {
 		klog.Infof("Initialize volume %v failed: %v", name, iErr)
+		alertlog.Logger.Errorw("",
+			"eventcode", "cstor.local.pv.provision.failure",
+			"msg", "Failed to provision CStor Local PV",
+			"rname", opts.PVName,
+			"reason", "Volume initialization failed",
+			"storagetype", stgType,
+		)
 		return nil, iErr
 	}
 
@@ -88,11 +103,22 @@ func (p *Provisioner) ProvisionHostPath(opts pvController.VolumeOptions, volumeC
 		Build()
 
 	if err != nil {
+		alertlog.Logger.Errorw("",
+			"eventcode", "cstor.local.pv.provision.failure",
+			"msg", "Failed to provision CStor Local PV",
+			"rname", opts.PVName,
+			"reason", "failed to build persistent volume",
+			"storagetype", stgType,
+		)
 		return nil, err
 	}
-
+	alertlog.Logger.Infow("",
+		"eventcode", "cstor.local.pv.provision.success",
+		"msg", "Successfully provisioned CStor Local PV",
+		"rname", opts.PVName,
+		"storagetype", stgType,
+	)
 	return pvObj, nil
-
 }
 
 // DeleteHostPath is invoked by the PVC controller to perform clean-up
