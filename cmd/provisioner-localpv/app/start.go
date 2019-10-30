@@ -19,9 +19,9 @@ package app
 import (
 	"flag"
 	"fmt"
-
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	"k8s.io/klog"
 
 	pvController "sigs.k8s.io/sig-storage-lib-external-provisioner/controller"
@@ -49,6 +49,10 @@ func StartProvisioner() (*cobra.Command, error) {
 			util.CheckErr(Start(cmd), util.Fatal)
 		},
 	}
+
+	// add the default command line flags as global flags to cobra command
+	// flagset
+	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 
 	// Hack: Without the following line, the logs will be prefixed with Error
 	_ = flag.CommandLine.Parse([]string{})
