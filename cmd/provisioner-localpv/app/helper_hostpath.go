@@ -35,6 +35,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+type podConfig struct {
+	pOpts                         *HelperPodOptions
+	parentDir, volumeDir, podName string
+}
+
 var (
 	//CmdTimeoutCounts specifies the duration to wait for cleanup pod
 	//to be launched.
@@ -75,6 +80,8 @@ func (pOpts *HelperPodOptions) validate() error {
 //  The local pv expect the hostpath to be already present before mounting
 //  into pod. Validate that the local pv host path is not created under root.
 func (p *Provisioner) createInitPod(pOpts *HelperPodOptions) error {
+	var config podConfig
+	config.pOpts, config.podName = pOpts, "init"
 	//err := pOpts.validate()
 	if err := pOpts.validate(); err != nil {
 		return err
@@ -83,64 +90,21 @@ func (p *Provisioner) createInitPod(pOpts *HelperPodOptions) error {
 	// Initialize HostPath builder and validate that
 	// volume directory is not directly under root.
 	// Extract the base path and the volume unique path.
-	parentDir, volumeDir, vErr := hostpath.NewBuilder().WithPath(pOpts.path).
+	var vErr error
+	config.parentDir, config.volumeDir, vErr = hostpath.NewBuilder().WithPath(pOpts.path).
 		WithCheckf(hostpath.IsNonRoot(), "volume directory {%v} should not be under root directory", pOpts.path).
 		ExtractSubPath()
 	if vErr != nil {
 		return vErr
 	}
 
-	initPod, _ := pod.NewBuilder().
-		WithName("init-" + pOpts.name).
-		WithRestartPolicy(corev1.RestartPolicyNever).
-		WithNodeSelectorHostnameNew(pOpts.nodeHostname).
-		WithContainerBuilder(
-			container.NewBuilder().
-				WithName("local-path-init").
-				WithImage(p.helperImage).
-				WithCommandNew(append(pOpts.cmdsForPath, filepath.Join("/data/", volumeDir))).
-				WithVolumeMountsNew([]corev1.VolumeMount{
-					{
-						Name:      "data",
-						ReadOnly:  false,
-						MountPath: "/data/",
-					},
-				}),
-		).
-		WithVolumeBuilder(
-			volume.NewBuilder().
-				WithName("data").
-				WithHostDirectory(parentDir),
-		).
-		Build()
-
-	//Launch the init pod.
-	iPod, err := p.kubeClient.CoreV1().Pods(p.namespace).Create(initPod)
+	iPod, err := p.launchPod(config)
 	if err != nil {
 		return err
 	}
 
-	defer func() {
-		e := p.kubeClient.CoreV1().Pods(p.namespace).Delete(iPod.Name, &metav1.DeleteOptions{})
-		if e != nil {
-			klog.Errorf("unable to delete the helper pod: %v", e)
-		}
-	}()
-
-	//Wait for the cleanup pod to complete it job and exit
-	completed := false
-	for i := 0; i < CmdTimeoutCounts; i++ {
-		checkPod, err := p.kubeClient.CoreV1().Pods(p.namespace).Get(iPod.Name, metav1.GetOptions{})
-		if err != nil {
-			return err
-		} else if checkPod.Status.Phase == corev1.PodSucceeded {
-			completed = true
-			break
-		}
-		time.Sleep(1 * time.Second)
-	}
-	if !completed {
-		return errors.Errorf("create process timeout after %v seconds", CmdTimeoutCounts)
+	if err := p.exitPod(iPod); err != nil {
+		return err
 	}
 
 	return nil
@@ -152,6 +116,8 @@ func (p *Provisioner) createInitPod(pOpts *HelperPodOptions) error {
 //  it extracts the base path and the PV path. The helper pod is then launched
 //  by mounting the base path - and performing a delete on the unique PV path.
 func (p *Provisioner) createCleanupPod(pOpts *HelperPodOptions) error {
+	var config podConfig
+	config.pOpts, config.podName = pOpts, "cleanup"
 	//err := pOpts.validate()
 	if err := pOpts.validate(); err != nil {
 		return err
@@ -160,22 +126,35 @@ func (p *Provisioner) createCleanupPod(pOpts *HelperPodOptions) error {
 	// Initialize HostPath builder and validate that
 	// volume directory is not directly under root.
 	// Extract the base path and the volume unique path.
-	parentDir, volumeDir, vErr := hostpath.NewBuilder().WithPath(pOpts.path).
+	var vErr error
+	config.parentDir, config.volumeDir, vErr = hostpath.NewBuilder().WithPath(pOpts.path).
 		WithCheckf(hostpath.IsNonRoot(), "volume directory {%v} should not be under root directory", pOpts.path).
 		ExtractSubPath()
 	if vErr != nil {
 		return vErr
 	}
 
-	cleanerPod, _ := pod.NewBuilder().
-		WithName("cleanup-" + pOpts.name).
+	cPod, err := p.launchPod(config)
+	if err != nil {
+		return err
+	}
+
+	if err := p.exitPod(cPod); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (p *Provisioner) launchPod(config podConfig) (*corev1.Pod, error) {
+	helperPod, _ := pod.NewBuilder().
+		WithName(config.podName + "-" + config.pOpts.name).
 		WithRestartPolicy(corev1.RestartPolicyNever).
-		WithNodeSelectorHostnameNew(pOpts.nodeHostname).
+		WithNodeSelectorHostnameNew(config.pOpts.nodeHostname).
 		WithContainerBuilder(
 			container.NewBuilder().
-				WithName("local-path-cleanup").
+				WithName("local-path-" + config.podName).
 				WithImage(p.helperImage).
-				WithCommandNew(append(pOpts.cmdsForPath, filepath.Join("/data/", volumeDir))).
+				WithCommandNew(append(config.pOpts.cmdsForPath, filepath.Join("/data/", config.volumeDir))).
 				WithVolumeMountsNew([]corev1.VolumeMount{
 					{
 						Name:      "data",
@@ -187,27 +166,27 @@ func (p *Provisioner) createCleanupPod(pOpts *HelperPodOptions) error {
 		WithVolumeBuilder(
 			volume.NewBuilder().
 				WithName("data").
-				WithHostDirectory(parentDir),
+				WithHostDirectory(config.parentDir),
 		).
 		Build()
 
-	//Launch the cleanup pod.
-	cPod, err := p.kubeClient.CoreV1().Pods(p.namespace).Create(cleanerPod)
-	if err != nil {
-		return err
-	}
+	//Launch the helper pod.
+	hPod, err := p.kubeClient.CoreV1().Pods(p.namespace).Create(helperPod)
+	return hPod, err
+}
 
+func (p *Provisioner) exitPod(hPod *corev1.Pod) error {
 	defer func() {
-		e := p.kubeClient.CoreV1().Pods(p.namespace).Delete(cPod.Name, &metav1.DeleteOptions{})
+		e := p.kubeClient.CoreV1().Pods(p.namespace).Delete(hPod.Name, &metav1.DeleteOptions{})
 		if e != nil {
 			klog.Errorf("unable to delete the helper pod: %v", e)
 		}
 	}()
 
-	//Wait for the cleanup pod to complete it job and exit
+	//Wait for the helper pod to complete it job and exit
 	completed := false
 	for i := 0; i < CmdTimeoutCounts; i++ {
-		checkPod, err := p.kubeClient.CoreV1().Pods(p.namespace).Get(cPod.Name, metav1.GetOptions{})
+		checkPod, err := p.kubeClient.CoreV1().Pods(p.namespace).Get(hPod.Name, metav1.GetOptions{})
 		if err != nil {
 			return err
 		} else if checkPod.Status.Phase == corev1.PodSucceeded {
@@ -219,6 +198,5 @@ func (p *Provisioner) createCleanupPod(pOpts *HelperPodOptions) error {
 	if !completed {
 		return errors.Errorf("create process timeout after %v seconds", CmdTimeoutCounts)
 	}
-
 	return nil
 }
