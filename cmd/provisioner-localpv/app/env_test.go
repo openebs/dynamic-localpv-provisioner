@@ -124,3 +124,36 @@ func TestGetDefaultBasePath(t *testing.T) {
 		})
 	}
 }
+
+func TestGetOpenEBSServiceAccountName(t *testing.T) {
+	testCases := map[string]struct {
+		value         string
+		expectedValue string
+	}{
+		"Missing env variable": {
+			value:         "",
+			expectedValue: "",
+		},
+		"Present env variable with value": {
+			value:         "value1",
+			expectedValue: "value1",
+		},
+		"Present env variable with whitespaces": {
+			value:         " ",
+			expectedValue: "",
+		},
+	}
+	for k, v := range testCases {
+		v := v
+		t.Run(k, func(t *testing.T) {
+			if len(v.value) != 0 {
+				os.Setenv(string(menv.OpenEBSServiceAccount), v.value)
+			}
+			actualValue := getOpenEBSServiceAccountName()
+			if !reflect.DeepEqual(actualValue, v.expectedValue) {
+				t.Errorf("expected %s got %s", v.expectedValue, actualValue)
+			}
+			os.Unsetenv(string(menv.OpenEBSServiceAccount))
+		})
+	}
+}

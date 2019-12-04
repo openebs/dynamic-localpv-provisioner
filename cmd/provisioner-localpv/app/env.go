@@ -25,6 +25,7 @@ import (
 // provisioner also uses the following:
 //   OPENEBS_NAMESPACE
 //   NODE_NAME
+//   OPENEBS_SERVICE_ACCOUNT
 //   OPENEBS_IO_K8S_MASTER
 //   OPENEBS_IO_KUBE_CONFIG
 
@@ -53,4 +54,8 @@ func getDefaultHelperImage() string {
 
 func getDefaultBasePath() string {
 	return menv.GetOrDefault(ProvisionerBasePath, string(defaultBasePath))
+}
+
+func getOpenEBSServiceAccountName() string {
+	return menv.Get(menv.OpenEBSServiceAccount)
 }

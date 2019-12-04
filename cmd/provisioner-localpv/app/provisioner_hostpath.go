@@ -35,6 +35,7 @@ func (p *Provisioner) ProvisionHostPath(opts pvController.VolumeOptions, volumeC
 	nodeHostname := GetNodeHostname(opts.SelectedNode)
 	name := opts.PVName
 	stgType := volumeConfig.GetStorageType()
+	saName := getOpenEBSServiceAccountName()
 
 	path, err := volumeConfig.GetPath()
 	if err != nil {
@@ -53,10 +54,11 @@ func (p *Provisioner) ProvisionHostPath(opts pvController.VolumeOptions, volumeC
 	//Before using the path for local PV, make sure it is created.
 	initCmdsForPath := []string{"mkdir", "-m", "0777", "-p"}
 	podOpts := &HelperPodOptions{
-		cmdsForPath:  initCmdsForPath,
-		name:         name,
-		path:         path,
-		nodeHostname: nodeHostname,
+		cmdsForPath:        initCmdsForPath,
+		name:               name,
+		path:               path,
+		nodeHostname:       nodeHostname,
+		serviceAccountName: saName,
 	}
 
 	iErr := p.createInitPod(podOpts)

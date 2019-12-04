@@ -63,6 +63,9 @@ type HelperPodOptions struct {
 
 	//path is the volume hostpath directory
 	path string
+
+	// serviceAccountName is the service account with which the pod should be launched
+	serviceAccountName string
 }
 
 // validate checks that the required fields to launch
@@ -70,8 +73,11 @@ type HelperPodOptions struct {
 // create or delete a directory (path) on a given node hostname (nodeHostname).
 // name refers to the volume being created or deleted.
 func (pOpts *HelperPodOptions) validate() error {
-	if pOpts.name == "" || pOpts.path == "" || pOpts.nodeHostname == "" {
-		return errors.Errorf("invalid empty name or hostpath or hostname")
+	if pOpts.name == "" ||
+		pOpts.path == "" ||
+		pOpts.nodeHostname == "" ||
+		pOpts.serviceAccountName == "" {
+		return errors.Errorf("invalid empty name or hostpath or hostname or service account name")
 	}
 	return nil
 }
@@ -146,10 +152,16 @@ func (p *Provisioner) createCleanupPod(pOpts *HelperPodOptions) error {
 }
 
 func (p *Provisioner) launchPod(config podConfig) (*corev1.Pod, error) {
+	// the helper pod need to be launched in privileged mode. This is because in CoreOS
+	// nodes, pods without privileged access cannot write to the host directory.
+	// Helper pods need to create and delete directories on the host.
+	privileged := true
+
 	helperPod, _ := pod.NewBuilder().
 		WithName(config.podName + "-" + config.pOpts.name).
 		WithRestartPolicy(corev1.RestartPolicyNever).
 		WithNodeSelectorHostnameNew(config.pOpts.nodeHostname).
+		WithServiceAccountName(config.pOpts.serviceAccountName).
 		WithContainerBuilder(
 			container.NewBuilder().
 				WithName("local-path-" + config.podName).
@@ -161,7 +173,8 @@ func (p *Provisioner) launchPod(config podConfig) (*corev1.Pod, error) {
 						ReadOnly:  false,
 						MountPath: "/data/",
 					},
-				}),
+				}).
+				WithPrivilegedSecurityContext(&privileged),
 		).
 		WithVolumeBuilder(
 			volume.NewBuilder().
