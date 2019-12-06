@@ -63,6 +63,8 @@ type HelperBlockDeviceOptions struct {
 	capacity     string
 	//	deviceType string
 	bdcName string
+	//  volumeMode of PVC
+	volumeMode corev1.PersistentVolumeMode
 }
 
 // validate checks that the required fields to create BDC
@@ -98,7 +100,6 @@ func (p *Provisioner) createBlockDeviceClaim(blkDevOpts *HelperBlockDeviceOption
 	if err := blkDevOpts.validate(); err != nil {
 		return err
 	}
-
 	//Create a BDC for this PV (of type device). NDM will
 	//look for the device matching the capacity and node on which
 	//pod is being scheduled. Since this BDC is specific to a PV
@@ -125,6 +126,7 @@ func (p *Provisioner) createBlockDeviceClaim(blkDevOpts *HelperBlockDeviceOption
 		WithHostName(blkDevOpts.nodeHostname).
 		WithCapacity(blkDevOpts.capacity).
 		WithFinalizer(LocalPVFinalizer).
+		WithBlockVolumeMode(blkDevOpts.volumeMode).
 		Build()
 
 	if err != nil {
@@ -192,12 +194,19 @@ func (p *Provisioner) getBlockDevicePath(blkDevOpts *HelperBlockDeviceOptions) (
 		//If the error is about BDC being already present, then return nil
 		return "", "", errors.Errorf("unable to find BD:%v for BDC:%v associated with PV:%v", bdName, blkDevOpts.bdcName, blkDevOpts.name)
 	}
-
 	path := bd.Spec.FileSystem.Mountpoint
+
 	blkPath := bd.Spec.Path
 	if len(bd.Spec.DevLinks) > 0 {
-		//TODO : Iterate and get the first path by id.
+
 		blkPath = bd.Spec.DevLinks[0].Links[0]
+
+		//Iterate and get the first path by id.
+		for _, v := range bd.Spec.DevLinks {
+			if v.Kind == "by-id" {
+				blkPath = v.Links[0]
+			}
+		}
 	}
 
 	return path, blkPath, nil
