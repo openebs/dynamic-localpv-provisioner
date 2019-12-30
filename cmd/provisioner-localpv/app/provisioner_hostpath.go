@@ -132,6 +132,8 @@ func (p *Provisioner) DeleteHostPath(pv *v1.PersistentVolume) (err error) {
 		err = errors.Wrapf(err, "failed to delete volume %v", pv.Name)
 	}()
 
+	saName := getOpenEBSServiceAccountName()
+
 	//Determine the path and node of the Local PV.
 	pvObj := persistentvolume.NewForAPIObject(pv)
 	path := pvObj.GetPath()
@@ -148,10 +150,11 @@ func (p *Provisioner) DeleteHostPath(pv *v1.PersistentVolume) (err error) {
 	klog.Infof("Deleting volume %v at %v:%v", pv.Name, hostname, path)
 	cleanupCmdsForPath := []string{"rm", "-rf"}
 	podOpts := &HelperPodOptions{
-		cmdsForPath:  cleanupCmdsForPath,
-		name:         pv.Name,
-		path:         path,
-		nodeHostname: hostname,
+		cmdsForPath:        cleanupCmdsForPath,
+		name:               pv.Name,
+		path:               path,
+		nodeHostname:       hostname,
+		serviceAccountName: saName,
 	}
 
 	if err := p.createCleanupPod(podOpts); err != nil {
