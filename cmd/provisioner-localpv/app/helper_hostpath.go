@@ -23,7 +23,7 @@ import (
 	"path/filepath"
 	"time"
 
-	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
+	errors "github.com/pkg/errors"
 	"k8s.io/klog"
 
 	hostpath "github.com/openebs/maya/pkg/hostpath/v1alpha1"

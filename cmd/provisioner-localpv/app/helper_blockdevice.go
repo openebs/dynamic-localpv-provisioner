@@ -28,7 +28,7 @@ import (
 
 	"k8s.io/klog"
 	//"github.com/pkg/errors"
-	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
+	errors "github.com/pkg/errors"
 
 	//hostpath "github.com/openebs/maya/pkg/hostpath/v1alpha1"
 

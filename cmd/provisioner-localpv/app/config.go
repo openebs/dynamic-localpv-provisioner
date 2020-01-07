@@ -27,7 +27,7 @@ import (
 	"k8s.io/klog"
 
 	//"github.com/pkg/errors"
-	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
+	errors "github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	//storagev1 "k8s.io/api/storage/v1"
