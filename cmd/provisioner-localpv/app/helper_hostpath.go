@@ -38,6 +38,7 @@ import (
 type podConfig struct {
 	pOpts                         *HelperPodOptions
 	parentDir, volumeDir, podName string
+	taints                        []corev1.Taint
 }
 
 var (
@@ -66,6 +67,8 @@ type HelperPodOptions struct {
 
 	// serviceAccountName is the service account with which the pod should be launched
 	serviceAccountName string
+
+	selectedNodeTaints []corev1.Taint
 }
 
 // validate checks that the required fields to launch
@@ -104,6 +107,9 @@ func (p *Provisioner) createInitPod(pOpts *HelperPodOptions) error {
 		return vErr
 	}
 
+	//Pass on the taints, to create tolerations.
+	config.taints = pOpts.selectedNodeTaints
+
 	iPod, err := p.launchPod(config)
 	if err != nil {
 		return err
@@ -129,6 +135,7 @@ func (p *Provisioner) createCleanupPod(pOpts *HelperPodOptions) error {
 		return err
 	}
 
+	config.taints = pOpts.selectedNodeTaints
 	// Initialize HostPath builder and validate that
 	// volume directory is not directly under root.
 	// Extract the base path and the volume unique path.
@@ -157,11 +164,12 @@ func (p *Provisioner) launchPod(config podConfig) (*corev1.Pod, error) {
 	// Helper pods need to create and delete directories on the host.
 	privileged := true
 
-	helperPod, _ := pod.NewBuilder().
+	helperPod, err := pod.NewBuilder().
 		WithName(config.podName + "-" + config.pOpts.name).
 		WithRestartPolicy(corev1.RestartPolicyNever).
 		WithNodeSelectorHostnameNew(config.pOpts.nodeHostname).
 		WithServiceAccountName(config.pOpts.serviceAccountName).
+		WithTolerationsForTaints(config.taints...).
 		WithContainerBuilder(
 			container.NewBuilder().
 				WithName("local-path-" + config.podName).

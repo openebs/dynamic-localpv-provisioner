@@ -227,3 +227,9 @@ func GetNodeHostname(n *v1.Node) string {
 	}
 	return hostname
 }
+
+// GetTaints extracts the Taints from the Spec on the node
+// If Taints are empty, it just returns empty structure of corev1.Taints
+func GetTaints(n *v1.Node) []v1.Taint {
+	return n.Spec.Taints
+}

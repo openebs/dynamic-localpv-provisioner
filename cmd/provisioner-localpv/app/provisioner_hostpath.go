@@ -20,6 +20,8 @@ import (
 	"github.com/openebs/maya/pkg/alertlog"
 	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/klog"
 
 	pvController "sigs.k8s.io/sig-storage-lib-external-provisioner/controller"
@@ -33,6 +35,7 @@ import (
 func (p *Provisioner) ProvisionHostPath(opts pvController.VolumeOptions, volumeConfig *VolumeConfig) (*v1.PersistentVolume, error) {
 	pvc := opts.PVC
 	nodeHostname := GetNodeHostname(opts.SelectedNode)
+	taints := GetTaints(opts.SelectedNode)
 	name := opts.PVName
 	stgType := volumeConfig.GetStorageType()
 	saName := getOpenEBSServiceAccountName()
@@ -59,8 +62,8 @@ func (p *Provisioner) ProvisionHostPath(opts pvController.VolumeOptions, volumeC
 		path:               path,
 		nodeHostname:       nodeHostname,
 		serviceAccountName: saName,
+		selectedNodeTaints: taints,
 	}
-
 	iErr := p.createInitPod(podOpts)
 	if iErr != nil {
 		klog.Infof("Initialize volume %v failed: %v", name, iErr)
@@ -123,6 +126,21 @@ func (p *Provisioner) ProvisionHostPath(opts pvController.VolumeOptions, volumeC
 	return pvObj, nil
 }
 
+// GetNodeObjectFromHostName returns the Node Object with matching NodeHostName.
+func (p *Provisioner) GetNodeObjectFromHostName(hostName string) (*v1.Node, error) {
+	labelSelector := metav1.LabelSelector{MatchLabels: map[string]string{persistentvolume.KeyNode: hostName}}
+	listOptions := metav1.ListOptions{
+		LabelSelector: labels.Set(labelSelector.MatchLabels).String(),
+		Limit:         1,
+	}
+	nodeList, err := p.kubeClient.CoreV1().Nodes().List(listOptions)
+	if err != nil {
+		return nil, errors.Errorf("Unable to get the Node with the NodeHostName")
+	}
+	return &nodeList.Items[0], nil
+
+}
+
 // DeleteHostPath is invoked by the PVC controller to perform clean-up
 //  activities before deleteing the PV object. If reclaim policy is
 //  set to not-retain, then this function will create a helper pod
@@ -133,7 +151,6 @@ func (p *Provisioner) DeleteHostPath(pv *v1.PersistentVolume) (err error) {
 	}()
 
 	saName := getOpenEBSServiceAccountName()
-
 	//Determine the path and node of the Local PV.
 	pvObj := persistentvolume.NewForAPIObject(pv)
 	path := pvObj.GetPath()
@@ -145,7 +162,14 @@ func (p *Provisioner) DeleteHostPath(pv *v1.PersistentVolume) (err error) {
 	if hostname == "" {
 		return errors.Errorf("cannot find affinited node hostname")
 	}
+	alertlog.Logger.Infof("Get the Node Object from hostName: %v", hostname)
 
+	//Get the node Object once again to get updated Taints.
+	nodeObject, err := p.GetNodeObjectFromHostName(hostname)
+	if err != nil {
+		return err
+	}
+	taints := GetTaints(nodeObject)
 	//Initiate clean up only when reclaim policy is not retain.
 	klog.Infof("Deleting volume %v at %v:%v", pv.Name, hostname, path)
 	cleanupCmdsForPath := []string{"rm", "-rf"}
@@ -155,6 +179,7 @@ func (p *Provisioner) DeleteHostPath(pv *v1.PersistentVolume) (err error) {
 		path:               path,
 		nodeHostname:       hostname,
 		serviceAccountName: saName,
+		selectedNodeTaints: taints,
 	}
 
 	if err := p.createCleanupPod(podOpts); err != nil {
