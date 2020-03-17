@@ -1,0 +1,25 @@
+#Make the base image configurable. If BASE IMAGES is not provided
+#docker command will fail
+ARG BASE_IMAGE=ubuntu:18.04
+FROM $BASE_IMAGE
+
+RUN apt update && apt install -y \
+    iproute2 \
+    bash \
+    curl \
+    net-tools \
+    procps \
+    ca-certificates
+
+COPY provisioner-localpv /
+
+ARG BUILD_DATE
+
+LABEL org.label-schema.name="provisioner-localpv"
+LABEL org.label-schema.description="Dynamic Local PV Provisioner for OpenEBS"
+LABEL org.label-schema.url="http://www.openebs.io/"
+LABEL org.label-schema.vcs-url="https://github.com/openebs/maya"
+LABEL org.label-schema.schema-version="1.0"
+LABEL org.label-schema.build-date=$BUILD_DATE
+
+CMD ["/provisioner-localpv"]
