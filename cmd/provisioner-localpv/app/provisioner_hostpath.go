@@ -43,8 +43,8 @@ func (p *Provisioner) ProvisionHostPath(opts pvController.VolumeOptions, volumeC
 	path, err := volumeConfig.GetPath()
 	if err != nil {
 		alertlog.Logger.Errorw("",
-			"eventcode", "cstor.local.pv.provision.failure",
-			"msg", "Failed to provision CStor Local PV",
+			"eventcode", "local.pv.provision.failure",
+			"msg", "Failed to provision Local PV",
 			"rname", opts.PVName,
 			"reason", "Unable to get volume config",
 			"storagetype", stgType,
@@ -68,8 +68,8 @@ func (p *Provisioner) ProvisionHostPath(opts pvController.VolumeOptions, volumeC
 	if iErr != nil {
 		klog.Infof("Initialize volume %v failed: %v", name, iErr)
 		alertlog.Logger.Errorw("",
-			"eventcode", "cstor.local.pv.provision.failure",
-			"msg", "Failed to provision CStor Local PV",
+			"eventcode", "local.pv.provision.failure",
+			"msg", "Failed to provision Local PV",
 			"rname", opts.PVName,
 			"reason", "Volume initialization failed",
 			"storagetype", stgType,
@@ -109,8 +109,8 @@ func (p *Provisioner) ProvisionHostPath(opts pvController.VolumeOptions, volumeC
 
 	if err != nil {
 		alertlog.Logger.Errorw("",
-			"eventcode", "cstor.local.pv.provision.failure",
-			"msg", "Failed to provision CStor Local PV",
+			"eventcode", "local.pv.provision.failure",
+			"msg", "Failed to provision Local PV",
 			"rname", opts.PVName,
 			"reason", "failed to build persistent volume",
 			"storagetype", stgType,
@@ -118,8 +118,8 @@ func (p *Provisioner) ProvisionHostPath(opts pvController.VolumeOptions, volumeC
 		return nil, err
 	}
 	alertlog.Logger.Infow("",
-		"eventcode", "cstor.local.pv.provision.success",
-		"msg", "Successfully provisioned CStor Local PV",
+		"eventcode", "local.pv.provision.success",
+		"msg", "Successfully provisioned Local PV",
 		"rname", opts.PVName,
 		"storagetype", stgType,
 	)
