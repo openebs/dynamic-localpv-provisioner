@@ -37,12 +37,47 @@ const (
 	//KeyPVStorageType defines if the PV should be backed
 	// a hostpath ( sub directory or a storage device)
 	KeyPVStorageType = "StorageType"
+
 	//KeyPVBasePath defines base directory for hostpath volumes
 	// can be configured via the StorageClass annotations.
 	KeyPVBasePath = "BasePath"
+
 	//KeyPVFSType defines filesystem type to be used with devices
 	// and can be configured via the StorageClass annotations.
 	KeyPVFSType = "FSType"
+
+	//KeyBDTag defines the value for the Block Device Tag
+	//label selector configured via the StorageClass annotations.
+	//User can group block devices across nodes by setting the
+	//label on block devices as:
+	//  openebs.io/block-device-tag=<tag-value>
+	//
+	//The <tag-value> used above can be passsed to the
+	//Local PV device provisioner via the StorageClass
+	//CAS annotations, to specify that Local PV (device)
+	//should only make use of those block devices that
+	//tagged with the given <tag-value>.
+	//
+	//Example: Local PV device StorageClass for picking devices
+	//labeled as: openebs.io/block-device-tag=tag-x
+	//will be as follows
+	//
+	// kind: StorageClass
+	// metadata:
+	//   name: openebs-device-tag-x
+	//   annotations:
+	//     openebs.io/cas-type: local
+	//     cas.openebs.io/config: |
+	//       - name: StorageType
+	//         value: "device"
+	//       - name: BlockDeviceTag
+	//         value: "tag-x"
+	// provisioner: openebs.io/local
+	// volumeBindingMode: WaitForFirstConsumer
+	// reclaimPolicy: Delete
+	//
+	KeyBDTag = "BlockDeviceTag"
+
 	//KeyPVRelativePath defines the alternate folder name under the BasePath
 	// By default, the pv name will be used as the folder name.
 	// KeyPVBasePath can be useful for providing the same underlying folder
@@ -137,6 +172,20 @@ func (c *VolumeConfig) GetFSType() string {
 		return ""
 	}
 	return fsType
+}
+
+//GetBDTagValue returns the block device tag
+//value configured in StorageClass.
+//
+//Default is "", no device tag will be set and any
+//available block device (without labelled with tag)
+//can be used for creating Local PV(device).
+func (c *VolumeConfig) GetBDTagValue() string {
+	bdTagValue := c.getValue(KeyBDTag)
+	if len(strings.TrimSpace(bdTagValue)) == 0 {
+		return ""
+	}
+	return bdTagValue
 }
 
 //GetPath returns a valid PV path based on the configuration

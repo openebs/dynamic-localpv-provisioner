@@ -65,6 +65,10 @@ type HelperBlockDeviceOptions struct {
 	bdcName string
 	//  volumeMode of PVC
 	volumeMode corev1.PersistentVolumeMode
+
+	//bdTagValue is the value passed for
+	// BlockDeviceTag via StorageClass config
+	bdTagValue string
 }
 
 // validate checks that the required fields to create BDC
@@ -120,14 +124,20 @@ func (p *Provisioner) createBlockDeviceClaim(blkDevOpts *HelperBlockDeviceOption
 		return nil
 	}
 
-	bdcObj, err := blockdeviceclaim.NewBuilder().
+	bdcObjBuilder := blockdeviceclaim.NewBuilder().
 		WithNamespace(p.namespace).
 		WithName(bdcName).
 		WithHostName(blkDevOpts.nodeHostname).
 		WithCapacity(blkDevOpts.capacity).
 		WithFinalizer(LocalPVFinalizer).
-		WithBlockVolumeMode(blkDevOpts.volumeMode).
-		Build()
+		WithBlockVolumeMode(blkDevOpts.volumeMode)
+
+	// If bdTagValue is configure, set it on the BDC
+	if len(blkDevOpts.bdTagValue) > 0 {
+		bdcObjBuilder.WithBlockDeviceTag(blkDevOpts.bdTagValue)
+	}
+
+	bdcObj, err := bdcObjBuilder.Build()
 
 	if err != nil {
 		//TODO : Need to relook at this error
