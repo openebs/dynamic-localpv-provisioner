@@ -1,4 +1,4 @@
-FROM alpine:3.6
+FROM alpine:3.11.5
 
 RUN apk add --no-cache \
     iproute2 \
