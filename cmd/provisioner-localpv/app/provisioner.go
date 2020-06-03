@@ -121,7 +121,7 @@ func (p *Provisioner) Provision(opts pvController.VolumeOptions) (*v1.Persistent
 	if reqMap != nil {
 		size = pvc.Spec.Resources.Requests["storage"]
 	}
-	sendEventOrIgnore(name, size.String(), stgType, analytics.VolumeProvision)
+	sendEventOrIgnore(pvc.Name, name, size.String(), stgType, analytics.VolumeProvision)
 	if stgType == "hostpath" {
 		return p.ProvisionHostPath(opts, pvCASConfig)
 	}
@@ -159,7 +159,7 @@ func (p *Provisioner) Delete(pv *v1.PersistentVolume) (err error) {
 			size = pv.Spec.Capacity["storage"]
 		}
 
-		sendEventOrIgnore(pv.Name, size.String(), pvType, analytics.VolumeDeprovision)
+		sendEventOrIgnore(pv.Spec.ClaimRef.Name, pv.Name, size.String(), pvType, analytics.VolumeDeprovision)
 		if pvType == "local-device" {
 			err := p.DeleteBlockDevice(pv)
 			if err != nil {
@@ -196,7 +196,7 @@ func (p *Provisioner) Delete(pv *v1.PersistentVolume) (err error) {
 }
 
 // sendEventOrIgnore sends anonymous local-pv provision/delete events
-func sendEventOrIgnore(pvName, capacity, stgType, method string) {
+func sendEventOrIgnore(pvcName, pvName, capacity, stgType, method string) {
 	if method == analytics.VolumeProvision {
 		stgType = "local-" + stgType
 	}
@@ -204,6 +204,7 @@ func sendEventOrIgnore(pvName, capacity, stgType, method string) {
 		analytics.New().Build().ApplicationBuilder().
 			SetVolumeType(stgType, method).
 			SetDocumentTitle(pvName).
+			SetCampaignName(pvcName).
 			SetLabel(analytics.EventLabelCapacity).
 			SetReplicaCount(analytics.LocalPVReplicaCount, method).
 			SetCategory(method).
