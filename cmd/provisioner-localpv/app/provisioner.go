@@ -33,12 +33,14 @@ package app
 
 import (
 	"fmt"
-	"github.com/openebs/maya/pkg/alertlog"
 	"strings"
+
+	"github.com/openebs/maya/pkg/alertlog"
 
 	"github.com/pkg/errors"
 	"k8s.io/klog"
 	pvController "sigs.k8s.io/sig-storage-lib-external-provisioner/controller"
+
 	//pvController "github.com/kubernetes-sigs/sig-storage-lib-external-provisioner/controller"
 	mconfig "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	menv "github.com/openebs/maya/pkg/env/v1alpha1"
@@ -85,7 +87,7 @@ func (p *Provisioner) SupportsBlock() bool {
 
 // Provision is invoked by the PVC controller which expect the PV
 //  to be provisioned and a valid PV spec returned.
-func (p *Provisioner) Provision(opts pvController.VolumeOptions) (*v1.PersistentVolume, error) {
+func (p *Provisioner) Provision(opts pvController.ProvisionOptions) (*v1.PersistentVolume, error) {
 	pvc := opts.PVC
 	if pvc.Spec.Selector != nil {
 		return nil, fmt.Errorf("claim.Spec.Selector is not supported")

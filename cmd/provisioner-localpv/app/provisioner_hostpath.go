@@ -32,7 +32,7 @@ import (
 
 // ProvisionHostPath is invoked by the Provisioner which expect HostPath PV
 //  to be provisioned and a valid PV spec returned.
-func (p *Provisioner) ProvisionHostPath(opts pvController.VolumeOptions, volumeConfig *VolumeConfig) (*v1.PersistentVolume, error) {
+func (p *Provisioner) ProvisionHostPath(opts pvController.ProvisionOptions, volumeConfig *VolumeConfig) (*v1.PersistentVolume, error) {
 	pvc := opts.PVC
 	nodeHostname := GetNodeHostname(opts.SelectedNode)
 	taints := GetTaints(opts.SelectedNode)
@@ -99,7 +99,7 @@ func (p *Provisioner) ProvisionHostPath(opts pvController.VolumeOptions, volumeC
 	pvObj, err := persistentvolume.NewBuilder().
 		WithName(name).
 		WithLabels(labels).
-		WithReclaimPolicy(opts.PersistentVolumeReclaimPolicy).
+		WithReclaimPolicy(*opts.StorageClass.ReclaimPolicy).
 		WithAccessModes(pvc.Spec.AccessModes).
 		WithVolumeMode(fs).
 		WithCapacityQty(pvc.Spec.Resources.Requests[v1.ResourceName(v1.ResourceStorage)]).

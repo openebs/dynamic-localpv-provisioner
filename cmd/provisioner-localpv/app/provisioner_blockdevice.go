@@ -31,7 +31,7 @@ import (
 
 // ProvisionBlockDevice is invoked by the Provisioner to create a Local PV
 //  with a Block Device
-func (p *Provisioner) ProvisionBlockDevice(opts pvController.VolumeOptions, volumeConfig *VolumeConfig) (*v1.PersistentVolume, error) {
+func (p *Provisioner) ProvisionBlockDevice(opts pvController.ProvisionOptions, volumeConfig *VolumeConfig) (*v1.PersistentVolume, error) {
 	pvc := opts.PVC
 	nodeHostname := GetNodeHostname(opts.SelectedNode)
 	name := opts.PVName
@@ -87,7 +87,7 @@ func (p *Provisioner) ProvisionBlockDevice(opts pvController.VolumeOptions, volu
 		WithName(name).
 		WithLabels(labels).
 		WithAnnotations(volAnnotations).
-		WithReclaimPolicy(opts.PersistentVolumeReclaimPolicy).
+		WithReclaimPolicy(*opts.StorageClass.ReclaimPolicy).
 		WithAccessModes(pvc.Spec.AccessModes).
 		WithCapacityQty(pvc.Spec.Resources.Requests[v1.ResourceName(v1.ResourceStorage)]).
 		WithLocalHostPathFormat(path, fsType).
