@@ -161,7 +161,11 @@ func (p *Provisioner) Delete(pv *v1.PersistentVolume) (err error) {
 			size = pv.Spec.Capacity["storage"]
 		}
 
-		sendEventOrIgnore(pv.Spec.ClaimRef.Name, pv.Name, size.String(), pvType, analytics.VolumeDeprovision)
+		pvcName := ""
+		if pv.Spec.ClaimRef != nil {
+			pvcName = pv.Spec.ClaimRef.Name
+		}
+		sendEventOrIgnore(pvcName, pv.Name, size.String(), pvType, analytics.VolumeDeprovision)
 		if pvType == "local-device" {
 			err := p.DeleteBlockDevice(pv)
 			if err != nil {
