@@ -19,7 +19,7 @@ package main
 import (
 	"os"
 
-	"github.com/openebs/maya/cmd/provisioner-localpv/app"
+	"github.com/openebs/dynamic-localpv-provisioner/cmd/provisioner-localpv/app"
 	mlogger "github.com/openebs/maya/pkg/logs"
 )
 

@@ -1,0 +1,50 @@
+sudo: required
+
+dist: xenial
+
+env:
+  global:
+    - CAN_FAIL=false
+
+jobs:
+  allow_failures:
+    env:
+      - CAN_FAIL=false
+  include:
+    - os: linux
+      arch: amd64
+      env:
+        - RELEASE_TAG_DOWNSTREAM=0
+    - os: linux
+      arch: arm64
+      env:
+        - RELEASE_TAG_DOWNSTREAM=0
+    - os: linux
+      arch: ppc64le
+      env:
+        - RELEASE_TAG_DOWNSTREAM=0
+        - CAN_FAIL=true
+
+services:
+  - docker
+
+language: go
+
+cache:
+  directories:
+    - $HOME/.cache/go-build
+go:
+  - 1.14.7
+
+addons:
+  apt:
+    update: true
+
+
+script:
+  - make all
+
+notifications:
+  email:
+    recipients:
+    - kiran.mova@mayadata.io

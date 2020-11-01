@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package v1alpha1;
+
+message VolumeSnapCreateRequest {
+	int32 version = 1;
+	string volume = 2;
+	string snapname = 3;
+}
+
+message VolumeSnapCreateResponse {
+	int32 version = 1;
+	bytes status = 2;
+}
+
+message VolumeSnapDeleteRequest {
+	int32 version = 1;
+	string volume = 2;
+	string snapname = 3;
+}
+
+message VolumeSnapDeleteResponse {
+	int32 version = 1;
+	bytes status = 2;
+}
+
+service RunSnapCommand {
+  rpc RunVolumeSnapCreateCommand(VolumeSnapCreateRequest) returns (VolumeSnapCreateResponse) {};
+	rpc RunVolumeSnapDeleteCommand(VolumeSnapDeleteRequest) returns (VolumeSnapDeleteResponse) {};
+}
