@@ -1,3 +1,4 @@
 bin/
+buildscripts/provisioner-localpv/provisioner-localpv
 nohup.out
 .DS_Store
