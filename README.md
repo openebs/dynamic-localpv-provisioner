@@ -17,10 +17,14 @@ Some of the targetted applications are:
 - Distributed Object Storages like MinIO (distributed mode)
 - Distributed Streaming services like Apache Kakfa, 
 - Distributed Logging and search services like ElasticSearch, Solr
-- AI/ML workflows using Airflow, 
-
+- AI/ML workloads
 
 ## Overview 
+
+Kubernetes Local persistent volumes allows users to access local storage through the
+standard PVC interface in a simple and portable way.  The PV contains node
+affinity information that the system uses to schedule pods to the correct
+nodes.
 
 OpenEBS Dynamic Local PVs extends the capabilities provided by the Kubernetes Local PV
 by making use of the OpenEBS Node Storage Disk Manager (NDM), the significant
@@ -44,9 +48,20 @@ Please refer to our documentation at [OpenEBS Documentation](http://docs.openebs
 
 Head over to the [CONTRIBUTING.md](./CONTRIBUTING.md).
 
-## Community
+## Community, discussion, and support
 
-See the [OpenEBS Community page](https://github.com/openebs/openebs/tree/master/community) for reaching out to the OpenEBS Developers.
+Learn how to engage with the OpenEBS community on the [community page](https://github.com/openebs/openebs/tree/master/community).
+
+You can reach the maintainers of this project at:
+
+- [Kubernetes Slack](http://slack.k8s.io/) channels: 
+      * [#openebs](https://kubernetes.slack.com/messages/openebs/)
+      * [#openebs-dev](https://kubernetes.slack.com/messages/openebs-dev/)
+- [Mailing List](https://lists.cncf.io/g/cncf-openebs-users)
+
+### Code of conduct
+
+Participation in the OpenEBS community is governed by the [CNCF Code of Conduct](CODE-OF-CONDUCT.md).
 
 ## Inspiration/Credit
 

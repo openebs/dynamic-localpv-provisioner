@@ -12,28 +12,29 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-include buildscripts/common.mk
+GO111MODULE ?= on
+export GO111MODULE
+
+# Determine the arch/os
+ifeq (${XC_OS}, )
+  XC_OS:=$(shell go env GOOS)
+endif
+export XC_OS
+
+ifeq (${XC_ARCH}, )
+  XC_ARCH:=$(shell go env GOARCH)
+endif
+export XC_ARCH
+
+ARCH:=${XC_OS}_${XC_ARCH}
+export ARCH
+
 
 # list only the source code directories
 PACKAGES = $(shell go list ./... | grep -v 'vendor\|pkg/client/generated\|tests')
 
 # list only the integration tests code directories
 PACKAGES_IT = $(shell go list ./... | grep -v 'vendor\|pkg/client/generated' | grep 'tests')
-
-GO111MODULE ?= on
-export GO111MODULE
-
-# Lint our code. Reference: https://golang.org/cmd/vet/
-VETARGS?=-asmdecl -atomic -bool -buildtags -copylocks -methods \
-         -nilfunc -printf -rangeloops -shift -structtags -unsafeptr
-
-# BOILERPLATE_TEXT_PATH is the boilerplate text(go comment) that is put at the top of every generated file.
-# This boilerplate text is nothing but the license information.
-BOILERPLATE_TEXT_PATH=buildscripts/custom-boilerplate.go.txt
-
-
-# list only our .go files i.e. exlcudes any .go files from the vendor directory
-GOFILES_NOVENDOR = $(shell find . -type f -name '*.go' -not -path "./vendor/*")
 
 ifeq (${IMAGE_TAG}, )
   IMAGE_TAG = ci
@@ -99,7 +100,7 @@ ifeq (${BASE_DOCKER_IMAGE_PPC64LE}, )
   export BASE_DOCKER_IMAGE_PPC64LE
 endif
 
-
+include buildscripts/common.mk
 include ./buildscripts/provisioner-localpv/Makefile.mk
 
 .PHONY: all
@@ -135,9 +136,9 @@ clean:
 	rm -rf bin
 
 .PHONY: test
-test: format
-	@echo "--> Running go test" ;
-	@go test $(PACKAGES)
+test: format vet
+	@echo "--> Running go test";
+	$(PWD)/buildscripts/test.sh ${XC_ARCH}
 
 .PHONY: testv
 testv: format
@@ -149,3 +150,13 @@ format:
 	@echo "--> Running go fmt"
 	@go fmt $(PACKAGES) $(PACKAGES_IT)
 
+# -composite: avoid "literal copies lock value from fakePtr"
+.PHONY: vet
+vet:
+	@echo "--> Running go vet"
+	@go list ./... | grep -v "./vendor/*" | xargs go vet -composites
+
+.PHONY: verify-src
+verify-src: 
+	@echo "--> Checking for git changes post running tests";
+	$(PWD)/buildscripts/check-diff.sh "format"
