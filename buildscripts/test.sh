@@ -26,9 +26,9 @@ if [ -z "$ARCH" ]; then
 fi
 
 # currently tests are run only for amd64
-if [ "$ARCH" != "amd64" ]; then
-  exit 0
-fi
+#if [ "$ARCH" != "amd64" ]; then
+#  exit 0
+#fi
 
 echo "" > coverage.txt
 PACKAGES=$(go list ./... | grep -v '/vendor/\|/pkg/apis/\|/pkg/client/\|integration_test')
