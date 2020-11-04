@@ -15,7 +15,7 @@ jobs:
         run: |
           BRANCH="${GITHUB_REF##*/}"
           CI_TAG=${BRANCH#v}-ci
-          if [ ${BRANCH} = "master" ]; then
+          if [ ${BRANCH} = "develop" ]; then
             CI_TAG="ci"
           fi
           echo "::set-env name=TAG::${CI_TAG}"

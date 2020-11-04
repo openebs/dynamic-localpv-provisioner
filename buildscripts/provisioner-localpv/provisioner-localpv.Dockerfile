@@ -40,7 +40,6 @@ RUN make buildx.provisioner-localpv
 
 FROM alpine:3.12.0
 
-ARG ARCH
 ARG DBUILD_DATE
 ARG DBUILD_REPO_URL
 ARG DBUILD_SITE_URL
