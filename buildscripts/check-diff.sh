@@ -1,4 +1,5 @@
-# Copyright 2020 The OpenEBS Authors. All rights reserved.
+#!/usr/bin/env bash
+# Copyright 2018-2020 The OpenEBS Authors. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,31 +12,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-name: build
+#
+# This script checks if any files are modified by tests like go fmt. 
 
-on: ['push']
+set -e
 
-jobs:
-  lint:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
+# message to be displayed if test fails.
+TEST_NAME=$1
 
-      - name: License Check
-        run: make license-check
 
-  unit-test:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-
-      - name: Unit test
-        run: make test
-
-      - name: Verify corrections
-        run: make verify-src
-
-      - name: Upload Coverage Report
-        uses: codecov/codecov-action@v1
+if [[ `git diff --shortstat | wc -l` != 0 ]]; then 
+  echo "Some files got changed after $1";printf "\n";git diff --stat;printf "\n"; exit 1; 
+fi
