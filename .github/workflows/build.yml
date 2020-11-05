@@ -41,6 +41,7 @@ jobs:
         uses: codecov/codecov-action@v1
 
   provisioner-localpv:
+    runs-on: ubuntu-latest
     needs: ['lint', 'unit-test']
     steps:
       - name: Checkout
