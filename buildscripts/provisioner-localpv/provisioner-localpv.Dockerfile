@@ -36,7 +36,7 @@ RUN go mod download
 
 COPY . .
 
-RUN make buildx.provisioner-localpv
+RUN make provisioner-localpv
 
 FROM alpine:3.12.0
 

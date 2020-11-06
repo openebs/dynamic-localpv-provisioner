@@ -47,13 +47,6 @@ docker.buildx:
 	@echo "--> Build docker image: $(DOCKERX_IMAGE_NAME)"
 	@echo
 
-.PHONY: buildx.provisioner-localpv
-buildx.provisioner-localpv: clean
-	@echo "----------------------------"
-	@echo "--> provisioner-localpv    "
-	@echo "----------------------------"
-	@PNAME=${PROVISIONER_LOCALPV} CTLNAME=${PROVISIONER_LOCALPV} BUILDX=true sh -c "'$(PWD)/buildscripts/build.sh'"
-
 .PHONY: docker.buildx.provisioner-localpv
 docker.buildx.provisioner-localpv: DOCKERX_IMAGE_NAME=$(DOCKERX_IMAGE_PROVISIONER_LOCALPV)
 docker.buildx.provisioner-localpv: COMPONENT=$(PROVISIONER_LOCALPV)
