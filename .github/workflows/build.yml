@@ -39,3 +39,46 @@ jobs:
 
       - name: Upload Coverage Report
         uses: codecov/codecov-action@v1
+
+  provisioner-localpv:
+    runs-on: ubuntu-latest
+    needs: ['lint', 'unit-test']
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Set Tag
+        run: |
+          BRANCH="${GITHUB_REF##*/}"
+          CI_TAG=${BRANCH#v}-ci
+          if [ ${BRANCH} = "develop" ]; then
+            CI_TAG="ci"
+          fi
+          echo "::set-env name=TAG::${CI_TAG}"
+          echo "::set-env name=BRANCH::${BRANCH}"
+          echo "BRANCH: ${BRANCH}"
+          echo "TAG: ${CI_TAG}"
+
+      - name: Setup QEMU
+        uses: docker/setup-qemu-action@v1
+        with:
+          platforms: all
+
+      - name: Setup Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v1
+        with:
+          version: latest
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+
+      - name: Build and Push Image
+        env:
+          IMAGE_ORG: ${{ secrets.IMAGE_ORG}}
+        run: |
+          make docker.buildx.provisioner-localpv
+          make buildx.push.provisioner-localpv

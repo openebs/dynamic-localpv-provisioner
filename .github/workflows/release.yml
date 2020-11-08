@@ -12,46 +12,31 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: ci
+name: release
 
 on:
-  pull_request:
-    branches:
-      # on pull requests to develop and release branches
-      - develop
+  create:
+    tags:
       - 'v*'
 
 jobs:
-  lint:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-
-      - name: License Check
-        run: make license-check
-
-  unit-test:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-
-      - name: Unit test
-        run: make test
-
-      - name: Verify corrections
-        run: make verify-src
-
-      - name: Upload Coverage Report
-        uses: codecov/codecov-action@v1
-
   provisioner-localpv:
     runs-on: ubuntu-latest
-    needs: ['lint', 'unit-test']
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+
+      - name: Set Tag
+        run: |
+          BRANCH="${GITHUB_REF##*/}"
+          CI_TAG=${BRANCH#v}-ci
+          if [ ${BRANCH} = "develop" ]; then
+            CI_TAG="ci"
+          fi
+          echo "::set-env name=TAG::${CI_TAG}"
+          echo "::set-env name=BRANCH::${BRANCH}"
+          echo "BRANCH: ${BRANCH}"
+          echo "TAG: ${CI_TAG}"
 
       - name: Setup QEMU
         uses: docker/setup-qemu-action@v1
@@ -64,8 +49,15 @@ jobs:
         with:
           version: latest
 
-      - name: Build Image
+      - name: Login to DockerHub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+
+      - name: Build and Push Image
         env:
-          IMG_RESULT: cache
+          IMAGE_ORG: ${{ secrets.IMAGE_ORG}}
         run: |
           make docker.buildx.provisioner-localpv
+          make buildx.push.provisioner-localpv

@@ -51,7 +51,7 @@ endif
 
 # The images can be pushed to any docker/image registeries
 # like docker hub, quay. The registries are specified in 
-# the `build/push` script.
+# the `buildscripts/push` script.
 #
 # The images of a project or company can then be grouped
 # or hosted under a unique organization key like `openebs`
@@ -76,7 +76,7 @@ DBUILD_DATE=$(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
 
 # Specify the docker arg for repository url
 ifeq (${DBUILD_REPO_URL}, )
-  DBUILD_REPO_URL="https://github.com/openebs/dynaic-localpv-provisioner"
+  DBUILD_REPO_URL="https://github.com/openebs/dynamic-localpv-provisioner"
   export DBUILD_REPO_URL
 endif
 
@@ -86,31 +86,10 @@ ifeq (${DBUILD_SITE_URL}, )
   export DBUILD_SITE_URL
 endif
 
-export DBUILD_ARGS=--build-arg DBUILD_DATE=${DBUILD_DATE} --build-arg DBUILD_REPO_URL=${DBUILD_REPO_URL} --build-arg DBUILD_SITE_URL=${DBUILD_SITE_URL} --build-arg ARCH=${ARCH}
-
-# Specify the name of base image for ARM64
-ifeq (${BASE_DOCKER_IMAGE_ARM64}, )
-  BASE_DOCKER_IMAGE_ARM64 = "arm64v8/ubuntu:18.04"
-  export BASE_DOCKER_IMAGE_ARM64
-endif
-
-# Specify the name of base image for PPC64LE
-ifeq (${BASE_DOCKER_IMAGE_PPC64LE}, )
-  BASE_DOCKER_IMAGE_PPC64LE = "ubuntu:18.04"
-  export BASE_DOCKER_IMAGE_PPC64LE
-endif
-
-include buildscripts/common.mk
-include ./buildscripts/provisioner-localpv/Makefile.mk
+export DBUILD_ARGS=--build-arg DBUILD_DATE=${DBUILD_DATE} --build-arg DBUILD_REPO_URL=${DBUILD_REPO_URL} --build-arg DBUILD_SITE_URL=${DBUILD_SITE_URL}
 
 .PHONY: all
 all: test provisioner-localpv-image
-
-.PHONY: all.arm64
-all.arm64: provisioner-localpv-image.arm64
-
-.PHONY: all.ppc64le
-all.ppc64le: provisioner-localpv-image.ppc64le
 
 .PHONY: deps
 deps:
@@ -160,3 +139,40 @@ vet:
 verify-src: 
 	@echo "--> Checking for git changes post running tests";
 	$(PWD)/buildscripts/check-diff.sh "format"
+
+# Specify the name for the binaries
+PROVISIONER_LOCALPV=provisioner-localpv
+
+#Use this to build provisioner-localpv
+.PHONY: provisioner-localpv
+provisioner-localpv:
+	@echo "----------------------------"
+	@echo "--> provisioner-localpv    "
+	@echo "----------------------------"
+	@PNAME=${PROVISIONER_LOCALPV} CTLNAME=${PROVISIONER_LOCALPV} sh -c "'$(PWD)/buildscripts/build.sh'"
+
+.PHONY: provisioner-localpv-image
+provisioner-localpv-image: provisioner-localpv
+	@echo "-------------------------------"
+	@echo "--> provisioner-localpv image "
+	@echo "-------------------------------"
+	@cp bin/provisioner-localpv/${PROVISIONER_LOCALPV} buildscripts/provisioner-localpv/
+	@cd buildscripts/provisioner-localpv && docker build -t ${IMAGE_ORG}/provisioner-localpv:${IMAGE_TAG} ${DBUILD_ARGS} . --no-cache
+	@rm buildscripts/provisioner-localpv/${PROVISIONER_LOCALPV}
+
+.PHONY: license-check
+license-check:
+	@echo "--> Checking license header..."
+	@licRes=$$(for file in $$(find . -type f -regex '.*\.sh\|.*\.go\|.*Docker.*\|.*\Makefile*' ! -path './vendor/*' ) ; do \
+               awk 'NR<=5' $$file | grep -Eq "(Copyright|generated|GENERATED)" || echo $$file; \
+       done); \
+       if [ -n "$${licRes}" ]; then \
+               echo "license header checking failed:"; echo "$${licRes}"; \
+               exit 1; \
+       fi
+	@echo "--> Done checking license."
+	@echo
+
+
+# include the buildx recipes
+include Makefile.buildx.mk

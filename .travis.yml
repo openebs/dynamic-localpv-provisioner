@@ -5,25 +5,7 @@ dist: xenial
 env:
   global:
     - CAN_FAIL=false
-
-jobs:
-  allow_failures:
-    env:
-      - CAN_FAIL=false
-  include:
-    - os: linux
-      arch: amd64
-      env:
-        - RELEASE_TAG_DOWNSTREAM=0
-    - os: linux
-      arch: arm64
-      env:
-        - RELEASE_TAG_DOWNSTREAM=0
-    - os: linux
-      arch: ppc64le
-      env:
-        - RELEASE_TAG_DOWNSTREAM=0
-        - CAN_FAIL=true
+    - RELEASE_TAG_DOWNSTREAM=0
 
 services:
   - docker
@@ -44,11 +26,12 @@ addons:
 install:
   - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
   - sudo apt-get update -qq
-  - sudo apt-get install --yes -qq zip
 
 before_script:
   - make test
   - make verify-src
+  - export RELEASE_TAG="$TRAVIS_TAG"
+  - export BRANCH="$TRAVIS_BRANCH"
 
 script:
   - make provisioner-localpv-image

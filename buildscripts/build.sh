@@ -30,25 +30,32 @@ cd "$DIR"
 GIT_COMMIT="$(git rev-parse HEAD)"
 
 # Set BUILDMETA based on travis tag
-if [[ -n "$TRAVIS_TAG" ]] && [[ $TRAVIS_TAG != *"RC"* ]]; then
+if [[ -n "$RELEASE_TAG" ]] && [[ $RELEASE_TAG != *"RC"* ]]; then
     echo "released" > BUILDMETA
 fi
 
-# Get the version details
-VERSION_META="$(cat BUILDMETA)"
+# Determine the current branch
+CURRENT_BRANCH=""
+if [ -z "${BRANCH}" ];
+then
+    CURRENT_BRANCH=$(git branch | grep "\*" | cut -d ' ' -f2)
+else
+    CURRENT_BRANCH="${BRANCH}"
+fi
 
 ## Populate the version based on release tag
-## If travis tag is set then assign it as VERSION 
-## take the version from the file
-if [ -n "$TRAVIS_TAG" ]; then
-    # Trim the `v` from the TRAVIS_TAG if it exists
+## If release tag is set then assign it as VERSION and
+## if release tag is empty then mark version as ci
+if [ -n "$RELEASE_TAG" ]; then
+    # Trim the `v` from the RELEASE_TAG if it exists
     # Example: v1.10.0 maps to 1.10.0
     # Example: 1.10.0 maps to 1.10.0
     # Example: v1.10.0-custom maps to 1.10.0-custom
-    VERSION="${TRAVIS_TAG#v}"
+    VERSION="${RELEASE_TAG#v}"
 else
-    VERSION="$(cat VERSION)"
+    VERSION="${CURRENT_BRANCH}-dev"
 fi
+
 echo "Building for ${VERSION} VERSION"
 
 # Determine the arch/os combos we're building for
@@ -63,19 +70,6 @@ if [ "$UNAME" = "Darwin" ] ; then
   XC_OS="darwin"
 elif [ "$UNAME" = "Linux" ] ; then
   XC_OS="linux"
-fi
-
-if [ "${ARCH}" = "i686" ] ; then
-    XC_ARCH='386'
-elif [ "${ARCH}" = "x86_64" ] ; then
-    XC_ARCH='amd64'
-elif [ "${ARCH}" = "aarch64" ] ; then
-    XC_ARCH='arm64'
-elif [ "${ARCH}" = "ppc64le" ] ; then
-    XC_ARCH='ppc64le'
-else
-    echo "Unusable architecture: ${ARCH}"
-    exit 1
 fi
 
 
@@ -116,8 +110,7 @@ fi
 env GOOS=$GOOS GOARCH=$GOARCH go build ${BUILD_TAG} -ldflags \
     "-X github.com/openebs/maya/pkg/version.GitCommit=${GIT_COMMIT} \
     -X main.CtlName='${CTLNAME}' \
-    -X github.com/openebs/maya/pkg/version.Version=${VERSION} \
-    -X github.com/openebs/maya/pkg/version.VersionMeta=${VERSION_META}"\
+    -X github.com/openebs/maya/pkg/version.Version=${VERSION}" \
     -o $output_name\
     ./cmd/${CTLNAME}
 
@@ -143,19 +136,6 @@ for F in $(find ${DEV_PLATFORM} -mindepth 1 -maxdepth 2 -type f); do
     cp ${F} bin/${PNAME}/
     cp ${F} ${MAIN_GOPATH}/bin/
 done
-
-if [[ "x${DEV}" == "x" ]]; then
-    # Zip and copy to the dist dir
-    echo "==> Packaging..."
-    for PLATFORM in $(find ./bin/${PNAME} -mindepth 1 -maxdepth 1 -type d); do
-        OSARCH=$(basename ${PLATFORM})
-        echo "--> ${OSARCH}"
-
-        pushd "$PLATFORM" >/dev/null 2>&1
-        zip ../${PNAME}-${OSARCH}.zip ./*
-        popd >/dev/null 2>&1
-    done
-fi
 
 # Done!
 echo

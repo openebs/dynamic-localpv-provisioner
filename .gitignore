@@ -1,5 +1,4 @@
-bin/
-buildscripts/provisioner-localpv/provisioner-localpv
+/bin/
 nohup.out
 coverage.txt
 .DS_Store
