@@ -143,6 +143,11 @@ verify-src:
 # Specify the name for the binaries
 PROVISIONER_LOCALPV=provisioner-localpv
 
+# This variable is added specifically to build amd64 images from travis.
+# Once travis is deprecated, this field will be replaced by image name
+# used in Makefile.buildx.mk
+PROVISIONER_LOCALPV_IMAGE?=provisioner-localpv
+
 #Use this to build provisioner-localpv
 .PHONY: provisioner-localpv
 provisioner-localpv:
@@ -157,7 +162,7 @@ provisioner-localpv-image: provisioner-localpv
 	@echo "--> provisioner-localpv image "
 	@echo "-------------------------------"
 	@cp bin/provisioner-localpv/${PROVISIONER_LOCALPV} buildscripts/provisioner-localpv/
-	@cd buildscripts/provisioner-localpv && docker build -t ${IMAGE_ORG}/provisioner-localpv:${IMAGE_TAG} ${DBUILD_ARGS} . --no-cache
+	@cd buildscripts/provisioner-localpv && docker build -t ${IMAGE_ORG}/${PROVISIONER_LOCALPV_IMAGE}:${IMAGE_TAG} ${DBUILD_ARGS} . --no-cache
 	@rm buildscripts/provisioner-localpv/${PROVISIONER_LOCALPV}
 
 .PHONY: license-check
@@ -173,6 +178,10 @@ license-check:
 	@echo "--> Done checking license."
 	@echo
 
+
+.PHONY: push
+push:
+	DIMAGE=${IMAGE_ORG}/${PROVISIONER_LOCALPV_IMAGE} ./buildscripts/push.sh
 
 # include the buildx recipes
 include Makefile.buildx.mk
