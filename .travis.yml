@@ -34,9 +34,13 @@ before_script:
   - export BRANCH="$TRAVIS_BRANCH"
 
 script:
-  - make provisioner-localpv-image
+  - make provisioner-localpv-image PROVISIONER_LOCALPV_IMAGE=provisioner-localpv-amd64
+
+after_success:
+  - make push PROVISIONER_LOCALPV_IMAGE=provisioner-localpv-amd64
 
 notifications:
   email:
     recipients:
     - kiran.mova@mayadata.io
+    - akhil.mohan@mayadata.io
