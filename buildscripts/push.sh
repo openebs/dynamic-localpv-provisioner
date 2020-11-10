@@ -49,6 +49,14 @@ fi
 # The below steps are required for pushing arch specific images.
 # This steps will be removed eventually in favour of buildx-push
 
+IMAGEID=$( sudo docker images -q "${DIMAGE}:ci" )
+echo "${DIMAGE}:ci -> $IMAGEID"
+if [ -z "${IMAGEID}" ];
+then
+  echo "Error: unable to get IMAGEID for ${DIMAGE}:ci";
+  exit 1
+fi
+
 # Generate a unique tag based on the commit and tag
 BUILD_ID=$(git describe --tags --always)
 
