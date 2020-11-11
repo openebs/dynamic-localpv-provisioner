@@ -28,15 +28,13 @@ jobs:
 
       - name: Set Tag
         run: |
-          BRANCH="${GITHUB_REF##*/}"
-          CI_TAG=${BRANCH#v}-ci
-          if [ ${BRANCH} = "develop" ]; then
-            CI_TAG="ci"
-          fi
-          echo "::set-env name=TAG::${CI_TAG}"
-          echo "::set-env name=BRANCH::${BRANCH}"
-          echo "BRANCH: ${BRANCH}"
-          echo "TAG: ${CI_TAG}"
+            TAG="${GITHUB_REF#refs/*/v}"
+            echo "TAG=${TAG}" >> $GITHUB_ENV
+            echo "RELEASE_TAG=${TAG}" >> $GITHUB_ENV
+
+      - name: Print Tag info
+        run: |
+          echo "RELEASE TAG: ${RELEASE_TAG}"
 
       - name: Setup QEMU
         uses: docker/setup-qemu-action@v1
