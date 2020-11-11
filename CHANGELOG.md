@@ -1,3 +1,9 @@
+v2.3.0-RC1 / 2020-11-11
+========================
+* add support for multiarch builds to localpv provisioner ([#2](https://github.com/openebs/dynamic-localpv-provisioner/pull/2),[@akhilerm](https://github.com/akhilerm))
+
+
+
 # Changelog
 
 
