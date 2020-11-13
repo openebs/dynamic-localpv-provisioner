@@ -54,6 +54,16 @@ LABEL org.label-schema.build-date=$DBUILD_DATE
 LABEL org.label-schema.vcs-url=$DBUILD_REPO_URL
 LABEL org.label-schema.url=$DBUILD_SITE_URL
 
+RUN apk add --no-cache \
+    iproute2 \
+    bash \
+    curl \
+    net-tools \
+    mii-tool \
+    procps \
+    libc6-compat \
+    ca-certificates
+
 COPY --from=build /go/src/github.com/openebs/dynamic-localpv-provisioner/bin/provisioner-localpv/provisioner-localpv /usr/local/bin/provisioner-localpv
 
 ENTRYPOINT ["/usr/local/bin/provisioner-localpv"]
