@@ -26,19 +26,25 @@ import (
 
 	pvController "sigs.k8s.io/sig-storage-lib-external-provisioner/controller"
 	//pvController "github.com/kubernetes-sigs/sig-storage-lib-external-provisioner/controller"
+	"github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/persistentvolume"
 	mconfig "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	persistentvolume "github.com/openebs/maya/pkg/kubernetes/persistentvolume/v1alpha1"
 )
 
 // ProvisionHostPath is invoked by the Provisioner which expect HostPath PV
 //  to be provisioned and a valid PV spec returned.
 func (p *Provisioner) ProvisionHostPath(opts pvController.ProvisionOptions, volumeConfig *VolumeConfig) (*v1.PersistentVolume, error) {
 	pvc := opts.PVC
-	nodeHostname := GetNodeHostname(opts.SelectedNode)
+	//nodeHostname := GetNodeHostname(opts.SelectedNode)
 	taints := GetTaints(opts.SelectedNode)
 	name := opts.PVName
 	stgType := volumeConfig.GetStorageType()
 	saName := getOpenEBSServiceAccountName()
+
+	nodeAffinityKey := volumeConfig.GetNodeAffinityLabelKey()
+	if len(nodeAffinityKey) == 0 {
+		nodeAffinityKey = k8sNodeLabelKeyHostname
+	}
+	nodeAffinityValue := GetNodeLabelValue(opts.SelectedNode, nodeAffinityKey)
 
 	path, err := volumeConfig.GetPath()
 	if err != nil {
@@ -52,17 +58,18 @@ func (p *Provisioner) ProvisionHostPath(opts pvController.ProvisionOptions, volu
 		return nil, err
 	}
 
-	klog.Infof("Creating volume %v at %v:%v", name, nodeHostname, path)
+	klog.Infof("Creating volume %v at node with label %v=%v, path:%v", name, nodeAffinityKey, nodeAffinityValue, path)
 
 	//Before using the path for local PV, make sure it is created.
 	initCmdsForPath := []string{"mkdir", "-m", "0777", "-p"}
 	podOpts := &HelperPodOptions{
-		cmdsForPath:        initCmdsForPath,
-		name:               name,
-		path:               path,
-		nodeHostname:       nodeHostname,
-		serviceAccountName: saName,
-		selectedNodeTaints: taints,
+		cmdsForPath:            initCmdsForPath,
+		name:                   name,
+		path:                   path,
+		nodeAffinityLabelKey:   nodeAffinityKey,
+		nodeAffinityLabelValue: nodeAffinityValue,
+		serviceAccountName:     saName,
+		selectedNodeTaints:     taints,
 	}
 	iErr := p.createInitPod(podOpts)
 	if iErr != nil {
@@ -104,7 +111,7 @@ func (p *Provisioner) ProvisionHostPath(opts pvController.ProvisionOptions, volu
 		WithVolumeMode(fs).
 		WithCapacityQty(pvc.Spec.Resources.Requests[v1.ResourceName(v1.ResourceStorage)]).
 		WithLocalHostDirectory(path).
-		WithNodeAffinity(nodeHostname).
+		WithNodeAffinity(nodeAffinityKey, nodeAffinityValue).
 		Build()
 
 	if err != nil {
@@ -126,9 +133,9 @@ func (p *Provisioner) ProvisionHostPath(opts pvController.ProvisionOptions, volu
 	return pvObj, nil
 }
 
-// GetNodeObjectFromHostName returns the Node Object with matching NodeHostName.
-func (p *Provisioner) GetNodeObjectFromHostName(hostName string) (*v1.Node, error) {
-	labelSelector := metav1.LabelSelector{MatchLabels: map[string]string{persistentvolume.KeyNode: hostName}}
+// GetNodeObjectFromLabels returns the Node Object with matching label key and value
+func (p *Provisioner) GetNodeObjectFromLabels(key, value string) (*v1.Node, error) {
+	labelSelector := metav1.LabelSelector{MatchLabels: map[string]string{key: value}}
 	listOptions := metav1.ListOptions{
 		LabelSelector: labels.Set(labelSelector.MatchLabels).String(),
 		Limit:         1,
@@ -139,7 +146,7 @@ func (p *Provisioner) GetNodeObjectFromHostName(hostName string) (*v1.Node, erro
 		// based on kubernetes.io/hostname label, either:
 		// - hostname label changed on the node or
 		// - the node is deleted from the cluster.
-		return nil, errors.Errorf("Unable to get the Node with the NodeHostName [%s]", hostName)
+		return nil, errors.Errorf("Unable to get the Node with the Node Label %s [%s]", key, value)
 	}
 	return &nodeList.Items[0], nil
 
@@ -162,28 +169,29 @@ func (p *Provisioner) DeleteHostPath(pv *v1.PersistentVolume) (err error) {
 		return errors.Errorf("no HostPath set")
 	}
 
-	hostname := pvObj.GetAffinitedNodeHostname()
-	if hostname == "" {
-		return errors.Errorf("cannot find affinited node hostname")
+	nodeAffinityKey, nodeAffinityValue := pvObj.GetAffinitedNodeLabelKeyAndValue()
+	if nodeAffinityValue == "" {
+		return errors.Errorf("cannot find affinited node details")
 	}
-	alertlog.Logger.Infof("Get the Node Object from hostName: %v", hostname)
+	alertlog.Logger.Infof("Get the Node Object with label %v : %v", nodeAffinityKey, nodeAffinityValue)
 
 	//Get the node Object once again to get updated Taints.
-	nodeObject, err := p.GetNodeObjectFromHostName(hostname)
+	nodeObject, err := p.GetNodeObjectFromLabels(nodeAffinityKey, nodeAffinityValue)
 	if err != nil {
 		return err
 	}
 	taints := GetTaints(nodeObject)
 	//Initiate clean up only when reclaim policy is not retain.
-	klog.Infof("Deleting volume %v at %v:%v", pv.Name, hostname, path)
+	klog.Infof("Deleting volume %v at %v:%v", pv.Name, GetNodeHostname(nodeObject), path)
 	cleanupCmdsForPath := []string{"rm", "-rf"}
 	podOpts := &HelperPodOptions{
-		cmdsForPath:        cleanupCmdsForPath,
-		name:               pv.Name,
-		path:               path,
-		nodeHostname:       hostname,
-		serviceAccountName: saName,
-		selectedNodeTaints: taints,
+		cmdsForPath:            cleanupCmdsForPath,
+		name:                   pv.Name,
+		path:                   path,
+		nodeAffinityLabelKey:   nodeAffinityKey,
+		nodeAffinityLabelValue: nodeAffinityValue,
+		serviceAccountName:     saName,
+		selectedNodeTaints:     taints,
 	}
 
 	if err := p.createCleanupPod(podOpts); err != nil {

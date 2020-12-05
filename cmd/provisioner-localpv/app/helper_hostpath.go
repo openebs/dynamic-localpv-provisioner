@@ -28,9 +28,9 @@ import (
 
 	hostpath "github.com/openebs/maya/pkg/hostpath/v1alpha1"
 
-	container "github.com/openebs/maya/pkg/kubernetes/container/v1alpha1"
-	pod "github.com/openebs/maya/pkg/kubernetes/pod/v1alpha1"
-	volume "github.com/openebs/maya/pkg/kubernetes/volume/v1alpha1"
+	"github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/container"
+	"github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/pod"
+	"github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/volume"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -52,8 +52,11 @@ var (
 // to execute a command (cmdsForPath) on a given
 // volume path (path)
 type HelperPodOptions struct {
-	//nodeHostname represents the hostname of the node where pod should be launched.
-	nodeHostname string
+	//nodeAffinityLabelKey represents the label key of the node where pod should be launched.
+	nodeAffinityLabelKey string
+
+	//nodeAffinityLabelValue represents the label value of the node where pod should be launched.
+	nodeAffinityLabelValue string
 
 	//name is the name of the PV for which the pod is being launched
 	name string
@@ -78,7 +81,8 @@ type HelperPodOptions struct {
 func (pOpts *HelperPodOptions) validate() error {
 	if pOpts.name == "" ||
 		pOpts.path == "" ||
-		pOpts.nodeHostname == "" ||
+		pOpts.nodeAffinityLabelKey == "" ||
+		pOpts.nodeAffinityLabelValue == "" ||
 		pOpts.serviceAccountName == "" {
 		return errors.Errorf("invalid empty name or hostpath or hostname or service account name")
 	}
@@ -165,9 +169,10 @@ func (p *Provisioner) launchPod(config podConfig) (*corev1.Pod, error) {
 	privileged := true
 
 	helperPod, err := pod.NewBuilder().
-		WithName(config.podName + "-" + config.pOpts.name).
+		WithName(config.podName+"-"+config.pOpts.name).
 		WithRestartPolicy(corev1.RestartPolicyNever).
-		WithNodeSelectorHostnameNew(config.pOpts.nodeHostname).
+		//WithNodeSelectorHostnameNew(config.pOpts.nodeHostname).
+		WithNodeAffinityNew(config.pOpts.nodeAffinityLabelKey, config.pOpts.nodeAffinityLabelValue).
 		WithServiceAccountName(config.pOpts.serviceAccountName).
 		WithTolerationsForTaints(config.taints...).
 		WithContainerBuilder(
