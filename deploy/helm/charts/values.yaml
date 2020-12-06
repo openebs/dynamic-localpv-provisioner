@@ -1,0 +1,89 @@
+# Default values for localpv.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+release:
+  version: "2.3.0"
+
+# If false, openebs NDM sub-chart will not be installed
+openebsNDM:
+  enabled: true
+
+localpv:
+  name: localpv-provisioner
+  enabled: true
+  image:
+    # Make sure that registry name end with a '/'.
+    # For example : quay.io/ is a correct value here and quay.io is incorrect
+    registry:
+    repository: openebs/provisioner-localpv
+    tag: 2.3.0
+    pullPolicy: IfNotPresent
+  updateStrategy:
+      type: RollingUpdate
+  annotations: {}
+  podAnnotations: {}
+    ## Labels to be added to localpv provisioner deployment pods
+  podLabels:
+      name: openebs-localpv-provisioner
+  healthCheck:
+    initialDelaySeconds: 30
+    periodSeconds: 60
+  replicas: 1
+  enableLeaderElection: true
+  basePath: "/var/openebs/local"
+  resources: {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  securityContext: {}
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name:
+
+
+<<<<<<< HEAD:deploy/charts/values.yaml
+=======
+classes:
+- name: fast-disks # Defines name of storage classe.
+  # Path on the host where local volumes of this storage class are mounted
+  # under.
+  hostDir: /mnt/fast-disks
+  # Uncomment to create storage class object and configure it.
+  storageClass:
+    reclaimPolicy: Delete # Available reclaim policies: Delete/Retain, defaults: Delete.
+    isDefaultClass: true # set as default class
+
+>>>>>>> 8b66724... change the:deploy/helm/charts/values.yaml
+helperPod:
+  image:
+    registry: ""
+    repository: openebs/linux-utils
+    pullPolicy: IfNotPresent
+    # Overrides the image tag whose default is the chart appVersion.
+    tag: 2.3.0
+
+analytics:
+  enabled: true
+  # Specify in hours the duration after which a ping event needs to be sent.
+  pingInterval: "24h"

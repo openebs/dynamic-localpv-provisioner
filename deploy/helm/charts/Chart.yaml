@@ -1,0 +1,32 @@
+apiVersion: v2
+name: localpv-provisioner
+description: A Helm chart for openebs dynamic localpv provisioner
+type: application
+# This is the chart version. This version number should be incremented each time you make changes
+# to the chart and its templates, including the app version.
+version: 2.3.0
+# This is the version number of the application being deployed. This version number should be
+# incremented each time you make changes to the application.
+appVersion: 2.3.0
+icon: https://raw.githubusercontent.com/cncf/artwork/master/projects/openebs/icon/color/openebs-icon-color.png
+home: http://www.openebs.io/
+keywords:
+  - storage
+  - local
+  - dynamic-localpv
+sources:
+  - https://github.com/openebs/dynamic-localpv-provisioner
+
+dependencies:
+  - name: openebs-ndm
+    version: "1.0.1"
+    repository: "https://openebs.github.io/node-disk-manager"
+    condition: openebsNDM.enabled
+
+maintainers:
+  - name: akhilerm
+    email: akhil.mohan@mayadata.io
+  - name: kiranmova
+    email: kiran.mova@mayadata.io
+  - name: prateekpandey14
+    email: prateek.pandey@mayadata.io
