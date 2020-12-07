@@ -9,6 +9,8 @@ metadata:
   annotations:
     {{- toYaml . | nindent 4 }}
   {{- end }}
+{{- end }}
+{{- if .Values.rbac.create }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -24,7 +26,7 @@ rules:
   resources: ["nodes"]
   verbs: ["get", "list", "watch"]
 - apiGroups: ["*"]
-  resources: ["namespaces", "events", "endpoints", "configmaps", "jobs", "cronjobs" ]
+  resources: ["namespaces", "events", "endpoints"]
   verbs: ["*"]
 - apiGroups: ["*"]
   resources: ["resourcequotas", "limitranges"]
@@ -38,12 +40,6 @@ rules:
 - apiGroups: ["openebs.io"]
   resources: [ "*"]
   verbs: ["*" ]
-- apiGroups: ["cstor.openebs.io"]
-  resources: [ "*"]
-  verbs: ["*" ]
-- apiGroups: ["coordination.k8s.io"]
-  resources: ["leases"]
-  verbs: ["get", "watch", "list", "delete", "update", "create"]
 - nonResourceURLs: ["/metrics"]
   verbs: ["get"]
 ---
@@ -64,4 +60,40 @@ subjects:
 - kind: ServiceAccount
   name: {{ template "localpv.serviceAccountName" . }}
   namespace: {{ .Release.Namespace }}
+{{- if .Values.rbac.pspEnabled }}
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: {{ template "localpv.fullname" . }}-psp
+  {{- with .Values.localpv.annotations }}
+  annotations: {{ toYaml . | nindent 4 }}
+  {{- end }}
+  labels:
+    {{- include "localpv.labels" . | nindent 4 }}
+rules:
+- apiGroups: ['policy']
+  resources: ['podsecuritypolicies']
+  verbs:     ['use']
+  resourceNames:
+  - {{ template "localpv.fullname" . }}-psp
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ template "localpv.fullname" . }}-psp
+  {{- with .Values.localpv.annotations }}
+  annotations: {{ toYaml . | nindent 4 }}
+  {{- end }}
+  labels:
+    {{- include "localpv.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ template "localpv.fullname" . }}-psp
+subjects:
+  - kind: ServiceAccount
+    name: {{ template "localpv.serviceAccountName" . }}
+    namespace: {{ $.Release.Namespace }}
+{{- end }}
 {{- end }}

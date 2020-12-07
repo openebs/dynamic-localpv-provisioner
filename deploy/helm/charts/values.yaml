@@ -5,6 +5,12 @@
 release:
   version: "2.3.0"
 
+rbac:
+  # rbac.create: `true` if rbac resources should be created
+  create: true
+  # rbac.pspEnabled: `true` if PodSecurityPolicy resources should be created
+  pspEnabled: false
+
 # If false, openebs NDM sub-chart will not be installed
 openebsNDM:
   enabled: true
@@ -21,6 +27,8 @@ localpv:
     pullPolicy: IfNotPresent
   updateStrategy:
       type: RollingUpdate
+  # If set to false, containers created by the localpv provisioner will run without extra privileges.
+  privileged: true
   annotations: {}
   podAnnotations: {}
     ## Labels to be added to localpv provisioner deployment pods
@@ -61,9 +69,6 @@ serviceAccount:
   # If not set and create is true, a name is generated using the fullname template
   name:
 
-
-<<<<<<< HEAD:deploy/charts/values.yaml
-=======
 classes:
 - name: fast-disks # Defines name of storage classe.
   # Path on the host where local volumes of this storage class are mounted
@@ -74,7 +79,6 @@ classes:
     reclaimPolicy: Delete # Available reclaim policies: Delete/Retain, defaults: Delete.
     isDefaultClass: true # set as default class
 
->>>>>>> 8b66724... change the:deploy/helm/charts/values.yaml
 helperPod:
   image:
     registry: ""
