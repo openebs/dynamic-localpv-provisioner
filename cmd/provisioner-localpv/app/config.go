@@ -105,10 +105,6 @@ const (
 	// By default, the pv name will be used as the folder name.
 	// KeyPVBasePath can be useful for providing the same underlying folder
 	// name for all replicas in a Statefulset.
-	//KeyPVRelativePath defines the alternate folder name under the BasePath
-	// By default, the pv name will be used as the folder name.
-	// KeyPVBasePath can be useful for providing the same underlying folder
-	// name for all replicas in a Statefulset.
 	// Will be a property of the PVC annotations.
 	//KeyPVRelativePath = "RelativePath"
 	//KeyPVAbsolutePath specifies a complete hostpath instead of

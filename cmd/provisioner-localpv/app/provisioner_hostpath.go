@@ -138,7 +138,6 @@ func (p *Provisioner) GetNodeObjectFromLabels(key, value string) (*v1.Node, erro
 	labelSelector := metav1.LabelSelector{MatchLabels: map[string]string{key: value}}
 	listOptions := metav1.ListOptions{
 		LabelSelector: labels.Set(labelSelector.MatchLabels).String(),
-		Limit:         1,
 	}
 	nodeList, err := p.kubeClient.CoreV1().Nodes().List(listOptions)
 	if err != nil || len(nodeList.Items) == 0 {
@@ -147,6 +146,12 @@ func (p *Provisioner) GetNodeObjectFromLabels(key, value string) (*v1.Node, erro
 		// - hostname label changed on the node or
 		// - the node is deleted from the cluster.
 		return nil, errors.Errorf("Unable to get the Node with the Node Label %s [%s]", key, value)
+	}
+	if len(nodeList.Items) != 1 {
+		// After the PV is created and node affinity is set
+		// on a custom affinity label, there may be a transitory state
+		// with two nodes matching (old and new) label.
+		return nil, errors.Errorf("Unable to determine the Node. Found multiple nodes matching the labels %s [%s].", key, value)
 	}
 	return &nodeList.Items[0], nil
 
