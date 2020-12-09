@@ -26,7 +26,7 @@ rules:
   resources: ["nodes"]
   verbs: ["get", "list", "watch"]
 - apiGroups: ["*"]
-  resources: ["namespaces", "events", "endpoints"]
+  resources: ["namespaces", "pods", "events", "endpoints"]
   verbs: ["*"]
 - apiGroups: ["*"]
   resources: ["resourcequotas", "limitranges"]

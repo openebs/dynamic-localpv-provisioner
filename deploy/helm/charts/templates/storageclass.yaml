@@ -1,0 +1,42 @@
+{{- range $val := .Values.classes }}
+{{- if $val.storageClass }}
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: {{ $val.name }}
+{{- if kindIs "map" $val.storageClass }}
+  annotations:
+    openebs.io/cas-type: local
+    cas.openebs.io/config: |
+      - name: StorageType
+        value: {{ $val.storageClass.storageType | default "device" }}
+{{- if $val.storageClass.fsType }}
+      - name: FSType
+        value: {{ $val.storageClass.fsType }}
+{{- end }}
+{{- if $val.storageClass.basePath }}
+      - name: BasePath
+        value: {{ $val.storageClass.basePath }}
+{{- end }}
+{{- if $val.storageClass.blockDeviceTag }}
+      - name: BlockDeviceTag
+        value: {{ $val.storageClass.blockDeviceTag }}
+{{- end }}
+{{- if $val.storageClass.nodeAffinityLabel }}
+      - name: NodeAffinityLabel
+        value: {{ $val.storageClass.nodeAffinityLabel }}
+{{- end }}
+{{- if $val.storageClass.isDefaultClass }}
+    storageclass.kubernetes.io/is-default-class: "true"
+{{- end }}
+{{- end }}
+provisioner: openebs.io/local
+volumeBindingMode: WaitForFirstConsumer
+{{- if kindIs "map" $val.storageClass }}
+reclaimPolicy: {{ $val.storageClass.reclaimPolicy | default "Delete" }}
+{{- else }}
+reclaimPolicy: Delete
+{{- end }}
+{{- end }}
+{{- end }}
