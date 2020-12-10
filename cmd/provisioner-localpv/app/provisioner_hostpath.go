@@ -34,7 +34,6 @@ import (
 //  to be provisioned and a valid PV spec returned.
 func (p *Provisioner) ProvisionHostPath(opts pvController.ProvisionOptions, volumeConfig *VolumeConfig) (*v1.PersistentVolume, error) {
 	pvc := opts.PVC
-	//nodeHostname := GetNodeHostname(opts.SelectedNode)
 	taints := GetTaints(opts.SelectedNode)
 	name := opts.PVName
 	stgType := volumeConfig.GetStorageType()
