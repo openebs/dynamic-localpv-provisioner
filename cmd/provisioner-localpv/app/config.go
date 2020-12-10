@@ -78,6 +78,29 @@ const (
 	//
 	KeyBDTag = "BlockDeviceTag"
 
+	//KeyNodeAffinityLabel defines the label key that should be
+	//used in the nodeAffinitySpec. Default is to use "kubernetes.io/hostname"
+	//
+	//Example: Local PV device StorageClass for using a custom
+	//node label as: openebs.io/node-affinity-value
+	//will be as follows
+	//
+	// kind: StorageClass
+	// metadata:
+	//   name: openebs-device-tag-x
+	//   annotations:
+	//     openebs.io/cas-type: local
+	//     cas.openebs.io/config: |
+	//       - name: StorageType
+	//         value: "device"
+	//       - name: NodeAffinityLabel
+	//         value: "openebs.io/node-affinity-value"
+	// provisioner: openebs.io/local
+	// volumeBindingMode: WaitForFirstConsumer
+	// reclaimPolicy: Delete
+	//
+	KeyNodeAffinityLabel = "NodeAffinityLabel"
+
 	//KeyPVRelativePath defines the alternate folder name under the BasePath
 	// By default, the pv name will be used as the folder name.
 	// KeyPVBasePath can be useful for providing the same underlying folder
@@ -188,6 +211,18 @@ func (c *VolumeConfig) GetBDTagValue() string {
 	return bdTagValue
 }
 
+//GetNodeAffinityLabelKey returns the custom node affinity
+//label key as configured in StorageClass.
+//
+//Default is "", use the standard kubernetes.io/hostname label.
+func (c *VolumeConfig) GetNodeAffinityLabelKey() string {
+	nodeAffinityLabelKey := c.getValue(KeyNodeAffinityLabel)
+	if len(strings.TrimSpace(nodeAffinityLabelKey)) == 0 {
+		return ""
+	}
+	return nodeAffinityLabelKey
+}
+
 //GetPath returns a valid PV path based on the configuration
 // or an error. The Path is constructed using the following rules:
 // If AbsolutePath is specified return it. (Future)
@@ -275,6 +310,16 @@ func GetNodeHostname(n *v1.Node) string {
 		return ""
 	}
 	return hostname
+}
+
+// GetNodeLabelValue extracts the value from the given label on the Node
+// If specificed label is not present an empty string is returned.
+func GetNodeLabelValue(n *v1.Node, labelKey string) string {
+	labelValue, found := n.Labels[labelKey]
+	if !found {
+		return ""
+	}
+	return labelValue
 }
 
 // GetTaints extracts the Taints from the Spec on the node

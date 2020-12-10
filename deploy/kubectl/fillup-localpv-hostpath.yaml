@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: fillup
+  namespace: default
+spec:
+  containers:
+  - command:
+       - sh
+       - -c
+       - 'dd if=/dev/zero of=/mnt/store1/dump.dd bs=1M; sync; sleep 5; sync; tail -f /dev/null;'
+    image: busybox
+    imagePullPolicy: Always
+    name: fillup-bb
+    volumeMounts:
+    - mountPath: /mnt/store1
+      name: fillup
+  volumes:
+  - name: fillup
+    persistentVolumeClaim:
+      claimName: fillup-claim
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: fillup-claim
+spec:
+  storageClassName: openebs-hostpath
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1G
