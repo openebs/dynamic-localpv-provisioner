@@ -16,6 +16,8 @@ name: ci
 
 on:
   pull_request:
+    paths-ignore:
+      - 'deploy/helm/**'
     branches:
       # on pull requests to develop and release branches
       - develop
