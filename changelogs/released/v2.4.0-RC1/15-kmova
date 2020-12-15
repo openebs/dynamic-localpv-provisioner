@@ -1,0 +1,1 @@
+allow custom node affinity label in place of hostnames for localpv hostpath provisioner
