@@ -5,7 +5,6 @@
 A Helm chart for openebs dynamic localpv provisioner. This chart bootstraps OpenEBS Dynamic LocalPV provisioner deployment on a [Kubernetes](http://kubernetes.io) cluster using the  [Helm](https://helm.sh) package manager.
 
 
-
 **Homepage:** <http://www.openebs.io/>
 
 ## Maintainers
@@ -16,21 +15,11 @@ A Helm chart for openebs dynamic localpv provisioner. This chart bootstraps Open
 | kiranmova | kiran.mova@mayadata.io |  |
 | prateekpandey14 | prateek.pandey@mayadata.io |  |
 
-## Source Code
-
-* <https://github.com/openebs/dynamic-localpv-provisioner>
-
-## Requirements
-
-| Repository | Name | Version |
-|------------|------|---------|
-| https://openebs.github.io/node-disk-manager | openebs-ndm | 1.0.1 |
 
 ## Get Repo Info
 
 ```console
-helm repo add openebs-localpv-provisioner https://openebs.github.io/dynamic-localpv-provisioner
-helm repo add stable https://charts.helm.sh/stable
+helm repo add openebs-localpv https://openebs.github.io/dynamic-localpv-provisioner
 helm repo update
 ```
 
@@ -42,7 +31,7 @@ Please visit the [link](https://openebs.github.io/dynamic-localpv-provisioner/) 
 
 ```console
 # Helm
-$ helm install [RELEASE_NAME] openebs-localpv-provisioner/localpv-provisioner
+$ helm install [RELEASE_NAME] openebs-localpv/localpv-provisioner
 ```
 
 _See [configuration](#configuration) below._
@@ -53,7 +42,10 @@ _See [helm install](https://helm.sh/docs/helm/helm_install/) for command documen
 
 By default this chart installs additional, dependent charts:
 
-- [openebs-ndm](https://openebs.github.io/node-disk-manager)
+| Repository | Name | Version |
+|------------|------|---------|
+| https://openebs.github.io/node-disk-manager | openebs-ndm | 1.0.2 |
+
 
 To disable the dependency during installation, set `openebsNDM.enabled` to `false`.
 
