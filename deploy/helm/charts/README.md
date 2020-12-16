@@ -1,6 +1,8 @@
-# localpv-provisioner
+#  OpenEBS LocalPV Provisioner
 
-![Version: 2.4.0](https://img.shields.io/badge/Version-2.4.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 2.4.0](https://img.shields.io/badge/AppVersion-2.4.0-informational?style=flat-square)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+![Chart Lint and Test](https://github.com/openebs/dynamic-localpv-provisioner/workflows/Chart%20Lint%20and%20Test/badge.svg)
+![Release Charts](https://github.com/openebs/dynamic-localpv-provisioner/workflows/Release%20Charts/badge.svg?branch=develop)
 
 A Helm chart for openebs dynamic localpv provisioner. This chart bootstraps OpenEBS Dynamic LocalPV provisioner deployment on a [Kubernetes](http://kubernetes.io) cluster using the  [Helm](https://helm.sh) package manager.
 
