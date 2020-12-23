@@ -73,28 +73,34 @@ serviceAccount:
   # If not set and create is true, a name is generated using the fullname template
   name:
 
-classes:
-    # Defines name of storage classe.
-  - name: localpv-device
-    storageClass:
-      # Available reclaim policies: Delete/Retain, defaults: Delete.
-      reclaimPolicy: Delete
-      # set as default class
-      isDefaultClass: false
-      storageType: "device"
-      fsType: "ext4"
-      blockDeviceTag: ""
+deviceClass:
+  # Defines name of storage class.
+  name: openebs-device
+  # Available reclaim policies: Delete/Retain, defaults: Delete.
+  reclaimPolicy: Delete
+  # set as default class
+  isDefaultClass: false
+  storageType: "device"
+  fsType: "ext4"
+  # Label block devices in the cluster that you would like the openEBS localPV
+  # Provisioner to pick up those specific block devices available on the node.
+  #
+  # To read more: https://docs.openebs.io/docs/next/uglocalpv-device.html#optional-block-device-tagging
+  blockDeviceTag: ""
 
-  - name: localpv-hostpath
-    storageClass:
-      reclaimPolicy: Delete
-      isDefaultClass: false
-      storageType: "hostpath"
-      # Path on the host where local volumes of this storage class are mounted under.
-      basePath: "/var/openebs/local"
-      # Custom node affinity label "openebs.io/node-affinity-value" that will be
-      # used instead of hostnames
-      nodeAffinityLabel: ""
+hostpathClass:
+  name: openebs-hostpath
+  # Available reclaim policies: Delete/Retain, defaults: Delete.
+  reclaimPolicy: Delete
+  isDefaultClass: false
+  storageType: "hostpath"
+  # Path on the host where local volumes of this storage class are mounted under.
+  basePath: "/var/openebs/local"
+  # Custom node affinity label for example "openebs.io/node-affinity-value" that will be
+  # used instead of hostnames
+  # This helps in cases where the hostname changes when the node is removed and
+  # added back with the disks still intact.
+  nodeAffinityLabel: ""
 
 helperPod:
   image:

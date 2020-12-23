@@ -1,0 +1,25 @@
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: {{ .Values.deviceClass.name }}
+  annotations:
+    openebs.io/cas-type: local
+    cas.openebs.io/config: |
+{{- if .Values.deviceClass.fsType }}
+      - name: StorageType
+        value: {{ .Values.deviceClass.storageType }}
+{{- end }}
+{{- if .Values.deviceClass.fsType }}
+      - name: FSType
+        value: {{ .Values.deviceClass.fsType }}
+{{- end }}
+{{- if .Values.deviceClass.blockDeviceTag }}
+      - name: BlockDeviceTag
+        value: {{ .Values.deviceClass.blockDeviceTag }}
+{{- end }}
+{{- if .Values.deviceClass.isDefaultClass }}
+    storageclass.kubernetes.io/is-default-class: "true"
+{{- end }}
+provisioner: openebs.io/local
+volumeBindingMode: WaitForFirstConsumer
+reclaimPolicy: {{ .Values.deviceClass.reclaimPolicy }}
