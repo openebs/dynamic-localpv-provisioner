@@ -15,7 +15,7 @@
 name: release
 
 on:
-  create:
+  push:
     tags:
       - 'v*'
 
