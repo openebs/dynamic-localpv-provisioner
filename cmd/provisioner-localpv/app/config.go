@@ -28,6 +28,7 @@ import (
 
 	//"github.com/pkg/errors"
 	errors "github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	//storagev1 "k8s.io/api/storage/v1"
@@ -326,4 +327,23 @@ func GetNodeLabelValue(n *v1.Node, labelKey string) string {
 // If Taints are empty, it just returns empty structure of corev1.Taints
 func GetTaints(n *v1.Node) []v1.Taint {
 	return n.Spec.Taints
+}
+
+// GetImagePullSecrets  parse image pull secrets from env
+// transform  string to corev1.LocalObjectReference
+// multiple secrets are separated by commas
+func GetImagePullSecrets(s string) []corev1.LocalObjectReference {
+	s = strings.TrimSpace(s)
+	list := make([]corev1.LocalObjectReference, 0)
+	if len(s) == 0 {
+		return list
+	}
+	arr := strings.Split(s, ",")
+	for _, item := range arr {
+		if len(item) > 0 {
+			l := corev1.LocalObjectReference{Name: strings.TrimSpace(item)}
+			list = append(list, l)
+		}
+	}
+	return list
 }

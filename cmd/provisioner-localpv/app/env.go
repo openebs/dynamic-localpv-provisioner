@@ -38,6 +38,10 @@ const (
 	// ProvisionerBasePath is the environment variable that provides the
 	// default base path on the node where host-path PVs will be provisioned.
 	ProvisionerBasePath menv.ENVKey = "OPENEBS_IO_BASE_PATH"
+
+	// ProvisionerImagePullSecrets is the environment variable that provides the
+	// init pod to use as authentication when pulling helper image, it is used in the scene where authentication is required
+	ProvisionerImagePullSecrets menv.ENVKey = "OPENEBS_IO_IMAGE_PULL_SECRETS"
 )
 
 var (
@@ -58,4 +62,7 @@ func getDefaultBasePath() string {
 
 func getOpenEBSServiceAccountName() string {
 	return menv.Get(menv.OpenEBSServiceAccount)
+}
+func getOpenEBSImagePullSecrets() string {
+	return menv.Get(ProvisionerImagePullSecrets)
 }

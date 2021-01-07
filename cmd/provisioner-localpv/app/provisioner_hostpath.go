@@ -57,7 +57,9 @@ func (p *Provisioner) ProvisionHostPath(opts pvController.ProvisionOptions, volu
 		return nil, err
 	}
 
-	klog.Infof("Creating volume %v at node with label %v=%v, path:%v", name, nodeAffinityKey, nodeAffinityValue, path)
+	imagePullSecrets := GetImagePullSecrets(getOpenEBSImagePullSecrets())
+
+	klog.Infof("Creating volume %v at node with label %v=%v, path:%v,ImagePullSecrets:%v", name, nodeAffinityKey, nodeAffinityValue, path, imagePullSecrets)
 
 	//Before using the path for local PV, make sure it is created.
 	initCmdsForPath := []string{"mkdir", "-m", "0777", "-p"}
@@ -69,6 +71,7 @@ func (p *Provisioner) ProvisionHostPath(opts pvController.ProvisionOptions, volu
 		nodeAffinityLabelValue: nodeAffinityValue,
 		serviceAccountName:     saName,
 		selectedNodeTaints:     taints,
+		imagePullSecrets:       imagePullSecrets,
 	}
 	iErr := p.createInitPod(podOpts)
 	if iErr != nil {
