@@ -210,6 +210,17 @@ func (b *Builder) WithContainer(container corev1.Container) *Builder {
 	return b.WithContainers([]corev1.Container{container})
 }
 
+// WithImagePullSecrets sets the pod image pull secrets
+// + optional
+// if the length is zero that no secret is needed to pull the image
+func (b *Builder) WithImagePullSecrets(secrets []corev1.LocalObjectReference) *Builder {
+	if len(secrets) == 0 {
+		return b
+	}
+	b.pod.object.Spec.ImagePullSecrets = secrets
+	return b
+}
+
 // WithVolumes sets the Volumes field in Pod with provided arguments
 func (b *Builder) WithVolumes(volumes []corev1.Volume) *Builder {
 	if len(volumes) == 0 {

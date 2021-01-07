@@ -72,6 +72,8 @@ type HelperPodOptions struct {
 	serviceAccountName string
 
 	selectedNodeTaints []corev1.Taint
+
+	imagePullSecrets []corev1.LocalObjectReference
 }
 
 // validate checks that the required fields to launch
@@ -189,6 +191,7 @@ func (p *Provisioner) launchPod(config podConfig) (*corev1.Pod, error) {
 				}).
 				WithPrivilegedSecurityContext(&privileged),
 		).
+		WithImagePullSecrets(config.pOpts.imagePullSecrets).
 		WithVolumeBuilder(
 			volume.NewBuilder().
 				WithName("data").

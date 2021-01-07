@@ -17,10 +17,11 @@ limitations under the License.
 package app
 
 import (
-	menv "github.com/openebs/maya/pkg/env/v1alpha1"
 	"os"
 	"reflect"
 	"testing"
+
+	menv "github.com/openebs/maya/pkg/env/v1alpha1"
 )
 
 func TestGetOpenEBSNamespace(t *testing.T) {
@@ -154,6 +155,43 @@ func TestGetOpenEBSServiceAccountName(t *testing.T) {
 				t.Errorf("expected %s got %s", v.expectedValue, actualValue)
 			}
 			os.Unsetenv(string(menv.OpenEBSServiceAccount))
+		})
+	}
+}
+
+func TestGetOpenEBSImagePullSecrets(t *testing.T) {
+	testCases := map[string]struct {
+		value         string
+		expectedValue string
+	}{
+		"Missing env variable": {
+			value:         "",
+			expectedValue: "",
+		},
+		"Present env variable with value": {
+			value:         "image-pull-secret",
+			expectedValue: "image-pull-secret",
+		},
+		"Present env variable with multiple value": {
+			value:         "image-pull-secret,secret-1",
+			expectedValue: "image-pull-secret,secret-1",
+		},
+		"Present env variable with whitespaces": {
+			value:         " ",
+			expectedValue: "",
+		},
+	}
+	for k, v := range testCases {
+		v := v
+		t.Run(k, func(t *testing.T) {
+			if len(v.value) != 0 {
+				os.Setenv(string(ProvisionerImagePullSecrets), v.value)
+			}
+			actualValue := getOpenEBSImagePullSecrets()
+			if !reflect.DeepEqual(actualValue, v.expectedValue) {
+				t.Errorf("expected %s got %s", v.expectedValue, actualValue)
+			}
+			os.Unsetenv(string(ProvisionerImagePullSecrets))
 		})
 	}
 }
