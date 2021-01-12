@@ -188,6 +188,9 @@ func (p *Provisioner) DeleteHostPath(pv *v1.PersistentVolume) (err error) {
 		return err
 	}
 	taints := GetTaints(nodeObject)
+
+	imagePullSecrets := GetImagePullSecrets(getOpenEBSImagePullSecrets())
+
 	//Initiate clean up only when reclaim policy is not retain.
 	klog.Infof("Deleting volume %v at %v:%v", pv.Name, GetNodeHostname(nodeObject), path)
 	cleanupCmdsForPath := []string{"rm", "-rf"}
@@ -199,6 +202,7 @@ func (p *Provisioner) DeleteHostPath(pv *v1.PersistentVolume) (err error) {
 		nodeAffinityLabelValue: nodeAffinityValue,
 		serviceAccountName:     saName,
 		selectedNodeTaints:     taints,
+		imagePullSecrets:       imagePullSecrets,
 	}
 
 	if err := p.createCleanupPod(podOpts); err != nil {
