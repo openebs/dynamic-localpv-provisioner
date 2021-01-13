@@ -81,6 +81,10 @@ spec:
         # leader election is enabled.
         - name: LEADER_ELECTION_ENABLED
           value: "{{ .Values.localpv.enableLeaderElection }}"
+{{- if .Values.imagePullSecrets }}
+        - name: OPENEBS_IO_IMAGE_PULL_SECRETS
+          value: "{{- range $.Values.imagePullSecrets }}{{ .name }},{{- end }}"
+{{- end }}
         # Process name used for matching is limited to the 15 characters
         # present in the pgrep output.
         # So fullname can't be used here with pgrep (>15 chars).A regular expression
