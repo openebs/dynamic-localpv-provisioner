@@ -1,3 +1,16 @@
+v2.5.0 / 2020-12-13
+========================
+* add openebs localpv helm charts ([#14](https://github.com/openebs/dynamic-localpv-provisioner/pull/14),[@prateekpandey14](https://github.com/prateekpandey14))
+* support passing image pull secrets when creating helper pod by localpv provisioner ([#22](https://github.com/openebs/dynamic-localpv-provisioner/pull/22),[@allenhaozi](https://github.com/allenhaozi))
+
+
+v2.5.0-RC1 / 2020-12-08
+========================
+* add openebs localpv helm charts ([#14](https://github.com/openebs/dynamic-localpv-provisioner/pull/14),[@prateekpandey14](https://github.com/prateekpandey14))
+* support passing image pull secrets when creating helper pod by localpv provisioner ([#22](https://github.com/openebs/dynamic-localpv-provisioner/pull/22),[@allenhaozi](https://github.com/allenhaozi))
+
+
+
 v2.4.0 / 2020-12-13
 ========================
 * allow custom node affinity label in place of hostnames for localpv hostpath provisioner ([#15](https://github.com/openebs/dynamic-localpv-provisioner/pull/15),[@kmova](https://github.com/kmova))
