@@ -83,7 +83,7 @@ spec:
           value: "{{ .Values.localpv.enableLeaderElection }}"
 {{- if .Values.imagePullSecrets }}
         - name: OPENEBS_IO_IMAGE_PULL_SECRETS
-          value: "{{- range $.Values.imagePullSecrets }}{{ .name }},{{- end }}"
+          value: "{{- range $index, $secret := .Values.imagePullSecrets}}{{if $index}},{{end}}{{ $secret.name }}{{- end}}"
 {{- end }}
         # Process name used for matching is limited to the 15 characters
         # present in the pgrep output.
