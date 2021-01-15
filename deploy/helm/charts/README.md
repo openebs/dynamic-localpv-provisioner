@@ -46,7 +46,7 @@ By default this chart installs additional, dependent charts:
 
 | Repository | Name | Version |
 |------------|------|---------|
-| https://openebs.github.io/node-disk-manager | openebs-ndm | 1.0.2 |
+| https://openebs.github.io/node-disk-manager | openebs-ndm | 1.1.0 |
 
 
 To disable the dependency during installation, set `openebsNDM.enabled` to `false`.
@@ -78,7 +78,7 @@ The following table lists the configurable parameters of the OpenEBS LocalPV Pro
 
 | Parameter                                   | Description                                   | Default                                   |
 | ------------------------------------------- | --------------------------------------------- | ----------------------------------------- |
-| `release.version`                           | LocalPV Provisioner release version               | `2.4.0`                         |
+| `release.version`                           | LocalPV Provisioner release version               | `2.5.0`                         |
 | `analytics.enabled`                         | Enable sending stats to Google Analytics          | `true`                          |
 | `analytics.pingInterval`                    | Duration(hours) between sending ping stat         | `24h`                           |
 | `imagePullSecrets`                          | Provides image pull secrect                       | `""`                            |
@@ -86,7 +86,7 @@ The following table lists the configurable parameters of the OpenEBS LocalPV Pro
 | `localpv.image.registry`                    | Registry for LocalPV Provisioner image            | `""`                            |
 | `localpv.image.repository`                  | Image repository for LocalPV Provisioner          | `openebs/localpv-provisioner`   |
 | `localpv.image.pullPolicy`                  | Image pull policy for LocalPV Provisioner         | `IfNotPresent`                  |
-| `localpv.image.tag`                         | Image tag for LocalPV Provisioner                 | `2.4.0`                         |
+| `localpv.image.tag`                         | Image tag for LocalPV Provisioner                 | `2.5.0`                         |
 | `localpv.updateStrategy.type`               | Update strategy for LocalPV Provisioner           | `RollingUpdate`                 |
 | `localpv.annotations`                       | Annotations for LocalPV Provisioner metadata      | `""`                            |
 | `localpv.podAnnotations`                    | Annotations for LocalPV Provisioner pods metadata | `""`                            |
@@ -105,7 +105,7 @@ The following table lists the configurable parameters of the OpenEBS LocalPV Pro
 | `helperPod.image.registry`                  | Registry for helper image                         | `""`                            |
 | `helperPod.image.repository`                | Image for helper pod                              | `"openebs/linux-utils"`         |
 | `helperPod.image.pullPolicy`                | Pull policy for helper pod                        | `"IfNotPresent"`                |
-| `helperPod.image.tag`                       | Image tag for helper image                        | `2.4.0`                         |
+| `helperPod.image.tag`                       | Image tag for helper image                        | `2.5.0`                         |
 | `rbac.create`                               | Enable RBAC Resources                             | `true`                          |
 | `rbac.pspEnabled`                           | Create pod security policy resources              | `false`                         |
 | `openebsNDM.enabled`                        | Install openebs NDM dependency                    | `true`                          |
