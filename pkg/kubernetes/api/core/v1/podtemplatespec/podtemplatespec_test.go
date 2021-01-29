@@ -99,7 +99,7 @@ func TestBuildWithAnnotations(t *testing.T) {
 		builder     *Builder
 		expectErr   bool
 	}{
-		"Test Builderwith annotations": {
+		"Test Builder with annotations": {
 			annotations: map[string]string{"persistent-volume": "PV",
 				"application": "percona"},
 			builder: &Builder{podtemplatespec: &PodTemplateSpec{
@@ -135,7 +135,7 @@ func TestBuildWithAnnotationsNew(t *testing.T) {
 		builder     *Builder
 		expectErr   bool
 	}{
-		"Test Builderwith annotations": {
+		"Test Builder with annotations": {
 			annotations: map[string]string{"persistent-volume": "PV",
 				"application": "percona"},
 			builder: &Builder{podtemplatespec: &PodTemplateSpec{
@@ -171,7 +171,7 @@ func TestBuildWithLabels(t *testing.T) {
 		builder   *Builder
 		expectErr bool
 	}{
-		"Test Builderwith labels": {
+		"Test Builder with labels": {
 			labels: map[string]string{"persistent-volume": "PV",
 				"application": "percona"},
 			builder: &Builder{podtemplatespec: &PodTemplateSpec{
@@ -207,7 +207,7 @@ func TestBuildWithLabelsNew(t *testing.T) {
 		builder   *Builder
 		expectErr bool
 	}{
-		"Test Builderwith labels": {
+		"Test Builder with labels": {
 			labels: map[string]string{"persistent-volume": "PV",
 				"application": "percona"},
 			builder: &Builder{podtemplatespec: &PodTemplateSpec{

@@ -214,18 +214,6 @@ func (b *Builder) WithNodeSelectorNew(nodeselectors map[string]string) *Builder 
 	return b
 }
 
-func (b *Builder) WithNodeSelectorByValue(nodeselectors map[string]string) *Builder {
-	// copy of original map
-	newnodeselectors := map[string]string{}
-	for key, value := range nodeselectors {
-		newnodeselectors[key] = value
-	}
-
-	// override
-	b.podtemplatespec.Object.Spec.NodeSelector = newnodeselectors
-	return b
-}
-
 // WithServiceAccountName sets the ServiceAccountnNme field of podtemplatespec
 func (b *Builder) WithServiceAccountName(serviceAccountnNme string) *Builder {
 	if len(serviceAccountnNme) == 0 {

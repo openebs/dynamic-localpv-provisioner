@@ -73,7 +73,7 @@ func (l PredicateList) all(p *Pod) bool {
 	return true
 }
 
-// IsRunning retuns true if the pod is in running
+// IsRunning returns true if the pod is in running
 // state
 func (p *Pod) IsRunning() bool {
 	return p.object.Status.Phase == "Running"
@@ -87,7 +87,7 @@ func IsRunning() Predicate {
 	}
 }
 
-// IsCompleted retuns true if the pod is in completed
+// IsCompleted returns true if the pod is in completed
 // state
 func (p *Pod) IsCompleted() bool {
 	return p.object.Status.Phase == "Succeeded"
@@ -116,7 +116,7 @@ func HasLabels(keyValuePair map[string]string) Predicate {
 	}
 }
 
-// HasLabel return true if provided lable
+// HasLabel return true if provided label
 // key and value are present in the the provided PodList
 // instance
 func (p *Pod) HasLabel(key, value string) bool {

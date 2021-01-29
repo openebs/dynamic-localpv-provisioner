@@ -113,7 +113,7 @@ func (p *Provisioner) createBlockDeviceClaim(blkDevOpts *HelperBlockDeviceOption
 	bdcName := "bdc-" + blkDevOpts.name
 
 	//Check if the BDC is already created. This can happen
-	//if the previous reconcilation of PVC-PV, resulted in
+	//if the previous reconciliation of PVC-PV, resulted in
 	//creating a BDC, but BD was not yet available for 60+ seconds
 	_, err := blockdeviceclaim.NewKubeClient().
 		WithNamespace(p.namespace).

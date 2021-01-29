@@ -199,8 +199,14 @@ func (p *Provisioner) launchPod(config podConfig) (*corev1.Pod, error) {
 		).
 		Build()
 
+	if err != nil {
+		return nil, err
+	}
+
+	var hPod *corev1.Pod
+
 	//Launch the helper pod.
-	hPod, err := p.kubeClient.CoreV1().Pods(p.namespace).Create(helperPod)
+	hPod, err = p.kubeClient.CoreV1().Pods(p.namespace).Create(helperPod)
 	return hPod, err
 }
 
