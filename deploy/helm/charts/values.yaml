@@ -23,7 +23,7 @@ localpv:
     # For example : quay.io/ is a correct value here and quay.io is incorrect
     registry:
     repository: openebs/provisioner-localpv
-    tag: 2.5.0
+    tag: 2.6.0
     pullPolicy: IfNotPresent
   updateStrategy:
     type: RollingUpdate
@@ -109,7 +109,7 @@ helperPod:
     repository: openebs/linux-utils
     pullPolicy: IfNotPresent
     # Overrides the image tag whose default is the chart appVersion.
-    tag: 2.5.0
+    tag: 2.6.0
 
 analytics:
   enabled: true
