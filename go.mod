@@ -1,6 +1,6 @@
 module github.com/openebs/dynamic-localpv-provisioner
 
-go 1.13
+go 1.14
 
 require (
 	github.com/openebs/maya v1.12.1
