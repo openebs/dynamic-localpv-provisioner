@@ -1,10 +1,16 @@
-v2.5.0 / 2020-12-13
+v2.6.0 / 2021-02-13
+========================
+No changes since v2.5.0
+
+
+
+v2.5.0 / 2021-01-13
 ========================
 * add openebs localpv helm charts ([#14](https://github.com/openebs/dynamic-localpv-provisioner/pull/14),[@prateekpandey14](https://github.com/prateekpandey14))
 * support passing image pull secrets when creating helper pod by localpv provisioner ([#22](https://github.com/openebs/dynamic-localpv-provisioner/pull/22),[@allenhaozi](https://github.com/allenhaozi))
 
 
-v2.5.0-RC1 / 2020-12-08
+v2.5.0-RC1 / 2021-01-08
 ========================
 * add openebs localpv helm charts ([#14](https://github.com/openebs/dynamic-localpv-provisioner/pull/14),[@prateekpandey14](https://github.com/prateekpandey14))
 * support passing image pull secrets when creating helper pod by localpv provisioner ([#22](https://github.com/openebs/dynamic-localpv-provisioner/pull/22),[@allenhaozi](https://github.com/allenhaozi))
