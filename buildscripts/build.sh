@@ -29,7 +29,7 @@ cd "$DIR"
 # Get the git commit
 GIT_COMMIT="$(git rev-parse HEAD)"
 
-# Set BUILDMETA based on travis tag
+# Set BUILDMETA based on release tag
 if [[ -n "$RELEASE_TAG" ]] && [[ $RELEASE_TAG != *"RC"* ]]; then
     echo "released" > BUILDMETA
 fi
