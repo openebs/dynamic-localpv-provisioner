@@ -112,7 +112,7 @@ then
   if [ ! -z "${RELEASE_TAG}" ] ;
   then
     # Push with different tags if tagged as a release
-    # When github is tagged with a release, then Travis will
+    # When github is tagged with a release, then github actions will
     # set the release tag in env RELEASE_TAG
     TagAndPushImage "${DIMAGE}" "${RELEASE_TAG}"
     TagAndPushImage "${DIMAGE}" "latest"
@@ -132,7 +132,7 @@ then
   if [ ! -z "${RELEASE_TAG}" ] ;
   then
     # Push with different tags if tagged as a release
-    # When github is tagged with a release, then Travis will
+    # When github is tagged with a release, then github actions will
     # set the release tag in env RELEASE_TAG
     # Trim the `v` from the RELEASE_TAG if it exists
     TagAndPushImage "quay.io/${DIMAGE}" "${RELEASE_TAG}"
