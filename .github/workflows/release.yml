@@ -96,4 +96,4 @@ jobs:
             DBUILD_DATE=${{ steps.date.outputs.DATE }}
             DBUILD_REPO_URL=https://github.com/openebs/dynamic-localpv-provisioner
             DBUILD_SITE_URL=https://openebs.io
-            RELEASE_TAG=${RELEASE_TAG}
+            RELEASE_TAG=${{ env.RELEASE_TAG }}
