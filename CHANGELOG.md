@@ -1,3 +1,19 @@
+v2.7.0 / 2021-03-11
+========================
+* add support to push multiarch images to multiple registries and remove travis from repository ([#32](https://github.com/openebs/dynamic-localpv-provisioner/pull/32),[@akhilerm](https://github.com/akhilerm))
+
+
+v2.7.0-RC2 / 2021-03-10
+========================
+* add support to push multiarch images to multiple registries and remove travis from repository ([#32](https://github.com/openebs/dynamic-localpv-provisioner/pull/32),[@akhilerm](https://github.com/akhilerm))
+
+
+v2.7.0-RC1 / 2021-03-08
+========================
+No changes since v2.6.0
+
+
+
 v2.6.0 / 2021-02-13
 ========================
 No changes since v2.5.0
