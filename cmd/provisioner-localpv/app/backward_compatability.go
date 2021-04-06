@@ -48,7 +48,12 @@ func addLocalPVFinalizerOnAssociatedBDCs(kubeClient *clientset.Clientset) error 
 		bdcObj, err := blockdeviceclaim.NewKubeClient().WithNamespace(getOpenEBSNamespace()).
 			Get(bdcName, metav1.GetOptions{})
 		if err != nil {
-			return errors.Wrapf(err, "failed to get bdc %v", bdcName)
+			// BDCs may not exist if the PV reclaimPolicy is set
+			// to 'Retain' and the BDCs have been manually removed
+			// Ref: github.com/openebs/openebs/issues/3363
+			// TODO: Clean this part of the code up a bit.
+			errors.Wrapf(err, "Warning: failed to get bdc %v", bdcName)
+			continue
 		}
 
 		// Add finalizer only if deletionTimestamp is not set
