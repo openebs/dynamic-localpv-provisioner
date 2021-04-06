@@ -24,6 +24,7 @@ import (
 	mconfig "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"
+	"k8s.io/klog"
 )
 
 // This function performs the preupgrade related tasks for 1.0 to 1.1
@@ -52,7 +53,7 @@ func addLocalPVFinalizerOnAssociatedBDCs(kubeClient *clientset.Clientset) error 
 			// to 'Retain' and the BDCs have been manually removed
 			// Ref: github.com/openebs/openebs/issues/3363
 			// TODO: Clean this part of the code up a bit.
-			errors.Wrapf(err, "Warning: failed to get bdc %v", bdcName)
+			klog.Warningf("failed to get bdc %v", bdcName)
 			continue
 		}
 
