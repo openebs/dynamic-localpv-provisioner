@@ -1,3 +1,14 @@
+v2.8.0 / 2021-04-14
+========================
+* fix provisioner crashing when old PVs are not cleaned up. ([#39](https://github.com/openebs/dynamic-localpv-provisioner/pull/39),[@niladrih](https://github.com/niladrih))
+
+
+v2.8.0-RC1 / 2021-04-07
+========================
+* fix provisioner crashing when old PVs are not cleaned up. ([#39](https://github.com/openebs/dynamic-localpv-provisioner/pull/39),[@niladrih](https://github.com/niladrih))
+
+
+
 v2.7.0 / 2021-03-11
 ========================
 * add support to push multiarch images to multiple registries and remove travis from repository ([#32](https://github.com/openebs/dynamic-localpv-provisioner/pull/32),[@akhilerm](https://github.com/akhilerm))
