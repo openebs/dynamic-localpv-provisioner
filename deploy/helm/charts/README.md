@@ -33,7 +33,7 @@ Please visit the [link](https://openebs.github.io/dynamic-localpv-provisioner/) 
 
 ```console
 # Helm
-$ helm install [RELEASE_NAME] openebs-localpv/localpv-provisioner
+$ helm install [RELEASE_NAME] openebs-localpv/localpv-provisioner --namespace [NAMESPACE]
 ```
 
 _See [configuration](#configuration) below._
@@ -57,7 +57,7 @@ _See [helm dependency](https://helm.sh/docs/helm/helm_dependency/) for command d
 
 ```console
 # Helm
-$ helm uninstall [RELEASE_NAME]
+$ helm uninstall [RELEASE_NAME] --namespace [NAMESPACE]
 ```
 
 This removes all the Kubernetes components associated with the chart and deletes the release.
@@ -68,13 +68,25 @@ _See [helm uninstall](https://helm.sh/docs/helm/helm_uninstall/) for command doc
 
 ```console
 # Helm
-$ helm upgrade [RELEASE_NAME] [CHART] --install
+$ helm upgrade [RELEASE_NAME] [CHART] --install --namespace [NAMESPACE]
 ```
 
 
 ## Configuration
 
-The following table lists the configurable parameters of the OpenEBS LocalPV Provisioner chart and their default values.
+The following table lists the configurable parameters of the OpenEBS Dynamic LocalPV Provisioner chart and their default values.
+
+You can modify different parameters by specifying the desired value in the `helm install` command by using the `--set` and/or the `--set-string` flag(s). You can modify the parameters of the [Node Disk Manager chart](https://openebs.github.io/node-disk-manager) by adding `openebs-ndm` before the desired parameter in the `helm install` command.
+
+In the following sample command we modify `deviceClass.fsType` from the localpv-provisioner chart and `ndm.nodeSelector` from the openebs-ndm chart to only schedule openebs-ndm DaemonSet pods on nodes labelled with `openebs.io/data-plane=true`. We also enable the 'Use OS-disk' feature gate using the `featureGates.UseOSDisk.enabled` parameter from the openebs-ndm chart.
+
+
+```console
+helm install openebs-localpv openebs-localpv/localpv-provisioner --namespace openebs --create-namespace \
+	--set-string deviceClass.fstype="xfs" \
+	--set-string openebs-ndm.ndm.nodeSelector."openebs\.io/data-plane"=true \
+	--set openebs-ndm.featureGates.UseOSDisk.enabled=true
+```
 
 | Parameter                                   | Description                                   | Default                                   |
 | ------------------------------------------- | --------------------------------------------- | ----------------------------------------- |
@@ -100,23 +112,22 @@ The following table lists the configurable parameters of the OpenEBS LocalPV Pro
 | `localpv.healthCheck.periodSeconds`         | How often to perform the liveness probe           | `60`                            |
 | `localpv.replicas`                          | No. of LocalPV Provisioner replica                | `1`                             |
 | `localpv.enableLeaderElection`              | Enable leader election                            | `true`                          |
-| `localpv.basePath`                          | BasePath for hostPath volumes on Nodes            | `"/var/openebs/local"`          |
+| `localpv.basePath`                          | Default value of BasePath for hostPath volumes    | `"/var/openebs/local"`          |
 | `localpv.affinity`                          | LocalPV Provisioner pod affinity                  | `{}`                            |
 | `helperPod.image.registry`                  | Registry for helper image                         | `""`                            |
 | `helperPod.image.repository`                | Image for helper pod                              | `"openebs/linux-utils"`         |
 | `helperPod.image.pullPolicy`                | Pull policy for helper pod                        | `"IfNotPresent"`                |
 | `helperPod.image.tag`                       | Image tag for helper image                        | `2.8.0`                         |
+| `hostpathClass.basePath`                    | BasePath for openebs-hostpath storageClass        | `"/var/openebs/local"`          |
 | `rbac.create`                               | Enable RBAC Resources                             | `true`                          |
 | `rbac.pspEnabled`                           | Create pod security policy resources              | `false`                         |
 | `openebsNDM.enabled`                        | Install openebs NDM dependency                    | `true`                          |
 
 
-Specify each parameter using the `--set key=value[,key=value]` argument to `helm install`.
-
 Alternatively, a YAML file that specifies the values for the parameters can be provided while installing the chart. For example,
 
 ```bash
-helm install <release-name> -f values.yaml --namespace openebs localpv-provisioner
+helm install <release-name> -f values.yaml --namespace openebs openebs-localpv/localpv-provisioner
 ```
 
 > **Tip**: You can use the default [values.yaml](values.yaml)

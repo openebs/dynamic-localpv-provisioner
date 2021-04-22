@@ -42,7 +42,7 @@ differences include:
 
 ## Install
 
-Please refer to our documentation at [OpenEBS Documentation](http://docs.openebs.io/).
+Please refer to our [Quickstart](https://github.com/openebs/dynamic-localpv-provisioner/tree/develop/docs/quickstart.md) and the [OpenEBS Documentation](http://docs.openebs.io/).
 
 ## Contributing
 
