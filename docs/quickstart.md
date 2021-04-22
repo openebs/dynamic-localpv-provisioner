@@ -48,7 +48,7 @@ helm install openebs-localpv openebs-localpv/localpv-provisioner -n openebs --cr
 	--set openebsNDM.enabled=false
 ```
   2. Install the OpenEBS Dynamic LocalPV Provisioner with a custom hostpath directory. 
-     This will change the `BasePath` value for the 'openebs-hostpath' storageClass.
+     This will change the `BasePath` value for the 'openebs-hostpath' StorageClass.
 ```console
 helm install openebs-localpv openebs-localpv/localpv-provisioner -n openebs --create-namespace \
 	--set hostpathClass.basePath=<custom-hostpath>
@@ -60,6 +60,180 @@ helm install openebs-localpv openebs-localpv/localpv-provisioner -n openebs --cr
 ## Install using operator YAML
 Install the OpenEBS Dynamic LocalPV Provisioner using the following command:
 ```console
-kubectl apply -f https://openebs.github.io/charts/openebs-operator-lite.yaml \
-		-f https://openebs.github.io/charts/openebs-lite-sc.yaml
+kubectl apply -f https://openebs.github.io/charts/openebs-operator-lite.yaml -f https://openebs.github.io/charts/openebs-lite-sc.yaml
+```
+
+## Provisioning LocalPV Hostpath Persistent Volume
+
+You can provision LocalPV Hostpath volumes using the default `openebs-hostpath` StorageClass.
+
+<details>
+  <summary>Click here if you want to configure your own custom StorageClass.</summary>
+
+  ```yaml
+  # This is a custom StorageClass template
+  # Uncomment config options as desired
+  apiVersion: storage.k8s.io/v1
+  kind: StorageClass
+  metadata:
+    name: custom-hostpath
+    annotations:
+      ## Use this annotation to set this StorageClass by default
+      # storageclass.kubernetes.io/is-default-class: true
+      openebs.io/cas-type: local
+      cas.openebs.io/config: |
+        - name: StorageType
+          value: hostpath
+      
+      ## Use this to set a custom hostpath directory
+      # - name: BasePath
+      #   value: /mnt/data
+      
+      ## Use this to set a custom label for node selection
+      ## (e.g. when nodename tends to change)
+      # - name: NodeAffinityLabel
+      #   value: "openebs.io/custom-node-unique-id"
+  provisioner: openebs.io/local
+  reclaimPolicy: Delete
+  ## It is necessary to have volumeBindingMode as WaitForFirstConsumer
+  volumeBindingMode: WaitForFirstConsumer
+  ```
+</details>
+
+Create a PVC with the StorageClass.
+```yaml
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: localpv-vol
+spec:
+  ## Change this name if you are using a custom StorageClass
+  storageClassName: openebs-hostpath
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      ## Set capacity here
+      storage: 5Gi
+```
+The PVC will be in 'Pending' state until the volume is mounted.
+```console
+$ kubectl get pvc
+
+NAME          STATUS    VOLUME   CAPACITY   ACCESS MODES   STORAGECLASS       AGE
+localpv-vol   Pending                                      openebs-hostpath   21s
+```
+
+
+## Provisioning LocalPV Device Persistent Volume
+
+You must have NDM installed to be able to use LocalPV Device. Use the following command to check if NDM pods are present:
+```console
+$ kubectl -n openebs get pods  -l 'openebs.io/component-name in (ndm, ndm-operator)'
+
+NAME                                    READY   STATUS    RESTARTS   AGE
+openebs-ndm-gctb7                       1/1     Running   0          6d7h
+openebs-ndm-sfczv                       1/1     Running   0          6d7h
+openebs-ndm-vgdnv                       1/1     Running   0          6d6h
+openebs-ndm-operator-86b6dd687d-4lmpl   1/1     Running   0          6d7h
+```
+
+You can provision LocalPV Hostpath volumes using the default `openebs-device` StorageClass.
+
+<details>
+  <summary>Click here if you want to configure your own custom StorageClass.</summary>
+
+  ```yaml
+  # This is a custom StorageClass template
+  # Uncomment config options as desired
+  apiVersion: storage.k8s.io/v1
+  kind: StorageClass
+  metadata:
+    name: custom-device
+    annotations:
+      ## Use this annotation to set this StorageClass by default
+      # storageclass.kubernetes.io/is-default-class: true
+      openebs.io/cas-type: local
+      cas.openebs.io/config: |
+        - name: StorageType
+          value: device
+      
+      ## Use this to set the filesystem type. Default is ext4
+      # - name: FSType
+      #   value: xfs
+      
+      ## Use this to set a custom label for node selection
+      ## (e.g. when nodename tends to change)
+      # - name: NodeAffinityLabel
+      #   value: "openebs.io/custom-node-unique-id"
+
+      ## Only BlockDevices with the label openebs.io/block-device-tag=mongo
+      ## will be considered for provisioning
+      ## Requires you to label BlockDevices as below...
+      ## kubectl -n openebs label bd <name> openebs.io/block-device-tag=mongo
+      # - name: BlockDeviceTag
+      #   value: "mongo"
+  provisioner: openebs.io/local
+  reclaimPolicy: Delete
+  ## It is necessary to have volumeBindingMode as WaitForFirstConsumer
+  volumeBindingMode: WaitForFirstConsumer
+  ## Match labels in allowedTopologies to select nodes for volume provisioning
+  # allowedTopologies:
+  # - matchLabelExpressions:
+  #   - key: kubernetes.io/hostname
+  #     values:
+  #     - worker-1
+  #     - worker-2
+  ```
+</details>
+
+Create a PVC with the StorageClass.
+```yaml
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: localpv-vol
+spec:
+  ## Change this name if you are using a custom StorageClass
+  storageClassName: openebs-device
+  accessModes: ["ReadWriteOnce"]
+  ## You can also provision a raw block volume
+  # volumeMode: Block
+  volumeMode: Filesystem
+  resources:
+    requests:
+      ## Set capacity here
+      storage: 5Gi
+```
+The PVC will be in 'Pending' state until the volume is mounted.
+```console
+$ kubectl get pvc
+
+NAME          STATUS    VOLUME   CAPACITY   ACCESS MODES   STORAGECLASS     AGE
+localpv-vol   Pending                                      openebs-device   21s
+```
+**Note**: LocalPV Device requires an Active and Unclaimed BlockDevice to be present on the node for provisioning to succeed. You may use allowedTopologies in your StorageClass to specify which nodes are usable.
+
+## Mount the volume
+
+Mount the volume to the application pod container. The PVC status will change to 'Bound' when the volume is mounted to a container. A sample BusyBox Pod template is given below.
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: busybox
+spec:
+  containers:
+  - command:
+       - sh
+       - -c
+       - 'date >> /mnt/openebs-csi/date.txt; hostname >> /mnt/openebs-csi/hostname.txt; sync; sleep 5; sync; tail -f /dev/null;'
+    image: busybox
+    name: busybox
+    volumeMounts:
+    - mountPath: /mnt/data
+      name: demo-vol
+  volumes:
+  - name: demo-vol
+    persistentVolumeClaim:
+      claimName: localpv-vol
 ```
