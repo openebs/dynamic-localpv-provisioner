@@ -2,11 +2,35 @@
 
 ## Prerequisites
 
-A Kubernetes cluster with Kubernetes v1.14 or above is required.
+A Kubernetes cluster with Kubernetes v1.14 or above is required. 
+
+<details>
+  <summary>Click here if you are using RKE or Rancher 2.x.</summary>
+
+  To use OpenEBS LocalPV Hostpath with an RKE/Rancher 2.x cluster, you will have to mount the hostpath directories to the kubelet containers. You can do this by editing the kubelet configuration section of your RKE/Rancher 2.x cluster and adding in the `extra_binds` (see below).
+
+  **Note:** If you want to use a custom hostpath directory, then you will have to mount the custom directory's absolute path. See below for an example with the default hostpath directory.
+
+  For an RKE cluster, you can add the `extra_binds` to your cluster.yml file and apply the changes using the `rke up` command.
+
+  For a Rancher 2.x cluster, you can edit your cluster's configuration options and add the `extra_binds` there.
+
+  ```yaml
+  services:
+    kubelet:
+      extra_binds:
+      # Default hostpath directory
+      - /var/openebs/local:/var/openebs/local
+  ```
+
+  For more information, please go through the official Rancher documentaion -- [RKE - Kubernetes Configuration Options](https://rancher.com/docs/rke/latest/en/config-options/services/services-extras/#extra-binds), [RKE - Installation](https://rancher.com/docs/rke/latest/en/installation/#deploying-kubernetes-with-rke).
+</details>
 
 ## Install using Helm chart
 Install OpenEBS Dynamic LocalPV Provisioner using the localpv-provisioner helm chart. Sample command:
 ```console
+# helm repo add openebs-localpv https://openebs.github.io/dynamic-localpv-provisioner
+# helm repo update
 helm install openebs-localpv openebs-localpv/localpv-provisioner -n openebs --create-namespace
 ```
 	
@@ -31,7 +55,7 @@ helm install openebs-localpv openebs-localpv/localpv-provisioner -n openebs --cr
 ```
 </details>
 
-[Click here](https://openebs.github.io/dynamic-localpv-provisioner/) for detailed instructions.
+[Click here](https://openebs.github.io/dynamic-localpv-provisioner/) for detailed instructions on using the Helm chart.
 
 ## Install using operator YAML
 Install the OpenEBS Dynamic LocalPV Provisioner using the following command:
