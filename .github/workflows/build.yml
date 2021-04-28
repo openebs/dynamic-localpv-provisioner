@@ -14,14 +14,25 @@
 name: build
 
 on:
+  create:
   push:
+    branches:
+      - 'develop'
+      - 'v*'
     paths-ignore:
-    - 'docs/**'
-    - 'deploy/helm/**'
-    - 'changelogs/**'
+      - '*.md'
+      - 'BUILDMETA'
+      - 'changelogs/**'
+      - 'deploy/helm/**'
+      - 'docs/**'
+      - 'LICENSE'
+      - 'MAINTAINERS'
+      - 'VERSION'
 
 jobs:
   lint:
+    # to ignore builds on release
+    if: ${{ (github.event.ref_type != 'tag') }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -31,6 +42,8 @@ jobs:
         run: make license-check
 
   unit-test:
+    # to ignore builds on release
+    if: ${{ (github.event.ref_type != 'tag') }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

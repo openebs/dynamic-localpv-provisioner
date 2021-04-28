@@ -16,14 +16,19 @@ name: ci
 
 on:
   pull_request:
-    paths-ignore:
-      - 'docs/**'
-      - 'deploy/helm/**'
-      - 'changelogs/**'
     branches:
       # on pull requests to develop and release branches
-      - develop
+      - 'develop'
       - 'v*'
+    paths-ignore:
+      - '*.md'
+      - 'BUILDMETA'
+      - 'changelogs/**'
+      - 'deploy/helm/**'
+      - 'docs/**'
+      - 'LICENSE'
+      - 'MAINTAINERS'
+      - 'VERSION'
 
 jobs:
   lint:
