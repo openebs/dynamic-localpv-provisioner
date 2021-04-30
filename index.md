@@ -25,7 +25,7 @@ helm repo update
 
 - Run the following command to install the OpenEBS Dynamic LocalPV Provisioner helm chart:
 ```console
-helm install [RELEASE_NAME] openebs-localpv/localpv-provisioner --namespace [NAMESPACE]
+helm install [RELEASE_NAME] openebs-localpv/localpv-provisioner --namespace [NAMESPACE] --create-namespace
 ```
 
 
