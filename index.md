@@ -29,17 +29,15 @@ helm install <your-relase-name> openebs-localpv/localpv-provisioner --namespace 
 ```
 
 
-_See [configuration](#configuration) below._
-
 _See [helm install](https://helm.sh/docs/helm/helm_install/) for command documentation._
 
 ## Dependencies
 
 By default this chart installs additional, dependent charts:
 
-| Repository | Name | Version |
-|------------|------|---------|
-| https://openebs.github.io/node-disk-manager | openebs-ndm | 1.4.0 |
+| Repository | Name |
+|------------|------|
+| https://openebs.github.io/node-disk-manager | openebs-ndm |
 
 
 To disable the dependency during installation, set `openebsNDM.enabled` to `false`.
