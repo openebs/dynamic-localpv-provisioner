@@ -7,7 +7,7 @@ Please refer to the official Helm [documentation](https://helm.sh/docs/) to get 
 
 Once Helm is set up properly, add the repo as follows:
 
-```bash
+```console
 helm repo add openebs-localpv https://openebs.github.io/dynamic-localpv-provisioner
 ```
 
@@ -17,14 +17,14 @@ You can then run `helm search repo openebs-localpv` to see the charts.
 
 Once OpenEBS LocalPV repository has been successfully fetched into the local system, it has to be updated to get the latest version. The LocalPV charts repo can be updated using the following command:
 
-```bash
+```console
 helm repo update
 ```
 
 #### Install using Helm 3
 
 - Run the following command to install the OpenEBS Dynamic LocalPV Provisioner helm chart:
-```bash
+```console
 helm install [RELEASE_NAME] openebs-localpv/localpv-provisioner --namespace [NAMESPACE]
 ```
 
