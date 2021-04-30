@@ -238,3 +238,8 @@ spec:
     persistentVolumeClaim:
       claimName: localpv-vol
 ```
+
+
+Visit the official [OpenEBS documentaion](https://docs.openebs.io) for more information.
+
+Connect with the OpenEBS maintainers at the [Kubernetes Slack workspace](https://kubernetes.slack.com/messages/openebs). Visit [openebs.io/community](https://openebs.io/community) for details.

@@ -48,6 +48,8 @@ By default this chart installs additional, dependent charts:
 |------------|------|---------|
 | https://openebs.github.io/node-disk-manager | openebs-ndm | 1.4.0 |
 
+**Note:** Find detailed Node Disk Manager Helm chart configuration options [here](https://github.com/openebs/node-disk-manager/blob/master/deploy/helm/charts/README.md).
+
 
 To disable the dependency during installation, set `openebsNDM.enabled` to `false`.
 
