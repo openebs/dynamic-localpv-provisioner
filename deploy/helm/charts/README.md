@@ -33,7 +33,7 @@ Please visit the [link](https://openebs.github.io/dynamic-localpv-provisioner/) 
 
 ```console
 # Helm
-$ helm install [RELEASE_NAME] openebs-localpv/localpv-provisioner --namespace [NAMESPACE]
+helm install [RELEASE_NAME] openebs-localpv/localpv-provisioner --namespace [NAMESPACE] --create-namespace
 ```
 
 _See [configuration](#configuration) below._
@@ -59,7 +59,7 @@ _See [helm dependency](https://helm.sh/docs/helm/helm_dependency/) for command d
 
 ```console
 # Helm
-$ helm uninstall [RELEASE_NAME] --namespace [NAMESPACE]
+helm uninstall [RELEASE_NAME] --namespace [NAMESPACE]
 ```
 
 This removes all the Kubernetes components associated with the chart and deletes the release.
@@ -70,7 +70,7 @@ _See [helm uninstall](https://helm.sh/docs/helm/helm_uninstall/) for command doc
 
 ```console
 # Helm
-$ helm upgrade [RELEASE_NAME] [CHART] --install --namespace [NAMESPACE]
+helm upgrade [RELEASE_NAME] [CHART] --install --namespace [NAMESPACE]
 ```
 
 
@@ -85,7 +85,7 @@ In the following sample command we modify `deviceClass.fsType` from the localpv-
 
 ```console
 helm install openebs-localpv openebs-localpv/localpv-provisioner --namespace openebs --create-namespace \
-	--set-string deviceClass.fstype="xfs" \
+	--set-string deviceClass.fsType="xfs" \
 	--set-string openebs-ndm.ndm.nodeSelector."openebs\.io/data-plane"=true \
 	--set openebs-ndm.featureGates.UseOSDisk.enabled=true
 ```
@@ -95,6 +95,21 @@ helm install openebs-localpv openebs-localpv/localpv-provisioner --namespace ope
 | `release.version`                           | LocalPV Provisioner release version               | `2.8.0`                         |
 | `analytics.enabled`                         | Enable sending stats to Google Analytics          | `true`                          |
 | `analytics.pingInterval`                    | Duration(hours) between sending ping stat         | `24h`                           |
+| `deviceClass.blockDeviceTag`                | Value of 'openebs.io/block-device-tag' BD label   | `""`                            |
+| `deviceClass.enabled`                       | Enables creation of default Device StorageClass   | `true`                          |
+| `deviceClass.fsType`                        | Filesystem type for openebs-device StorageClass   | `"ext4"`                        |
+| `deviceClass.isDefaultClass`                | Make openebs-device the default StorageClass      | `"false"`                       |
+| `deviceClass.reclaimPolicy`                 | ReclaimPolicy for Device PVs                      | `"Delete"`                      |
+| `helperPod.image.registry`                  | Registry for helper image                         | `""`                            |
+| `helperPod.image.repository`                | Image for helper pod                              | `"openebs/linux-utils"`         |
+| `helperPod.image.pullPolicy`                | Pull policy for helper pod                        | `"IfNotPresent"`                |
+| `helperPod.image.tag`                       | Image tag for helper image                        | `2.8.0`                         |
+| `hostpathClass.basePath`                    | BasePath for openebs-hostpath StorageClass        | `"/var/openebs/local"`          |
+| `hostpathClass.enabled`                     | Enables creation of default Hostpath StorageClass | `true`                          |
+| `hostpathClass.isDefaultClass`              | Make openebs-hostpath the default StorageClass    | `"false"`                       |
+| `hostpathClass.nodeAffinityLabel`           | Custom node label key to uniquely ID nodes        | `""`                            |
+| `hostpathClass.reclaimPolicy`               | ReclaimPolicy for Hostpath PVs                    | `"Delete"`                      |
+
 | `imagePullSecrets`                          | Provides image pull secrect                       | `""`                            |
 | `localpv.enabled`                           | Enable LocalPV Provisioner                        | `true`                          |
 | `localpv.image.registry`                    | Registry for LocalPV Provisioner image            | `""`                            |
@@ -115,14 +130,9 @@ helm install openebs-localpv openebs-localpv/localpv-provisioner --namespace ope
 | `localpv.replicas`                          | No. of LocalPV Provisioner replica                | `1`                             |
 | `localpv.enableLeaderElection`              | Enable leader election                            | `true`                          |
 | `localpv.affinity`                          | LocalPV Provisioner pod affinity                  | `{}`                            |
-| `helperPod.image.registry`                  | Registry for helper image                         | `""`                            |
-| `helperPod.image.repository`                | Image for helper pod                              | `"openebs/linux-utils"`         |
-| `helperPod.image.pullPolicy`                | Pull policy for helper pod                        | `"IfNotPresent"`                |
-| `helperPod.image.tag`                       | Image tag for helper image                        | `2.8.0`                         |
-| `hostpathClass.basePath`                    | BasePath for openebs-hostpath storageClass        | `"/var/openebs/local"`          |
+| `openebsNDM.enabled`                        | Install openebs NDM dependency                    | `true`                          |
 | `rbac.create`                               | Enable RBAC Resources                             | `true`                          |
 | `rbac.pspEnabled`                           | Create pod security policy resources              | `false`                         |
-| `openebsNDM.enabled`                        | Install openebs NDM dependency                    | `true`                          |
 
 
 A YAML file that specifies the values for the parameters can be provided while installing the chart. For example,

@@ -61,7 +61,7 @@ helm install openebs-localpv openebs-localpv/localpv-provisioner -n openebs --cr
 ```
 </details>
 
-[Click here](https://openebs.github.io/dynamic-localpv-provisioner/) for detailed instructions on using the Helm chart.
+[Click here](https://github.com/openebs/dynamic-localpv-provisioner/blob/master/deploy/helm/charts/README.md) for detailed instructions on using the Helm chart.
 
 ## Install using operator YAML
 Install the OpenEBS Dynamic LocalPV Provisioner using the following command:
@@ -77,7 +77,7 @@ NAME                                           READY   STATUS    RESTARTS   AGE
 openebs-localpv-provisioner-5696c4f884-mvfvz   1/1     Running   0          7s
 openebs-ndm-ctn5d                              1/1     Running   0          8s
 openebs-ndm-lpf86                              1/1     Running   0          8s
-openebs-ndm-operator-6b86bbc48-7lf7r           0/1     Running   0          8s
+openebs-ndm-operator-6b86bbc48-7lf7r           1/1     Running   0          8s
 openebs-ndm-pqr2v                              1/1     Running   0          8s
 ```
 
