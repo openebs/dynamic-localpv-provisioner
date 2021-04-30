@@ -8,7 +8,7 @@ Please refer to the official Helm [documentation](https://helm.sh/docs/) to get 
 Once Helm is set up properly, add the repo as follows:
 
 ```bash
-$ helm repo add openebs-localpv https://openebs.github.io/dynamic-localpv-provisioner
+helm repo add openebs-localpv https://openebs.github.io/dynamic-localpv-provisioner
 ```
 
 You can then run `helm search repo openebs-localpv` to see the charts.
