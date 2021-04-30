@@ -112,7 +112,6 @@ helm install openebs-localpv openebs-localpv/localpv-provisioner --namespace ope
 | `localpv.healthCheck.periodSeconds`         | How often to perform the liveness probe           | `60`                            |
 | `localpv.replicas`                          | No. of LocalPV Provisioner replica                | `1`                             |
 | `localpv.enableLeaderElection`              | Enable leader election                            | `true`                          |
-| `localpv.basePath`                          | Default value of BasePath for hostPath volumes    | `"/var/openebs/local"`          |
 | `localpv.affinity`                          | LocalPV Provisioner pod affinity                  | `{}`                            |
 | `helperPod.image.registry`                  | Registry for helper image                         | `""`                            |
 | `helperPod.image.repository`                | Image for helper pod                              | `"openebs/linux-utils"`         |
@@ -124,7 +123,7 @@ helm install openebs-localpv openebs-localpv/localpv-provisioner --namespace ope
 | `openebsNDM.enabled`                        | Install openebs NDM dependency                    | `true`                          |
 
 
-Alternatively, a YAML file that specifies the values for the parameters can be provided while installing the chart. For example,
+A YAML file that specifies the values for the parameters can be provided while installing the chart. For example,
 
 ```bash
 helm install <release-name> -f values.yaml --namespace openebs openebs-localpv/localpv-provisioner

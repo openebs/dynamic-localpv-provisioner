@@ -47,7 +47,13 @@ helm install openebs-localpv openebs-localpv/localpv-provisioner -n openebs --cr
 helm install openebs-localpv openebs-localpv/localpv-provisioner -n openebs --create-namespace \
 	--set openebsNDM.enabled=false
 ```
-  2. Install the OpenEBS Dynamic LocalPV Provisioner with a custom hostpath directory. 
+  2. Install OpenEBS Dynamic LocalPV Provisioner for Hostpath volumes only
+```console
+helm install openebs-localpv openebs-localpv/localpv-provisioner -n openebs --create-namespace \
+	--set openebsNDM.enabled=false
+	--set deviceClass.enabled=false
+```
+  3. Install OpenEBS Dynamic LocalPV Provisioner with a custom hostpath directory. 
      This will change the `BasePath` value for the 'openebs-hostpath' StorageClass.
 ```console
 helm install openebs-localpv openebs-localpv/localpv-provisioner -n openebs --create-namespace \
@@ -63,9 +69,21 @@ Install the OpenEBS Dynamic LocalPV Provisioner using the following command:
 kubectl apply -f https://openebs.github.io/charts/openebs-operator-lite.yaml -f https://openebs.github.io/charts/openebs-lite-sc.yaml
 ```
 
+You are ready to provision LocalPV volumes once the pods in 'openebs' namespace report RUNNING status.
+```console
+$ kubectl get pods -n openebs
+
+NAME                                           READY   STATUS    RESTARTS   AGE
+openebs-localpv-provisioner-5696c4f884-mvfvz   1/1     Running   0          7s
+openebs-ndm-ctn5d                              1/1     Running   0          8s
+openebs-ndm-lpf86                              1/1     Running   0          8s
+openebs-ndm-operator-6b86bbc48-7lf7r           0/1     Running   0          8s
+openebs-ndm-pqr2v                              1/1     Running   0          8s
+```
+
 ## Provisioning LocalPV Hostpath Persistent Volume
 
-You can provision LocalPV Hostpath volumes using the default `openebs-hostpath` StorageClass.
+You can provision LocalPV Hostpath volumes dynamically using the default `openebs-hostpath` StorageClass.
 
 <details>
   <summary>Click here if you want to configure your own custom StorageClass.</summary>
@@ -84,15 +102,10 @@ You can provision LocalPV Hostpath volumes using the default `openebs-hostpath` 
       cas.openebs.io/config: |
         - name: StorageType
           value: hostpath
-      
-      ## Use this to set a custom hostpath directory
-      # - name: BasePath
-      #   value: /mnt/data
-      
-      ## Use this to set a custom label for node selection
-      ## (e.g. when nodename tends to change)
-      # - name: NodeAffinityLabel
-      #   value: "openebs.io/custom-node-unique-id"
+      # - name: BasePath     # Use this to set a custom 
+      #   value: /mnt/data   # hostpath directory
+      # - name: NodeAffinityLabel                   # Use this to set a custom 
+      #   value: "openebs.io/custom-node-unique-id" # label for node selection
   provisioner: openebs.io/local
   reclaimPolicy: Delete
   ## It is necessary to have volumeBindingMode as WaitForFirstConsumer
@@ -137,7 +150,7 @@ openebs-ndm-vgdnv                       1/1     Running   0          6d6h
 openebs-ndm-operator-86b6dd687d-4lmpl   1/1     Running   0          6d7h
 ```
 
-You can provision LocalPV Hostpath volumes using the default `openebs-device` StorageClass.
+You can provision LocalPV Hostpath volumes dynamically using the default `openebs-device` StorageClass.
 
 <details>
   <summary>Click here if you want to configure your own custom StorageClass.</summary>
@@ -156,22 +169,10 @@ You can provision LocalPV Hostpath volumes using the default `openebs-device` St
       cas.openebs.io/config: |
         - name: StorageType
           value: device
-      
-      ## Use this to set the filesystem type. Default is ext4
-      # - name: FSType
-      #   value: xfs
-      
-      ## Use this to set a custom label for node selection
-      ## (e.g. when nodename tends to change)
-      # - name: NodeAffinityLabel
-      #   value: "openebs.io/custom-node-unique-id"
-
-      ## Only BlockDevices with the label openebs.io/block-device-tag=mongo
-      ## will be considered for provisioning
-      ## Requires you to label BlockDevices as below...
-      ## kubectl -n openebs label bd <name> openebs.io/block-device-tag=mongo
-      # - name: BlockDeviceTag
-      #   value: "mongo"
+      # - name: FSType  # Use this to set the filesystem
+      #   value: xfs    # type. Default is ext4.
+      # - name: BlockDeviceTag  # Only blockdevices with the label 
+      #   value: "mongo"        # openebs.io/block-device-tag=mongo will be used
   provisioner: openebs.io/local
   reclaimPolicy: Delete
   ## It is necessary to have volumeBindingMode as WaitForFirstConsumer
@@ -204,7 +205,7 @@ spec:
       ## Set capacity here
       storage: 5Gi
 ```
-The PVC will be in 'Pending' state until the volume is mounted.
+The PVC will be in 'Pending' state until the volume is mounted/attached.
 ```console
 $ kubectl get pvc
 
