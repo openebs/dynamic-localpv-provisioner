@@ -95,7 +95,7 @@ helm install openebs-localpv openebs-localpv/localpv-provisioner --namespace ope
 | `release.version`                           | LocalPV Provisioner release version               | `2.8.0`                         |
 | `analytics.enabled`                         | Enable sending stats to Google Analytics          | `true`                          |
 | `analytics.pingInterval`                    | Duration(hours) between sending ping stat         | `24h`                           |
-| `deviceClass.blockDeviceTag`                | Value of 'openebs.io/block-device-tag' BD label   | `""`                            |
+| `deviceClass.blockDeviceTag`                | Value of `openebs.io/block-device-tag` BD label   | `""`                            |
 | `deviceClass.enabled`                       | Enables creation of default Device StorageClass   | `true`                          |
 | `deviceClass.fsType`                        | Filesystem type for openebs-device StorageClass   | `"ext4"`                        |
 | `deviceClass.isDefaultClass`                | Make openebs-device the default StorageClass      | `"false"`                       |
@@ -107,9 +107,8 @@ helm install openebs-localpv openebs-localpv/localpv-provisioner --namespace ope
 | `hostpathClass.basePath`                    | BasePath for openebs-hostpath StorageClass        | `"/var/openebs/local"`          |
 | `hostpathClass.enabled`                     | Enables creation of default Hostpath StorageClass | `true`                          |
 | `hostpathClass.isDefaultClass`              | Make openebs-hostpath the default StorageClass    | `"false"`                       |
-| `hostpathClass.nodeAffinityLabel`           | Custom node label key to uniquely ID nodes        | `""`                            |
+| `hostpathClass.nodeAffinityLabel`           | Custom node label key to uniquely identify nodes. `kubernetes.io/hostname` is the default label key for node selection. | `""`                            |
 | `hostpathClass.reclaimPolicy`               | ReclaimPolicy for Hostpath PVs                    | `"Delete"`                      |
-
 | `imagePullSecrets`                          | Provides image pull secrect                       | `""`                            |
 | `localpv.enabled`                           | Enable LocalPV Provisioner                        | `true`                          |
 | `localpv.image.registry`                    | Registry for LocalPV Provisioner image            | `""`                            |
