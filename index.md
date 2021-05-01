@@ -7,7 +7,7 @@ Please refer to the official Helm [documentation](https://helm.sh/docs/) to get 
 
 Once Helm is set up properly, add the repo as follows:
 
-```bash
+```console
 helm repo add openebs-localpv https://openebs.github.io/dynamic-localpv-provisioner
 ```
 
@@ -17,15 +17,15 @@ You can then run `helm search repo openebs-localpv` to see the charts.
 
 Once OpenEBS LocalPV repository has been successfully fetched into the local system, it has to be updated to get the latest version. The LocalPV charts repo can be updated using the following command:
 
-```bash
+```console
 helm repo update
 ```
 
 #### Install using Helm 3
 
 - Run the following command to install the OpenEBS Dynamic LocalPV Provisioner helm chart:
-```bash
-helm install <your-relase-name> openebs-localpv/localpv-provisioner --namespace openebs --create-namespace
+```console
+helm install [RELEASE_NAME] openebs-localpv/localpv-provisioner --namespace [NAMESPACE] --create-namespace
 ```
 
 
@@ -48,7 +48,7 @@ _See [helm dependency](https://helm.sh/docs/helm/helm_dependency/) for command d
 
 ```console
 # Helm
-$ helm uninstall [RELEASE_NAME] --namespace [NAMESPACE]
+helm uninstall [RELEASE_NAME] --namespace [NAMESPACE]
 ```
 
 This removes all the Kubernetes components associated with the chart and deletes the release.
@@ -59,7 +59,7 @@ _See [helm uninstall](https://helm.sh/docs/helm/helm_uninstall/) for command doc
 
 ```console
 # Helm
-$ helm upgrade [RELEASE_NAME] [CHART] --install --namespace [NAMESPACE]
+helm upgrade [RELEASE_NAME] [CHART] --install --namespace [NAMESPACE]
 ```
 
 
