@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-A Kubernetes cluster with Kubernetes v1.14 or above is required. 
+A Kubernetes cluster with Kubernetes v1.19 or above is required. 
 
 <details>
   <summary>Click here if you are using RKE or Rancher 2.x.</summary>
@@ -50,7 +50,7 @@ helm install openebs-localpv openebs-localpv/localpv-provisioner -n openebs --cr
   2. Install OpenEBS Dynamic LocalPV Provisioner for Hostpath volumes only
 ```console
 helm install openebs-localpv openebs-localpv/localpv-provisioner -n openebs --create-namespace \
-	--set openebsNDM.enabled=false
+	--set openebsNDM.enabled=false \
 	--set deviceClass.enabled=false
 ```
   3. Install OpenEBS Dynamic LocalPV Provisioner with a custom hostpath directory. 
@@ -240,6 +240,6 @@ spec:
 ```
 
 
-Visit the official [OpenEBS documentaion](https://docs.openebs.io) for more information.
+Visit the official [OpenEBS documentation](https://docs.openebs.io) for more information.
 
 Connect with the OpenEBS maintainers at the [Kubernetes Slack workspace](https://kubernetes.slack.com/messages/openebs). Visit [openebs.io/community](https://openebs.io/community) for details.
