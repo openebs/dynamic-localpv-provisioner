@@ -6,10 +6,8 @@ metadata:
   annotations:
     openebs.io/cas-type: local
     cas.openebs.io/config: |
-{{- if .Values.hostpathClass.storageType }}
       - name: StorageType
-        value: {{ .Values.hostpathClass.storageType }}
-{{- end }}
+        value: "hostpath"
 {{- if .Values.hostpathClass.basePath }}
       - name: BasePath
         value: {{ .Values.hostpathClass.basePath }}
