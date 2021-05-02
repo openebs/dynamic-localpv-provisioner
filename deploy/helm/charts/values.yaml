@@ -75,13 +75,14 @@ serviceAccount:
   name:
 
 deviceClass:
-  # Defines name of storage class.
+  # Name of default device StorageClass.
   name: openebs-device
+  # If true, enables creation of the openebs-device StorageClass
+  enabled: true
   # Available reclaim policies: Delete/Retain, defaults: Delete.
   reclaimPolicy: Delete
-  # set as default class
+  # If true, sets the openebs-device StorageClass as the default StorageClass
   isDefaultClass: false
-  storageType: "device"
   fsType: "ext4"
   # Label block devices in the cluster that you would like the openEBS localPV
   # Provisioner to pick up those specific block devices available on the node.
@@ -90,11 +91,14 @@ deviceClass:
   blockDeviceTag: ""
 
 hostpathClass:
+  # Name of the default hostpath StorageClass
   name: openebs-hostpath
+  # If true, enables creation of the openebs-hostpath StorageClass
+  enabled: true
   # Available reclaim policies: Delete/Retain, defaults: Delete.
   reclaimPolicy: Delete
+  # If true, sets the openebs-hostpath StorageClass as the default StorageClass
   isDefaultClass: false
-  storageType: "hostpath"
   # Path on the host where local volumes of this storage class are mounted under.
   basePath: "/var/openebs/local"
   # Custom node affinity label for example "openebs.io/node-affinity-value" that will be

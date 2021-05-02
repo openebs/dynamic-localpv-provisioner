@@ -1,3 +1,4 @@
+{{- if .Values.deviceClass.enabled }}
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
@@ -5,10 +6,8 @@ metadata:
   annotations:
     openebs.io/cas-type: local
     cas.openebs.io/config: |
-{{- if .Values.deviceClass.fsType }}
       - name: StorageType
-        value: {{ .Values.deviceClass.storageType }}
-{{- end }}
+        value: "device"
 {{- if .Values.deviceClass.fsType }}
       - name: FSType
         value: {{ .Values.deviceClass.fsType }}
@@ -23,3 +22,4 @@ metadata:
 provisioner: openebs.io/local
 volumeBindingMode: WaitForFirstConsumer
 reclaimPolicy: {{ .Values.deviceClass.reclaimPolicy }}
+{{- end }}
