@@ -38,7 +38,7 @@ var (
 	// LeaderElectionKey represents ENV for disable/enable leaderElection for
 	// localpv provisioner
 	LeaderElectionKey = "LEADER_ELECTION_ENABLED"
-	usage             = fmt.Sprintf("%s", cmdName)
+	usage             = fmt.Sprintf(cmdName)
 )
 
 // StartProvisioner will start a new dynamic Host Path PV provisioner
