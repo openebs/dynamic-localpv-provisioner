@@ -70,10 +70,6 @@ func fakeGetDynamicClientSetOk(c *rest.Config) (dynamic.Interface, error) {
 	return dynamic.NewForConfig(c)
 }
 
-func fakeGetDynamicClientSetNil(c *rest.Config) (dynamic.Interface, error) {
-	return nil, nil
-}
-
 func fakeGetDynamicClientSetErr(c *rest.Config) (dynamic.Interface, error) {
 	return nil, errors.New("fake error")
 }

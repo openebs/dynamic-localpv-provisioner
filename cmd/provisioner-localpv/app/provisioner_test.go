@@ -16,47 +16,15 @@ limitations under the License.
 
 package app
 
-import (
-	//"fmt"
-	//pvController "github.com/kubernetes-sigs/sig-storage-lib-external-provisioner/controller"
-	//mconfig "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	//"github.com/pkg/errors"
-	"k8s.io/api/core/v1"
-	//metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	//"os"
-	//"reflect"
-	//"testing"
-)
+//"fmt"
+//pvController "github.com/kubernetes-sigs/sig-storage-lib-external-provisioner/controller"
+//mconfig "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+//"github.com/pkg/errors"
 
-func fakeDefaultConfigParser(path string, pvc *v1.PersistentVolumeClaim) (*VolumeConfig, error) {
-	c := &VolumeConfig{
-		pvName:  "pvName",
-		pvcName: "pvcName",
-		scName:  "scName",
-		options: map[string]interface{}{
-			KeyPVBasePath: map[string]string{
-				"enabled": "true",
-				"value":   "/var/openebs/local",
-			},
-		},
-	}
-	return c, nil
-}
-
-func fakeValidConfigParser(path string, pvc *v1.PersistentVolumeClaim) (*VolumeConfig, error) {
-	c := &VolumeConfig{
-		pvName:  "pvName",
-		pvcName: "pvcName",
-		scName:  "scName",
-		options: map[string]interface{}{
-			KeyPVBasePath: map[string]string{
-				"enabled": "true",
-				"value":   "/custom",
-			},
-		},
-	}
-	return c, nil
-}
+//metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+//"os"
+//"reflect"
+//"testing"
 
 //func fakeInvalidConfigParser(path string, pvc *v1.PersistentVolumeClaim) (*VolumeConfig, error) {
 //	return nil, fmt.Errorf("failed to read configuration for pvc %v", path)
