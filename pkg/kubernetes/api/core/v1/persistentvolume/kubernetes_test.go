@@ -18,7 +18,6 @@ import (
 	"testing"
 
 	errors "github.com/pkg/errors"
-	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -36,24 +35,24 @@ func fakeGetClientSetForPathErr(fakeConfigPath string) (cli *kubernetes.Clientse
 	return nil, errors.New("fake error")
 }
 
-func fakeGetOk(cli *kubernetes.Clientset, name string, opts metav1.GetOptions) (*corev1.PersistentVolume, error) {
-	return &corev1.PersistentVolume{}, nil
+func fakeGetOk(cli *kubernetes.Clientset, name string, opts metav1.GetOptions) (*v1.PersistentVolume, error) {
+	return &v1.PersistentVolume{}, nil
 }
 
-func fakeListOk(cli *kubernetes.Clientset, opts metav1.ListOptions) (*corev1.PersistentVolumeList, error) {
-	return &corev1.PersistentVolumeList{}, nil
+func fakeListOk(cli *kubernetes.Clientset, opts metav1.ListOptions) (*v1.PersistentVolumeList, error) {
+	return &v1.PersistentVolumeList{}, nil
 }
 
 func fakeDeleteOk(cli *kubernetes.Clientset, name string, opts *metav1.DeleteOptions) error {
 	return nil
 }
 
-func fakeListErr(cli *kubernetes.Clientset, opts metav1.ListOptions) (*corev1.PersistentVolumeList, error) {
-	return &corev1.PersistentVolumeList{}, errors.New("some error")
+func fakeListErr(cli *kubernetes.Clientset, opts metav1.ListOptions) (*v1.PersistentVolumeList, error) {
+	return &v1.PersistentVolumeList{}, errors.New("some error")
 }
 
-func fakeGetErr(cli *kubernetes.Clientset, name string, opts metav1.GetOptions) (*corev1.PersistentVolume, error) {
-	return &corev1.PersistentVolume{}, errors.New("some error")
+func fakeGetErr(cli *kubernetes.Clientset, name string, opts metav1.GetOptions) (*v1.PersistentVolume, error) {
+	return &v1.PersistentVolume{}, errors.New("some error")
 }
 
 func fakeDeleteErr(cli *kubernetes.Clientset, name string, opts *metav1.DeleteOptions) error {
@@ -82,11 +81,11 @@ func fakeGetClientSetErr() (clientset *kubernetes.Clientset, err error) {
 
 func fakeClientSet(k *Kubeclient) {}
 
-func fakeCreateFnOk(cli *kubernetes.Clientset, pv *corev1.PersistentVolume) (*corev1.PersistentVolume, error) {
-	return &corev1.PersistentVolume{}, nil
+func fakeCreateFnOk(cli *kubernetes.Clientset, pv *v1.PersistentVolume) (*v1.PersistentVolume, error) {
+	return &v1.PersistentVolume{}, nil
 }
 
-func fakeCreateFnErr(cli *kubernetes.Clientset, pv *corev1.PersistentVolume) (*corev1.PersistentVolume, error) {
+func fakeCreateFnErr(cli *kubernetes.Clientset, pv *v1.PersistentVolume) (*v1.PersistentVolume, error) {
 	return nil, errors.New("failed to create PV")
 }
 

@@ -18,7 +18,6 @@ import (
 	"testing"
 
 	errors "github.com/pkg/errors"
-	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -36,24 +35,24 @@ func fakeGetClientSetForPathErr(fakeConfigPath string) (cli *kubernetes.Clientse
 	return nil, errors.New("fake error")
 }
 
-func fakeGetOk(cli *kubernetes.Clientset, name, namespace string, opts metav1.GetOptions) (*corev1.PersistentVolumeClaim, error) {
-	return &corev1.PersistentVolumeClaim{}, nil
+func fakeGetOk(cli *kubernetes.Clientset, name, namespace string, opts metav1.GetOptions) (*v1.PersistentVolumeClaim, error) {
+	return &v1.PersistentVolumeClaim{}, nil
 }
 
-func fakeListOk(cli *kubernetes.Clientset, namespace string, opts metav1.ListOptions) (*corev1.PersistentVolumeClaimList, error) {
-	return &corev1.PersistentVolumeClaimList{}, nil
+func fakeListOk(cli *kubernetes.Clientset, namespace string, opts metav1.ListOptions) (*v1.PersistentVolumeClaimList, error) {
+	return &v1.PersistentVolumeClaimList{}, nil
 }
 
 func fakeDeleteOk(cli *kubernetes.Clientset, name, namespace string, opts *metav1.DeleteOptions) error {
 	return nil
 }
 
-func fakeListErr(cli *kubernetes.Clientset, namespace string, opts metav1.ListOptions) (*corev1.PersistentVolumeClaimList, error) {
-	return &corev1.PersistentVolumeClaimList{}, errors.New("some error")
+func fakeListErr(cli *kubernetes.Clientset, namespace string, opts metav1.ListOptions) (*v1.PersistentVolumeClaimList, error) {
+	return &v1.PersistentVolumeClaimList{}, errors.New("some error")
 }
 
-func fakeGetErr(cli *kubernetes.Clientset, name, namespace string, opts metav1.GetOptions) (*corev1.PersistentVolumeClaim, error) {
-	return &corev1.PersistentVolumeClaim{}, errors.New("some error")
+func fakeGetErr(cli *kubernetes.Clientset, name, namespace string, opts metav1.GetOptions) (*v1.PersistentVolumeClaim, error) {
+	return &v1.PersistentVolumeClaim{}, errors.New("some error")
 }
 
 func fakeDeleteErr(cli *kubernetes.Clientset, name, namespace string, opts *metav1.DeleteOptions) error {
@@ -82,11 +81,11 @@ func fakeGetClientSetErr() (clientset *kubernetes.Clientset, err error) {
 
 func fakeClientSet(k *Kubeclient) {}
 
-func fakeCreateFnOk(cli *kubernetes.Clientset, namespace string, pvc *corev1.PersistentVolumeClaim) (*corev1.PersistentVolumeClaim, error) {
-	return &corev1.PersistentVolumeClaim{}, nil
+func fakeCreateFnOk(cli *kubernetes.Clientset, namespace string, pvc *v1.PersistentVolumeClaim) (*v1.PersistentVolumeClaim, error) {
+	return &v1.PersistentVolumeClaim{}, nil
 }
 
-func fakeCreateFnErr(cli *kubernetes.Clientset, namespace string, pvc *corev1.PersistentVolumeClaim) (*corev1.PersistentVolumeClaim, error) {
+func fakeCreateFnErr(cli *kubernetes.Clientset, namespace string, pvc *v1.PersistentVolumeClaim) (*v1.PersistentVolumeClaim, error) {
 	return nil, errors.New("failed to create PVC")
 }
 
