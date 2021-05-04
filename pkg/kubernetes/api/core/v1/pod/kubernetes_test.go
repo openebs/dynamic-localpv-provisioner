@@ -20,7 +20,6 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	client "k8s.io/client-go/kubernetes"
 	clientset "k8s.io/client-go/kubernetes"
 )
 
@@ -53,7 +52,7 @@ func fakeGetErrfn(cli *clientset.Clientset, namespace, name string, opts metav1.
 }
 
 func fakeSetClientset(k *KubeClient) {
-	k.clientset = &client.Clientset{}
+	k.clientset = &clientset.Clientset{}
 }
 
 func fakeSetNilClientset(k *KubeClient) {
@@ -193,11 +192,11 @@ func TestGetClientSetForPathOrDirect(t *testing.T) {
 
 func TestWithClientsetBuildOption(t *testing.T) {
 	tests := map[string]struct {
-		Clientset             *client.Clientset
+		Clientset             *clientset.Clientset
 		expectKubeClientEmpty bool
 	}{
 		"Clientset is empty":     {nil, true},
-		"Clientset is not empty": {&client.Clientset{}, false},
+		"Clientset is not empty": {&clientset.Clientset{}, false},
 	}
 
 	for name, mock := range tests {
