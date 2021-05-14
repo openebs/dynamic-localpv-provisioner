@@ -2,6 +2,36 @@ apiVersion: v1
 entries:
   localpv-provisioner:
   - apiVersion: v2
+    appVersion: 2.9.0
+    created: "2021-05-14T18:58:25.044058186Z"
+    dependencies:
+    - condition: openebsNDM.enabled
+      name: openebs-ndm
+      repository: https://openebs.github.io/node-disk-manager
+      version: 1.4.1
+    description: Helm chart for OpenEBS Dynamic Local PV. For instructions to install OpenEBS Dynamic Local PV using helm chart, refer to https://openebs.github.io/dynamic-localpv-provisioner/.
+    digest: 6c27190823fa41f6a69d7e033516c5321037a6dcf53a6653e142ac8dc9ede996
+    home: http://www.openebs.io/
+    icon: https://raw.githubusercontent.com/cncf/artwork/master/projects/openebs/icon/color/openebs-icon-color.png
+    keywords:
+    - storage
+    - local
+    - dynamic-localpv
+    maintainers:
+    - email: akhil.mohan@mayadata.io
+      name: akhilerm
+    - email: kiran.mova@mayadata.io
+      name: kiranmova
+    - email: prateek.pandey@mayadata.io
+      name: prateekpandey14
+    name: localpv-provisioner
+    sources:
+    - https://github.com/openebs/dynamic-localpv-provisioner
+    type: application
+    urls:
+    - https://github.com/openebs/dynamic-localpv-provisioner/releases/download/localpv-provisioner-2.9.0/localpv-provisioner-2.9.0.tgz
+    version: 2.9.0
+  - apiVersion: v2
     appVersion: 2.8.0
     created: "2021-05-02T09:39:15.449526264Z"
     dependencies:
