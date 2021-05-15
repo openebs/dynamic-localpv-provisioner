@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-A Kubernetes cluster with Kubernetes v1.19 or above is required. 
+A Kubernetes cluster with Kubernetes v1.16 or above is required. 
 
 <details>
   <summary>Click here if you are using RKE or Rancher 2.x.</summary>

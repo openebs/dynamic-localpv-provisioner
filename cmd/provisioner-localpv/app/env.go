@@ -45,7 +45,7 @@ const (
 )
 
 var (
-	defaultHelperImage = "quay.io/openebs/linux-utils:latest"
+	defaultHelperImage = "openebs/linux-utils:latest"
 	defaultBasePath    = "/var/openebs/local"
 )
 
