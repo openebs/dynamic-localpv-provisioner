@@ -36,19 +36,6 @@ PACKAGES = $(shell go list ./... | grep -v 'vendor\|pkg/client/generated\|tests'
 # list only the integration tests code directories
 PACKAGES_IT = $(shell go list ./... | grep -v 'vendor\|pkg/client/generated' | grep 'tests')
 
-ifeq (${IMAGE_TAG}, )
-  IMAGE_TAG = ci
-  export IMAGE_TAG
-endif
-
-ifeq (${RELEASE_TAG}, )
-  BASE_TAG = ci
-  export BASE_TAG
-else
-  BASE_TAG = $(RELEASE_TAG:v%=%)
-  export BASE_TAG
-endif
-
 # The images can be pushed to any docker/image registeries
 # like docker hub, quay. The registries are specified in 
 # the `buildscripts/push` script.
@@ -68,8 +55,29 @@ endif
 
 ifeq (${IMAGE_ORG}, )
   IMAGE_ORG = openebs
-  export IMAGE_ORG
 endif
+
+# If IMAGE_TAG is mentioned then TAG will be set to IMAGE_TAG
+# If RELEASE_TAG is mentioned then TAG will be set to RELEAE_TAG
+# If both are mentioned then TAG will be set to RELEASE_TAG
+TAG=ci
+
+ifneq (${IMAGE_TAG}, )
+  TAG=${IMAGE_TAG:v%=%}
+endif
+
+ifneq (${RELEASE_TAG}, )
+  TAG=${RELEASE_TAG:v%=%}
+endif
+
+# Specify the name for the binaries
+PROVISIONER_LOCALPV=provisioner-localpv
+
+# Specify the name of the image
+PROVISIONER_LOCALPV_IMAGE?=provisioner-localpv
+
+# Final variable with image org, name and tag
+PROVISIONER_LOCALPV_IMAGE_TAG=${IMAGE_ORG}/${PROVISIONER_LOCALPV_IMAGE}:${TAG}
 
 # Specify the date of build
 DBUILD_DATE=$(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
@@ -140,13 +148,6 @@ verify-src:
 	@echo "--> Checking for git changes post running tests";
 	$(PWD)/buildscripts/check-diff.sh "format"
 
-# Specify the name for the binaries
-PROVISIONER_LOCALPV=provisioner-localpv
-
-# This variable is added specifically to build amd64 images from travis.
-# Once travis is deprecated, this field will be replaced by image name
-# used in Makefile.buildx.mk
-PROVISIONER_LOCALPV_IMAGE?=provisioner-localpv
 
 #Use this to build provisioner-localpv
 .PHONY: provisioner-localpv
@@ -162,7 +163,7 @@ provisioner-localpv-image: provisioner-localpv
 	@echo "--> provisioner-localpv image "
 	@echo "-------------------------------"
 	@cp bin/provisioner-localpv/${PROVISIONER_LOCALPV} buildscripts/provisioner-localpv/
-	@cd buildscripts/provisioner-localpv && docker build -t ${IMAGE_ORG}/${PROVISIONER_LOCALPV_IMAGE}:${IMAGE_TAG} ${DBUILD_ARGS} . --no-cache
+	@cd buildscripts/provisioner-localpv && docker build -t ${PROVISIONER_LOCALPV_IMAGE_TAG} ${DBUILD_ARGS} . --no-cache
 	@rm buildscripts/provisioner-localpv/${PROVISIONER_LOCALPV}
 
 .PHONY: license-check

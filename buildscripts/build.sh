@@ -29,11 +29,6 @@ cd "$DIR"
 # Get the git commit
 GIT_COMMIT="$(git rev-parse HEAD)"
 
-# Set BUILDMETA based on release tag
-if [[ -n "$RELEASE_TAG" ]] && [[ $RELEASE_TAG != *"RC"* ]]; then
-    echo "released" > BUILDMETA
-fi
-
 # Determine the current branch
 CURRENT_BRANCH=""
 if [ -z "${BRANCH}" ];
@@ -53,7 +48,7 @@ if [ -n "$RELEASE_TAG" ]; then
     # Example: v1.10.0-custom maps to 1.10.0-custom
     VERSION="${RELEASE_TAG#v}"
 else
-    VERSION="${CURRENT_BRANCH}-dev"
+    VERSION="ci"
 fi
 
 echo "Building for ${VERSION} VERSION"
@@ -108,9 +103,9 @@ if [ $GOOS = "windows" ]; then
 fi
 
 env GOOS=$GOOS GOARCH=$GOARCH go build ${BUILD_TAG} -ldflags \
-    "-X github.com/openebs/maya/pkg/version.GitCommit=${GIT_COMMIT} \
+    "-X github.com/openebs/dynamic-localpv-provisioner/pkg/version.GitCommit=${GIT_COMMIT} \
     -X main.CtlName='${CTLNAME}' \
-    -X github.com/openebs/maya/pkg/version.Version=${VERSION}" \
+    -X github.com/openebs/dynamic-localpv-provisioner/pkg/version.Version=${VERSION}" \
     -o $output_name\
     ./cmd/${CTLNAME}
 

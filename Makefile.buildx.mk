@@ -12,10 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ifeq (${TAG}, )
-	export TAG=ci
-endif
-
 # default list of platforms for which multiarch image is built
 ifeq (${PLATFORMS}, )
 	export PLATFORMS="linux/amd64,linux/arm64,linux/arm/v7,linux/ppc64le"
@@ -33,8 +29,6 @@ else
 	export PUSH_ARG="--push"
 endif
 
-DOCKERX_IMAGE_PROVISIONER_LOCALPV:=${IMAGE_ORG}/provisioner-localpv:${TAG}
-
 .PHONY: docker.buildx
 docker.buildx:
 	export DOCKER_CLI_EXPERIMENTAL=enabled
@@ -48,7 +42,7 @@ docker.buildx:
 	@echo
 
 .PHONY: docker.buildx.provisioner-localpv
-docker.buildx.provisioner-localpv: DOCKERX_IMAGE_NAME=$(DOCKERX_IMAGE_PROVISIONER_LOCALPV)
+docker.buildx.provisioner-localpv: DOCKERX_IMAGE_NAME=$(PROVISIONER_LOCALPV_IMAGE_TAG)
 docker.buildx.provisioner-localpv: COMPONENT=$(PROVISIONER_LOCALPV)
 docker.buildx.provisioner-localpv: docker.buildx
 

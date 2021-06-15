@@ -22,13 +22,11 @@ on:
       - 'v*'
     paths-ignore:
       - '*.md'
-      - 'BUILDMETA'
       - 'changelogs/**'
       - 'deploy/helm/**'
       - 'docs/**'
       - 'LICENSE'
       - 'MAINTAINERS'
-      - 'VERSION'
 
 jobs:
   lint:
