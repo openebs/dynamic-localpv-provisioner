@@ -17,16 +17,114 @@ limitations under the License.
 package app
 
 import (
-	//"fmt"
-	//pvController "github.com/kubernetes-sigs/sig-storage-lib-external-provisioner/controller"
-	//mconfig "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	//"github.com/pkg/errors"
-	"k8s.io/api/core/v1"
-	//metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	//"os"
-	//"reflect"
-	//"testing"
+	"testing"
+
+	v1 "k8s.io/api/core/v1"
 )
+
+func TestValidateVolumeSource(t *testing.T) {
+	tcs := map[string]struct {
+		pvc   v1.PersistentVolumeClaim
+		iserr bool
+	}{
+		"no data source": {
+			pvc: v1.PersistentVolumeClaim{
+				Spec: v1.PersistentVolumeClaimSpec{
+					DataSource: nil,
+				},
+			},
+			iserr: false,
+		},
+		"clone volume": {
+			pvc: v1.PersistentVolumeClaim{
+				Spec: v1.PersistentVolumeClaimSpec{
+					DataSource: &v1.TypedLocalObjectReference{
+						Kind: PVCKind,
+						Name: "source",
+					},
+				},
+			},
+			iserr: true,
+		},
+		"clone volume with no name": {
+			pvc: v1.PersistentVolumeClaim{
+				Spec: v1.PersistentVolumeClaimSpec{
+					DataSource: &v1.TypedLocalObjectReference{
+						Kind: PVCKind,
+					},
+				},
+			},
+			iserr: true,
+		},
+		"snapshot volume": {
+			pvc: v1.PersistentVolumeClaim{
+				Spec: v1.PersistentVolumeClaimSpec{
+					DataSource: &v1.TypedLocalObjectReference{
+						APIGroup: func(name string) *string {
+							return &name
+						}(SnapshotAPIGroup),
+						Kind: SnapshotKind,
+						Name: "source",
+					},
+				},
+			},
+			iserr: true,
+		},
+		"snapshot volume with no name": {
+			pvc: v1.PersistentVolumeClaim{
+				Spec: v1.PersistentVolumeClaimSpec{
+					DataSource: &v1.TypedLocalObjectReference{
+						APIGroup: func(name string) *string {
+							return &name
+						}(SnapshotAPIGroup),
+						Kind: SnapshotKind,
+					},
+				},
+			},
+			iserr: true,
+		},
+		"populator volume": {
+			pvc: v1.PersistentVolumeClaim{
+				Spec: v1.PersistentVolumeClaimSpec{
+					DataSource: &v1.TypedLocalObjectReference{
+						APIGroup: func(name string) *string {
+							return &name
+						}("example.io"),
+						Kind: "DemoPopulator",
+						Name: "source",
+					},
+				},
+			},
+			iserr: true,
+		},
+		"populator volume with no name": {
+			pvc: v1.PersistentVolumeClaim{
+				Spec: v1.PersistentVolumeClaimSpec{
+					DataSource: &v1.TypedLocalObjectReference{
+						APIGroup: func(name string) *string {
+							return &name
+						}("example.io"),
+						Kind: "DemoPopulator",
+					},
+				},
+			},
+			iserr: true,
+		},
+	}
+	for name, tc := range tcs {
+		name := name
+		tc := tc
+		t.Run(name, func(t *testing.T) {
+			err := validateVolumeSource(tc.pvc)
+			if tc.iserr && err == nil {
+				t.Fatalf("expected error but got %s", err)
+			} else if !tc.iserr && err != nil {
+				t.Fatalf("expected no error but got %s", err)
+
+			}
+		})
+	}
+}
 
 func fakeDefaultConfigParser(path string, pvc *v1.PersistentVolumeClaim) (*VolumeConfig, error) {
 	c := &VolumeConfig{
