@@ -35,21 +35,21 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/openebs/maya/pkg/alertlog"
-
 	"github.com/pkg/errors"
 	"k8s.io/klog"
 	pvController "sigs.k8s.io/sig-storage-lib-external-provisioner/controller"
 
 	//pvController "github.com/kubernetes-sigs/sig-storage-lib-external-provisioner/controller"
-	mconfig "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	menv "github.com/openebs/maya/pkg/env/v1alpha1"
-	analytics "github.com/openebs/maya/pkg/usage"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 
 	//metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"
+
+	"github.com/openebs/maya/pkg/alertlog"
+	mconfig "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	menv "github.com/openebs/maya/pkg/env/v1alpha1"
+	analytics "github.com/openebs/maya/pkg/usage"
 )
 
 // NewProvisioner will create a new Provisioner object and initialize
@@ -89,6 +89,12 @@ func (p *Provisioner) SupportsBlock() bool {
 //  to be provisioned and a valid PV spec returned.
 func (p *Provisioner) Provision(opts pvController.ProvisionOptions) (*v1.PersistentVolume, error) {
 	pvc := opts.PVC
+
+	// validate pvc dataSource
+	if err := validateVolumeSource(*pvc); err != nil {
+		return nil, err
+	}
+
 	if pvc.Spec.Selector != nil {
 		return nil, fmt.Errorf("claim.Spec.Selector is not supported")
 	}
@@ -222,4 +228,37 @@ func sendEventOrIgnore(pvcName, pvName, capacity, stgType, method string) {
 			SetCategory(method).
 			SetVolumeCapacity(capacity).Send()
 	}
+}
+
+// validateVolumeSource validates datasource field of the pvc.
+// - clone - not handled by this provisioner
+// - snapshot - not handled by this provisioner
+// - volume populator - not handled by this provisioner
+func validateVolumeSource(pvc v1.PersistentVolumeClaim) error {
+	if pvc.Spec.DataSource != nil {
+		// PVC.Spec.DataSource.Name is the name of the VolumeSnapshot or PVC or populator
+		if pvc.Spec.DataSource.Name == "" {
+			return fmt.Errorf("dataSource name not found for PVC `%s`", pvc.Name)
+		}
+		switch pvc.Spec.DataSource.Kind {
+
+		// DataSource is snapshot
+		case SnapshotKind:
+			if *(pvc.Spec.DataSource.APIGroup) != SnapshotAPIGroup {
+				return fmt.Errorf("snapshot feature not supported by this provisioner")
+			}
+			return fmt.Errorf("datasource `%s` of group `%s` is not handled by the provisioner",
+				pvc.Spec.DataSource.Kind, *pvc.Spec.DataSource.APIGroup)
+
+		// DataSource is pvc
+		case PVCKind:
+			return fmt.Errorf("clone feature not supported by this provisioner")
+
+		// Custom DataSource (volume populator)
+		default:
+			return fmt.Errorf("datasource `%s` of group `%s` is not handled by the provisioner",
+				pvc.Spec.DataSource.Kind, *pvc.Spec.DataSource.APIGroup)
+		}
+	}
+	return nil
 }

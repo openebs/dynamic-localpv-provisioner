@@ -18,9 +18,16 @@ limitations under the License.
 package app
 
 import (
-	mconfig "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	clientset "k8s.io/client-go/kubernetes"
+
+	mconfig "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+)
+
+const (
+	SnapshotKind     string = "VolumeSnapshot"
+	PVCKind          string = "PersistentVolumeClaim"
+	SnapshotAPIGroup string = "snapshot.storage.k8s.io"
 )
 
 //Provisioner struct has the configuration and utilities required
