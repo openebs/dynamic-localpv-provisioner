@@ -18,11 +18,10 @@ on:
   release:
     types:
       - 'created'
-    tags:
-      - 'v*'
 
 jobs:
   provisioner-localpv:
+    if: contains(github.ref, 'tags/v')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
