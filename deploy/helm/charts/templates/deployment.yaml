@@ -74,7 +74,7 @@ spec:
         - name: OPENEBS_IO_BASE_PATH
           value: "{{ .Values.localpv.basePath }}"
         - name: OPENEBS_IO_HELPER_IMAGE
-          value: "{{ .Values.helperPod.image.registry }}{{ .Values.helperPod.image.repository }}:{{ .Values.localpv.image.tag }}"
+          value: "{{ .Values.helperPod.image.registry }}{{ .Values.helperPod.image.repository }}:{{ .Values.helperPod.image.tag }}"
         - name: OPENEBS_IO_INSTALLER_TYPE
           value: "charts-helm"
         # LEADER_ELECTION_ENABLED is used to enable/disable leader election. By default
