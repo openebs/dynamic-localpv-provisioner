@@ -3,7 +3,7 @@
 # Declare variables to be passed into your templates.
 
 release:
-  version: "2.10.0"
+  version: "2.10.1"
 
 rbac:
   # rbac.create: `true` if rbac resources should be created
@@ -23,7 +23,7 @@ localpv:
     # For example : quay.io/ is a correct value here and quay.io is incorrect
     registry:
     repository: openebs/provisioner-localpv
-    tag: 2.10.0
+    tag: 2.10.1
     pullPolicy: IfNotPresent
   updateStrategy:
     type: RollingUpdate
