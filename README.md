@@ -1,4 +1,6 @@
 # Dynamic Kubernetes Local Persistent Volumes
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fopenebs%2Fdynamic-localpv-provisioner.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fopenebs%2Fdynamic-localpv-provisioner?ref=badge_shield)
+
 
 <img width="300" align="right" alt="OpenEBS Logo" src="https://raw.githubusercontent.com/cncf/artwork/master/projects/openebs/stacked/color/openebs-stacked-color.png" xmlns="http://www.w3.org/1999/html">
 
@@ -69,3 +71,7 @@ OpenEBS Local PV has been inspired by the prior work done by the following the K
 - https://github.com/kubernetes-sigs/sig-storage-lib-external-provisioner/tree/master/examples/hostpath-provisioner
 - https://github.com/kubernetes-sigs/sig-storage-local-static-provisioner
 - https://github.com/rancher/local-path-provisioner
+
+
+## License
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fopenebs%2Fdynamic-localpv-provisioner.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fopenebs%2Fdynamic-localpv-provisioner?ref=badge_large)
