@@ -1,0 +1,34 @@
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+        name: hostpath-pvc-more-than-63-chars-long-due-helm-sub-chart-insallation-or-some-crazy-logic
+spec:
+  storageClassName: openebs-hostpath
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: "5G"
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: busybox-hp
+  namespace: default
+spec:
+  containers:
+  - command:
+       - sh
+       - -c
+       - 'date > /mnt/store1/date.txt; hostname >> /mnt/store1/hostname.txt; sync; sleep 5; sync; tail -f /dev/null;'
+    image: busybox
+    imagePullPolicy: Always
+    name: busybox
+    volumeMounts:
+    - mountPath: /mnt/store1
+      name: demo-vol1
+  volumes:
+  - name: demo-vol1
+    persistentVolumeClaim:
+      claimName: hostpath-pvc-more-than-63-chars-long-due-helm-sub-chart-insallation-or-some-crazy-logic
+---
