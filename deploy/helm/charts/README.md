@@ -92,7 +92,7 @@ helm install openebs-localpv openebs-localpv/localpv-provisioner --namespace ope
 
 | Parameter                                   | Description                                   | Default                                   |
 | ------------------------------------------- | --------------------------------------------- | ----------------------------------------- |
-| `release.version`                           | LocalPV Provisioner release version               | `2.11.0`                        |
+| `release.version`                           | LocalPV Provisioner release version               | `2.11.1`                        |
 | `analytics.enabled`                         | Enable sending stats to Google Analytics          | `true`                          |
 | `analytics.pingInterval`                    | Duration(hours) between sending ping stat         | `24h`                           |
 | `deviceClass.blockDeviceTag`                | Value of `openebs.io/block-device-tag` BD label   | `""`                            |
@@ -114,7 +114,7 @@ helm install openebs-localpv openebs-localpv/localpv-provisioner --namespace ope
 | `localpv.image.registry`                    | Registry for LocalPV Provisioner image            | `""`                            |
 | `localpv.image.repository`                  | Image repository for LocalPV Provisioner          | `openebs/localpv-provisioner`   |
 | `localpv.image.pullPolicy`                  | Image pull policy for LocalPV Provisioner         | `IfNotPresent`                  |
-| `localpv.image.tag`                         | Image tag for LocalPV Provisioner                 | `2.11.0`                        |
+| `localpv.image.tag`                         | Image tag for LocalPV Provisioner                 | `2.11.1`                        |
 | `localpv.updateStrategy.type`               | Update strategy for LocalPV Provisioner           | `RollingUpdate`                 |
 | `localpv.annotations`                       | Annotations for LocalPV Provisioner metadata      | `""`                            |
 | `localpv.podAnnotations`                    | Annotations for LocalPV Provisioner pods metadata | `""`                            |
