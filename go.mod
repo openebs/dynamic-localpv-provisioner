@@ -3,10 +3,13 @@ module github.com/openebs/dynamic-localpv-provisioner
 go 1.14
 
 require (
+	github.com/onsi/ginkgo v1.16.4
+	github.com/onsi/gomega v1.13.0
 	github.com/openebs/maya v1.12.1
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.1.1
 	github.com/spf13/pflag v1.0.5
+	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/api v0.17.3
 	k8s.io/apimachinery v0.17.3
 	k8s.io/client-go v11.0.0+incompatible
