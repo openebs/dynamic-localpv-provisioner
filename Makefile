@@ -31,7 +31,7 @@ export ARCH
 
 
 # list only the source code directories
-PACKAGES = $(shell go list ./... | grep -v 'vendor\|pkg/client/generated\|tests')
+PACKAGES = $(shell go list ./... | grep -v '/vendor/\|/pkg/version\|tests')
 
 # list only the integration tests code directories
 PACKAGES_IT = $(shell go list ./... | grep -v 'vendor\|pkg/client/generated' | grep 'tests')
