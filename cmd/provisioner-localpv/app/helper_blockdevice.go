@@ -195,6 +195,17 @@ func (p *Provisioner) getBlockDevicePath(blkDevOpts *HelperBlockDeviceOptions) (
 		}
 	}
 
+	// if bdName not found should delete BDC and return err
+	if bdName == "" {
+		err := errors.Errorf("unable to find BD for BDC:%v associated with PV:%v and try to delete BDC", blkDevOpts.bdcName, blkDevOpts.name)
+		delErr := p.deleteBlockDeviceClaim(blkDevOpts)
+		if delErr != nil {
+			return "", "", delErr
+		} else {
+			return "", "", err
+		}
+	}
+
 	//Get the BD Path.
 	bd, err := blockdevice.NewKubeClient().
 		WithNamespace(p.namespace).
