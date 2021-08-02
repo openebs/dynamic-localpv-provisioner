@@ -1,0 +1,18 @@
+hostpath_operator_link: "https://raw.githubusercontent.com/openebs/dynamic-localpv-provisioner/develop/deploy/kubectl/provisioner-hostpath.yaml"
+ndm_operator_link: "https://raw.githubusercontent.com/openebs/node-disk-manager/master/deploy/ndm-operator.yaml"
+charts_hostpath_operator: "https://openebs.github.io/charts/{{ lookup('env','RELEASE_VERSION') }}/openebs-operator-lite.yaml"
+#ndm_rc_operator_link: "https://raw.githubusercontent.com/openebs/charts/{{ lookup('env','COMMIT_ID') }}/{{ lookup('env','RELEASE_VERSION') }}/ndm-operator-{{ lookup('env','RC_TAG') }}.yaml"
+release_operator_link: "https://raw.githubusercontent.com/openebs/charts/{{ lookup('env','COMMIT_ID') }}/{{ lookup('env','RELEASE_VERSION') }}/openebs-operator-lite.yaml"
+#ndm_release_operator_link: "https://raw.githubusercontent.com/openebs/charts/{{ lookup('env','COMMIT_ID') }}/{{ lookup('env','RELEASE_VERSION') }}/ndm-operator.yaml"
+localpv_version: "{{ lookup('env','LOCALPV_PROVISIONER_IMAGE') }}"
+release_version: "{{ lookup('env','RELEASE_VERSION') }}"
+image_type: "{{ lookup('env','IMAGE_TYPE') }}"
+ci_device_operator: provisioner-hostpath.yaml
+hostpath_operator: openebs-operator-lite.yaml
+ndm_operator: ndm-operator.yaml
+test_name: "device-localpv-{{ lookup('env','ACTION') }}"
+namespace: "{{ lookup('env','OPERATOR_NS') }}"
+ndm_version: "{{ lookup('env','NDM_VERSION') }}"
+commit_id: "{{ lookup('env','COMMIT_ID') }}"
+rc_tag: "{{ lookup('env','RC_TAG') }}"
+release_tag: "{{ lookup('env','RELEASE_TAG') }}"

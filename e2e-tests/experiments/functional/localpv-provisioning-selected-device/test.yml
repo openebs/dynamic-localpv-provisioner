@@ -1,0 +1,249 @@
+---
+- hosts: localhost
+  connection: local
+  gather_facts: False
+
+  vars_files:
+    - test_vars.yml
+
+  tasks:
+    - block:
+
+         ## Generating the testname for deployment
+        - include_tasks: /e2e-tests/utils/fcm/create_testname.yml
+
+         ## RECORD START-OF-TEST IN e2e RESULT CR
+        - include_tasks: "/e2e-tests/utils/fcm/update_e2e_result_resource.yml"
+          vars:
+            status: 'SOT'
+
+        - name: Forming storage class manifest from template
+          template:
+            src: storage_class.j2
+            dest: storage_class.yml
+
+        - name: Creating storageClass
+          shell: kubectl apply -f storage_class.yml
+          args:
+            executable: /bin/bash
+          register: sc_status
+          failed_when: sc_status.rc != 0
+
+        - name: Forming application manifest from the template
+          template:
+            src: percona.j2
+            dest: percona.yml
+
+        - name: Creating namespace
+          shell: kubectl create ns "{{ namespace }}"
+          args:
+            executable: /bin/bash
+          register: ns_status
+          failed_when: ns_status.rc != 0
+
+        - block:
+
+          - name: Obtain the list of nodes
+            shell: kubectl get nodes --no-headers | grep -v master | awk '{print $1}'
+            args:
+              executable: /bin/bash
+            register: nodes
+
+          - name: Getting the Unclaimed block-device from each node
+            shell: >
+              kubectl get blockdevice -n {{ operator_ns }} -l kubernetes.io/hostname={{ item }},openebs\.io/block-device-tag!={{ device_tag }}
+              -o jsonpath='{.items[?(@.status.claimState=="Unclaimed")].metadata.name}' | tr " " "\n" | head -n 1
+            register: blockDevice
+            with_items:
+              - "{{ nodes.stdout_lines }}"
+
+          - name: Label the selected block devices
+            shell: >
+              kubectl label bd -n "{{ operator_ns }}" "{{ item.stdout }}" openebs.io/block-device-tag="{{ device_tag }}"
+            args:
+              executable: /bin/bash
+            register: bd_result
+            with_items:
+              - "{{ blockDevice.results }}"
+
+          - name: Deploying application
+            shell: kubectl apply -f percona.yml -n "{{ namespace }}"
+            args:
+              executable: /bin/bash
+            register: app_status
+            failed_when: "app_status.rc != 0"
+
+          - name: Check if the PVC is bound
+            shell: >
+              kubectl get pvc -n {{ namespace }} {{ pvc_name }} --no-headers
+              -o custom-columns=:status.phase
+            args:
+              executable: /bin/bash
+            register: pvc_status
+            until: "'Bound' in pvc_status.stdout"
+            delay: 2
+            retries: 30
+
+          - name: Check if the application is running
+            shell: >
+              kubectl get pods -n {{ namespace }} -l name=percona 
+              --no-headers -o custom-columns=:status.phase
+            args:
+              executable: /bin/bash
+            register: app_state
+            until: "'Running' in app_state.stdout"
+            delay: 5
+            retries: 50
+          
+          when: test_case_type == 'positive'
+
+        - block:
+
+          - name: Obtain the list of nodes
+            shell: kubectl get nodes --no-headers | grep -v master | awk '{print $1}'
+            args:
+              executable: /bin/bash
+            register: nodes
+
+          - name: Getting the Unclaimed block-device from each node
+            shell: >
+              kubectl get blockdevice -n {{ operator_ns }} -l kubernetes.io/hostname={{ item }},openebs\.io/block-device-tag!={{ device_tag }}
+              -o jsonpath='{.items[?(@.status.claimState=="Unclaimed")].metadata.name}' | tr " " "\n" | head -n 1
+            register: blockDevice
+            with_items:
+              - "{{ nodes.stdout_lines }}"
+
+          - name: Deploying application
+            shell: kubectl apply -f percona.yml -n "{{ namespace }}"
+            args:
+              executable: /bin/bash
+            register: app_status
+            failed_when: "app_status.rc != 0"
+
+          - name: Get the application pod name
+            shell: kubectl get pod -n {{ namespace }} -l name=percona --no-headers -o custom-columns=:.metadata.name
+            args:
+              executable: /bin/bash
+            register: app_pod_name
+
+          - name: Check the application pod status
+            shell: kubectl get pod -n {{ namespace }} -l name=percona --no-headers -o custom-columns=:.status.phase
+            args: 
+              executable: /bin/bash
+            register: app_pod_status
+            failed_when: "'Pending' not in app_pod_status.stdout"
+
+          - name: Check if the PVC is in pending state
+            shell: >
+              kubectl get pvc -n {{ namespace }} {{ pvc_name }} --no-headers
+              -o custom-columns=:status.phase
+            args:
+              executable: /bin/bash
+            register: pvc_status
+            failed_when: "'Pending' not in pvc_status.stdout"
+
+          - name: Label the selected block devices
+            shell: >
+              kubectl label bd -n "{{ operator_ns }}" "{{ item.stdout }}" openebs.io/block-device-tag="{{ device_tag }}"
+            args:
+              executable: /bin/bash
+            register: bd_result
+            with_items:
+              - "{{ blockDevice.results }}"
+
+          - name: Check if the PVC is in Bound state
+            shell: >
+              kubectl get pvc -n {{ namespace }} {{ pvc_name }} --no-headers
+              -o custom-columns=:status.phase
+            args:
+              executable: /bin/bash
+            register: pvc_status
+            until: "'Bound' in pvc_status.stdout"
+            delay: 2
+            retries: 30
+
+          - name: Check if the application is running
+            shell: >
+              kubectl get pods -n {{ namespace }} -l name=percona 
+              --no-headers -o custom-columns=:status.phase
+            args:
+              executable: /bin/bash
+            register: app_state
+            until: "'Running' in app_state.stdout"
+            delay: 5
+            retries: 50
+          
+          when: test_case_type == 'negative'
+
+        - name: Getting PV name from PVC
+          shell: >
+            kubectl get pvc {{ pvc_name }} -n {{ namespace }}
+            --no-headers -o custom-columns=:.spec.volumeName
+          args:
+            executable: /bin/bash
+          register: volume
+          failed_when: "volume.rc != 0"
+
+        - name: Obtain the labelled BDs list
+          shell: >
+            kubectl get bd -n "{{ operator_ns }}" -l ndm.io/managed=true,openebs.io/block-device-tag={{ device_tag }}
+            --no-headers -o jsonpath='{.items[*].metadata.name}'
+          args:
+            executable: /bin/bash
+          register: labelled_bd
+          failed_when: "labelled_bd.rc != 0"
+
+        - name: Obtain the BDC created for volume
+          shell: >
+            kubectl get pv "{{ volume.stdout }}"
+            -o jsonpath='{.metadata.annotations.local\.openebs\.io/blockdeviceclaim}'
+          args:
+            executable: /bin/bash
+          register: bdc_name
+
+        - name: Check if the labelled BD is used by local PV
+          shell: >
+            kubectl get bdc "{{ bdc_name.stdout }}" -n "{{ operator_ns }}"
+            --no-headers -o custom-columns=:spec.blockDeviceName
+          args:
+            executable: /bin/bash
+          register: used_bd
+          failed_when: "used_bd.stdout not in labelled_bd.stdout"
+
+        - set_fact:
+            flag: "Pass"
+
+      rescue:
+          - set_fact:
+              flag: "Fail"
+
+      always:
+
+          - name: Obtain the labelled BDs list
+            shell: >
+              kubectl get bd -n "{{ operator_ns }}" -l ndm.io/managed=true,openebs.io/block-device-tag={{ device_tag }}
+              --no-headers -o jsonpath='{.items[*].metadata.name}'
+            args:
+              executable: /bin/bash
+            register: labelled_bd
+
+           ############################################################################################
+           ##  Removing the block device tag after end of experiment, otherwise this tag             ##
+           ##  will allow to provision the volume in reconciliation test as there is a chance        ##
+           ##  that before tagging the device it will use the already tagged device.                 ##
+           ##  Using ignore_errors: yes, in case if experiment fails before tagging the devices then ##
+           ##  removing the empty tag will cause failure in this task.                               ##
+           ############################################################################################
+
+          - name: Remove the tag from block devices at the end of experiment
+            shell: >
+              kubectl label bd -n "{{ operator_ns }}" {{ item }} openebs.io/block-device-tag-
+            args:
+              executable: /bin/bash
+            with_items: "{{ labelled_bd.stdout_lines }}"
+            ignore_errors: yes
+
+            ## RECORD END-OF-TEST IN e2e RESULT CR
+          - include_tasks: /e2e-tests/utils/fcm/update_e2e_result_resource.yml
+            vars:
+              status: 'EOT'

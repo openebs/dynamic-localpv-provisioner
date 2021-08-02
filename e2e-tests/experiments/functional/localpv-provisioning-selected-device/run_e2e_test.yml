@@ -1,0 +1,46 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  generateName: localpv-selected-device-
+  namespace: e2e
+spec:
+  template:
+    metadata:
+      name: e2e
+      labels:
+        app: localpv-selected-device
+    spec:
+      serviceAccountName: e2e
+      restartPolicy: Never
+      containers:
+      - name: ansibletest
+        image: openebs/localpv-e2e:ci
+        imagePullPolicy: IfNotPresent
+
+        env:
+          - name: ANSIBLE_STDOUT_CALLBACK
+            #value: log_plays, actionable, default
+            value: default
+
+           # Namespace where the OpenEBS components are deployed
+          - name: OPERATOR_NS
+            value: ''
+
+          - name: BD_TAG
+            value: 'e2e'
+
+          - name: APP_NAMESPACE
+            value: ''
+
+          - name: PVC
+            value: ''
+
+            ## In positive case type first blockdevice is labeled and then pv is created
+            ## In negative case type first pv creation is done, pvc remains in pending state
+            ## and then we label the blockdevice. In this way successful reconcilation is verified.
+          - name: TEST_CASE_TYPE      ## `positive` OR `negative`
+            value: ''
+
+        command: ["/bin/bash"]
+        args: ["-c", "ansible-playbook ./e2e-tests/experiments/functional/localpv-provisioning-selected-device/test.yml -i /etc/ansible/hosts -v; exit 0"]

@@ -1,0 +1,58 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  generateName: e2e-dynamic-localpv-operator-
+  namespace: e2e
+spec:
+  template:
+    metadata:
+      name: e2e
+      labels: 
+        provider: localpv-operator
+    spec:
+      serviceAccountName: e2e
+      restartPolicy: Never
+      containers:
+      - name: ansibletest
+        image: openebs/localpv-e2e:ci
+        imagePullPolicy: IfNotPresent
+        env: 
+          - name: ANSIBLE_STDOUT_CALLBACK
+            value: default
+
+          - name: LOCALPV_PROVISIONER_IMAGE
+            value: ""        
+
+          - name: NDM_VERSION
+            value: ""                         
+
+          - name: RELEASE_TAG
+            value: ""
+
+            # To Deploy the operator from release charts value should be `charts`
+            # To Deploy the operator for ci images value should be `master`
+            # To Deploy the operator from any PR value should be `commit_id`
+          - name: IMAGE_TYPE
+            value: ""             
+
+            # release version in case of ci, value is 'master'
+            # Other Release versions it should be 2.x.x for ex 2.10.0
+          - name: RELEASE_VERSION
+            value: ""
+
+          - name: ACTION
+            value: provision
+
+            # Namespace where the csi plugins are deployed
+          - name: OPERATOR_NS
+            value: "openebs"
+
+          - name: COMMIT_ID
+            value: ""
+
+          - name: RC_TAG
+            value: ""                                           
+
+        command: ["/bin/bash"]
+        args: ["-c", "ansible-playbook ./e2e-tests/experiments/localpv-provisioner/test.yml -i /etc/ansible/hosts -vv; exit 0"]

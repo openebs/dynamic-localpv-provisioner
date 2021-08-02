@@ -1,0 +1,19 @@
+---
+apiVersion: e2e.io/v1alpha1
+kind: E2eResult
+metadata:
+
+  # name of the e2e testcase
+  name: {{ test }} 
+spec:
+
+  # holds information on the testcase
+  testMetadata:
+    app: {{ app }} 
+    chaostype: {{ chaostype }} 
+
+  # holds the state of testcase,  manually updated by json merge patch
+  # result is the useful value today, but anticipate phase use in future 
+  testStatus: 
+    phase: {{ phase }}  
+    result: {{ verdict }} 

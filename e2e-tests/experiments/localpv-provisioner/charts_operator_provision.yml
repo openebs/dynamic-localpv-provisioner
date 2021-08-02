@@ -1,0 +1,25 @@
+- name: Downloading the operator file from charts
+  get_url:
+    url: "{{ charts_hostpath_operator }}"
+    dest: "{{ playbook_dir }}/{{ hostpath_operator }}"
+    force: yes
+  register: status
+  until:  "'OK' in status.msg"
+  delay: 5
+  retries: 3
+
+- name: Deploy openebs operator
+  shell: >
+    kubectl apply -f {{ hostpath_operator }}
+  args:
+    executable: /bin/bash
+  register: deploy_status
+  when: lookup('env','ACTION') == "provision"
+
+- name: Removing openebs operator
+  shell: >
+    kubectl delete -f {{ hostpath_operator }}
+  args:
+    executable: /bin/bash
+  register: deploy_status
+  when: lookup('env','ACTION') == "deprovision"

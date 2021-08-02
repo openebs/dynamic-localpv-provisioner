@@ -1,0 +1,75 @@
+---
+- hosts: localhost
+  connection: local
+  gather_facts: False
+
+  vars_files:
+    - test_vars.yml
+
+  tasks:
+    - block:
+
+        ## Generating the testname for deployment
+        - include_tasks: /e2e-tests/utils/fcm/create_testname.yml
+
+         ## RECORD START-OF-TEST IN e2e RESULT CR
+        - include_tasks: "/e2e-tests/utils/fcm/update_e2e_result_resource.yml"
+          vars:
+            status: 'SOT'
+
+        - name: Replace the storage capacity placeholder
+          replace:
+              path: "{{ application_deployment }}"
+              regexp: "volume-capacity"
+              replace: "{{ lookup('env','CAPACITY') }}" 
+
+        - block:
+
+            ## Actual test
+            ## Creating namespaces and making the application for deployment
+            - include_tasks: /e2e-tests/utils/k8s/pre_create_app_deploy.yml
+
+            - name: Display application deployment spec for verification
+              debug: var=item
+              with_file:
+              - "{{ application_deployment }}"
+
+            ## Deploying the application, upper bound wait time: 900s 
+            - include_tasks: /e2e-tests/utils/k8s/deploy_single_app.yml
+              vars:
+                check_app_pod: 'yes'
+                delay: 5 
+                retries: 180
+    
+            ## Fetching the pod name
+            - include_tasks: /e2e-tests/utils/k8s/fetch_app_pod.yml
+    
+            ## Checking the db is ready for connection
+            - include_tasks: /e2e-tests/utils/scm/applications/mysql/check_db_connection.yml
+   
+            - set_fact:
+                flag: "Pass"  
+
+          when: "'deprovision' not in action"  
+
+        - block:
+
+            - name: Deprovisioning the Application
+              include_tasks: "/e2e-tests/utils/k8s/deprovision_deployment.yml"
+              vars:
+                app_deployer: "{{ application_deployment }}"
+
+            - set_fact:
+                flag: "Pass"  
+
+          when: "'deprovision' is in action"        
+
+      rescue:
+        - set_fact:
+            flag: "Fail"     
+
+      always:
+            ## RECORD END-OF-TEST IN e2e RESULT CR
+        - include_tasks: /e2e-tests/utils/fcm/update_e2e_result_resource.yml
+          vars:
+            status: 'EOT'

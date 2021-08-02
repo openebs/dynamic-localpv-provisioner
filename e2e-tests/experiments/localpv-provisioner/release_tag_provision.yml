@@ -1,0 +1,88 @@
+- block:
+
+    - name: Downloading openebs operator yaml for rc tag
+      get_url:
+        url: "{{ hostpath_operator_link }}"
+        dest: "{{ playbook_dir }}/{{ ci_device_operator }}"
+        force: yes
+      register: ci_operator
+
+    - name: Downloading openebs operator yaml for rc tag
+      get_url:
+        url: "{{ ndm_operator_link }}"
+        dest: "{{ playbook_dir }}/{{ ndm_operator }}"
+        force: yes
+      register: rc_operator
+
+    - name: Change the OpenEBS Snapshot Controller Image
+      replace:
+        path: "{{ ci_device_operator }}"
+        regexp: openebs/provisioner-localpv-ci:dev-120403
+        replace: "openebs/provisioner-localpv:{{ release_tag }}"
+      when: lookup('env','LOCALPV_PROVISIONER_IMAGE') | length > 0
+
+    - name: Change the OpenEBS component labels to desired version in Operator yaml
+      replace:
+        path: "{{ ci_device_operator }}"
+        regexp: 'openebs.io/version: dev'
+        replace: "openebs.io/version: {{ release_tag }}"
+
+    - name: Change the Image tag to newer version in operator yaml
+      replace:
+        path: "{{ ndm_operator_link }}"
+        regexp: ':ci'
+        replace: ":{{ release_tag }}"       
+
+    - block:
+        - name: Applying openebs operator
+          shell: kubectl apply -f "{{ ci_device_operator }}"
+          args:
+            executable: /bin/bash
+
+        - name: Applying openebs operator
+          shell: kubectl apply -f "{{ ndm_operator }}"
+          args:
+            executable: /bin/bash
+      when: lookup('env','ACTION') == "provision"
+
+    - block:
+
+        - name: Applying openebs operator
+          shell: kubectl delete -f "{{ ndm_operator }}"
+          args:
+            executable: /bin/bash
+          ignore_errors: true
+
+        - name: Applying openebs operator
+          shell: kubectl delete -f "{{ ci_device_operator }}"
+          args:
+            executable: /bin/bash
+          ignore_errors: true
+
+      when: lookup('env','ACTION') == "deprovision"  
+
+  when: rc_tag != ""
+
+
+- block:
+
+    - name: Downloading openebs operator yaml for rc tag
+      get_url:
+        url: "{{ release_operator_link }}"
+        dest: "{{ playbook_dir }}/{{ hostpath_operator }}"
+        force: yes
+      register: ci_operator
+
+    - name: Applying openebs operator
+      shell: kubectl apply -f "{{ hostpath_operator }}"
+      args:
+        executable: /bin/bash
+      when: lookup('env','ACTION') == "provision"
+
+    - name: Applying openebs operator
+      shell: kubectl delete -f "{{ hostpath_operator }}"
+      args:
+        executable: /bin/bash
+      when: lookup('env','ACTION') == "deprovision"  
+
+  when: rc_tag == ""

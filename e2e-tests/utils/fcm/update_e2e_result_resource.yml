@@ -1,0 +1,48 @@
+---
+- block:
+   - name: Generate the e2e result CR to reflect SOT (Start of Test)
+     template:
+       src: /e2e-tests/hack/e2e-result.j2
+       dest: e2e-result.yaml
+     vars:
+       test: "{{ test_name }}"
+       app: ""
+       chaostype: ""
+       phase: in-progress
+       verdict: none
+
+   - name: Analyze the cr yaml
+     shell: cat e2e-result.yaml
+
+   - name: Apply the e2e result CR
+     shell: kubectl apply -f e2e-result.yaml
+     args:
+       executable: /bin/bash
+     register: er_status
+     failed_when: "er_status is failed"
+
+  when: status == "SOT"
+
+- block:
+   - name: Generate the e2e result CR to reflect EOT (End of Test)
+     template:
+       src: /e2e-tests/hack/e2e-result.j2
+       dest: e2e-result.yaml
+     vars:
+       test: "{{ test_name }}"
+       app: ""
+       chaostype: ""
+       phase: completed
+       verdict: "{{ flag }}"
+
+   - name: Analyze the cr yaml
+     shell: cat e2e-result.yaml
+
+   - name: Apply the e2e result CR
+     shell: kubectl apply -f e2e-result.yaml
+     args:
+       executable: /bin/bash
+     register: er_status
+     failed_when: "er_status is failed"
+
+  when: status == "EOT"
