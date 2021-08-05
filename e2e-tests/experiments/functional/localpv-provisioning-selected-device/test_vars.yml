@@ -1,0 +1,15 @@
+# Test-specific parameters
+
+operator_ns: "{{ lookup('env','OPERATOR_NS') }}"
+
+test_name: localpv-selected-device
+
+device_tag: "{{ lookup('env','BD_TAG') }}"
+
+pvc_name: "{{ lookup('env','PVC') }}"
+
+namespace: "{{ lookup('env','APP_NAMESPACE') }}"
+
+sc_name: openebs-device-test
+
+test_case_type: "{{ lookup('env','TEST_CASE_TYPE') }}"

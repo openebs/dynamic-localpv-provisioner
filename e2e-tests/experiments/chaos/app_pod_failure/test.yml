@@ -1,0 +1,204 @@
+---
+- hosts: localhost
+  connection: local
+  gather_facts: False
+
+  vars_files:
+    - test_vars.yml
+    - /mnt/parameters.yml
+
+  tasks:
+    - block:
+
+        - block:
+
+            - name: Checking status of liveness pod
+              shell: kubectl get pod -n {{ liveness_namespace }} -l {{ liveness_label }} -o jsonpath='{.items[0].status.phase}'
+              register: liveness_pod
+              until: "'Running' in liveness_pod.stdout"
+              delay: 10
+              retries: 10
+
+          when: liveness_label != ''
+
+        ## Creating test name
+
+        - include_tasks: /e2e-tests/utils/fcm/create_testname.yml
+
+         ## RECORD START-OF-TEST IN e2e RESULT CR
+
+        - include_tasks: /e2e-tests/utils/fcm/update_e2e_result_resource.yml
+          vars:
+            status: 'SOT'
+            chaostype: "app-failure"
+            app: ""
+
+        - name: Identify the data consistency util to be invoked
+          template:
+            src: data_persistence.j2
+            dest: data_persistence.yml
+
+        - include_vars:
+            file: data_persistence.yml
+
+        - name: Record the data consistency util path
+          set_fact:
+            data_consistency_util_path: "{{ consistencyutil }}"
+          when: data_persistence != ''
+
+        ## DISPLAY APP INFORMATION
+
+        - name: Display the app information passed via the test job
+          debug:
+            msg:
+              - "The application info is as follows:"
+              - "Namespace    : {{ app_ns }}"
+              - "Label        : {{ app_label }}"
+
+        ## PRE-CHAOS APPLICATION LIVENESS CHECK
+        - name: Verify that the AUT is running
+          include_tasks: /e2e-tests/utils/k8s/check_deployment_status.yml
+
+        - block:
+
+            - name: Get application pod name
+              shell: >
+                kubectl get pods -n {{ app_ns }} -l {{ app_label }} --no-headers
+                -o=custom-columns=NAME:".metadata.name" | shuf -n 1
+              args:
+                executable: /bin/bash
+              register: app_pod_name
+
+            - name: Create some test data
+              include: "{{ data_consistency_util_path }}"
+              vars:
+                status: 'LOAD'
+                ns: "{{ app_ns }}"
+                pod_name: "{{ app_pod_name.stdout }}"
+              when: data_persistence != ''
+
+             ## APPLICATION FAULT INJECTION
+
+            - include_tasks: /e2e-tests/chaoslib/pumba/pod_failure_by_sigkill.yaml
+              vars:
+                action: "killapp"
+                app_pod: "{{ app_pod_name.stdout }}"
+                namespace: "{{ app_ns }}"
+                label: "{{ app_label }}"
+              when: cri == 'docker'
+
+            - include_tasks: /e2e-tests/chaoslib/containerd_chaos/crictl-chaos.yml
+              vars:
+                action: "killapp"
+                app_pod: "{{ app_pod_name.stdout }}"
+                namespace: "{{ app_ns }}"
+                label: "{{ app_label }}"
+              when: cri == 'containerd'
+
+            - include_tasks: /e2e-tests/chaoslib/crio_chaos/crio-crictl-chaos.yml
+              vars:
+                action: "killapp"
+                app_pod: "{{ app_pod_name.stdout }}"
+                namespace: "{{ app_ns }}"
+                target_ns: "{{ app_ns }}"
+                label: "{{ app_label }}"
+              when: cri == 'cri-o'
+
+            - name: Verify application data persistence
+              include: "{{ data_consistency_util_path }}"
+              vars:
+                status: 'VERIFY'
+                ns: "{{ app_ns }}"
+                label: "{{ app_label }}"
+                pod_name: "{{ app_pod_name.stdout }}"                 
+              when: data_persistence != ''
+
+          when: lookup('env','DEPLOY_TYPE') == 'deployment'
+
+        - block:
+
+            - name: Get application pod name
+              shell: >
+                kubectl get pod  -n {{ app_ns }} -l {{ app_label }} -o jsonpath='{.items[0].metadata.name}'
+              args:
+                executable: /bin/bash
+              register: app_pod_name
+
+            ## APPLICATION FAULT INJECTION
+
+            - include_tasks: /e2e-tests/chaoslib/pumba/pod_failure_by_sigkill.yaml
+              vars:
+                action: "killapp"
+                app_pod: "{{ app_pod_name.stdout }}"
+                namespace: "{{ app_ns }}"
+                label: "{{ app_label }}"
+              when: cri == 'docker'
+
+            - include_tasks: /e2e-tests/chaoslib/containerd_chaos/crictl-chaos.yml
+              vars:
+                action: "killapp"
+                app_pod: "{{ app_pod_name.stdout }}"
+                namespace: "{{ app_ns }}"
+                label: "{{ app_label }}"
+              when: cri == 'containerd'
+            
+            - include_tasks: /e2e-tests/chaoslib/crio_chaos/crio-crictl-chaos.yml
+              vars:
+                action: "killapp"
+                app_pod: "{{ app_pod_name.stdout }}"
+                namespace: "{{ app_ns }}"
+                label: "{{ app_label }}"
+              when: cri == 'cri-o'
+
+          when: lookup('env','DEPLOY_TYPE') == 'statefulset'
+
+        ## POST-CHAOS APPLICATION LIVENESS CHECK
+
+        - name: Verify AUT liveness post fault-injection
+          include_tasks: /e2e-tests/utils/k8s/check_deployment_status.yml
+
+        - block:
+
+            - name: Checking status of liveness pod
+              shell: kubectl get pod -n {{ liveness_namespace }} -l {{ liveness_label }} -o jsonpath='{.items[0].status.phase}'
+              register: liveness_pod
+              until: "'Running' in liveness_pod.stdout"
+              delay: 10
+              retries: 10
+
+          when: liveness_label != ''
+
+        - set_fact:
+            flag: "Pass"
+
+      rescue:
+        - set_fact:
+            flag: "Fail"
+
+      always:
+
+        ## RECORD END-OF-TEST IN e2e RESULT CR
+        - include_tasks: /e2e-tests/utils/fcm/update_e2e_result_resource.yml
+          vars:
+            status: 'EOT'
+            chaostype: ""
+            app: ""
+
+        - include_tasks: /e2e-tests/chaoslib/pumba/pod_failure_by_sigkill.yaml
+          vars:
+            action: "deletepumba"
+            namespace: "{{ app_ns }}"
+          when: cri == 'docker'
+
+        - include_tasks: /e2e-tests/chaoslib/containerd_chaos/crictl-chaos.yml
+          vars:
+            action: "delete-containerd"
+            namespace: "{{ app_ns }}"
+          when: cri == 'containerd'
+
+        - include_tasks: /e2e-tests/chaoslib/crio_chaos/crio-crictl-chaos.yml
+          vars:
+            action: "delete-crio"
+            namespace: "{{ app_ns }}"
+          when: cri == 'cri-o'
+

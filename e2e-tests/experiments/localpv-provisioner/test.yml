@@ -1,0 +1,156 @@
+# Apply openebs operation.
+
+- hosts: localhost
+  connection: local
+  gather_facts: False
+
+  vars_files:
+    - test_vars.yml
+
+  tasks:
+
+    - block:
+
+         ## GENERATING THE TEST NAME
+        - include_tasks: /e2e-tests/utils/fcm/create_testname.yml
+
+         ##  RECORD START-OF-TEST IN e2e RESULT CR
+        - include_tasks: "/e2e-tests/utils/fcm/update_e2e_result_resource.yml"
+          vars:
+            status: 'SOT'
+
+        - include_tasks: "/e2e-tests/experiments/localpv-provisioner/charts_operator_provision.yml"
+          when: image_type == "charts"
+
+        - include_tasks: "/e2e-tests/experiments/localpv-provisioner/release_tag_provision.yml"
+          when: image_type == "commit_id"
+
+        - include_tasks: "/e2e-tests/experiments/localpv-provisioner/master_operator_provision.yml"
+          when: image_type == "master"
+            
+        - block:
+
+            - name: Check if the OpenEBS-ndm-Operator is running
+              shell: >
+                kubectl get pods -n {{ namespace }}
+                -o jsonpath='{.items[?(@.metadata.labels.openebs\.io\/component-name=="ndm-operator")].status.phase}'
+              register: ndm_operator
+              until: "'Running' in ndm_operator.stdout"
+              delay: 5
+              retries: 60
+              ignore_errors: true
+
+            - name: Create storage classes with specific storage policies
+              shell: kubectl apply -f localpv-sc.yml
+              args:
+                executable: /bin/bash
+              register: sc
+
+            - name: Confirm that the storage classes are created
+              shell: kubectl get storageclass
+              args:
+                executable: /bin/bash
+              register: result_sc
+              until: '"{{ item }}" in result_sc.stdout'
+              delay: 15
+              retries: 5
+              with_items:
+                 - openebs-hostpath
+                 - openebs-device              
+
+            - name: Check if the OpenEBS-localpv-provisioner is running
+              shell: >
+                kubectl get pods -n {{ namespace }}
+                -o jsonpath='{.items[?(@.metadata.labels.name=="openebs-localpv-provisioner")].status.phase}'
+              register: local_pv
+              until: "'Running' in local_pv.stdout"
+              delay: 5
+              retries: 120
+
+            - name: Obtain the desired number of ndm daemonset
+              shell: >
+                kubectl get daemonset -n {{ namespace }} -l name=openebs-ndm
+                -o custom-columns=:.status.desiredNumberScheduled --no-headers
+              args:
+                executable: /bin/bash
+              register: desired_count
+
+            - name: Verify readily available daemonset is equal to desired count
+              shell: >
+                kubectl get daemonset -n {{ namespace }} -l name=openebs-ndm
+                -o custom-columns=:.status.numberReady --no-headers
+              args:
+                executable: /bin/bash
+              register: ready_count
+              until: (ready_count.stdout)|int == (desired_count.stdout)|int
+              delay: 5
+              retries: 120
+
+            - name: Confirm if node-disk-manager is running in all the nodes
+              shell: >
+                kubectl get pods -n {{ namespace }}
+                -o jsonpath='{.items[?(@.metadata.labels.name=="openebs-ndm")].status.phase}' | grep Running | wc -w
+              args:
+                executable: /bin/bash
+              register: ndm_count
+              until: (desired_count.stdout)|int == (ndm_count.stdout)|int
+              delay: 5
+              retries: 60
+
+          when: lookup('env','ACTION') == "provision"
+
+        - block:
+           
+            - name: Confirm pods has been deleted
+              shell: kubectl get pods -n {{ namespace }}
+              args:
+                executable: /bin/bash
+              register: result
+              until: ' item not in result.stdout'
+              with_items:
+                - "openebs-ndm-operator"
+                - "openebs-localpv-provisioner"
+                - "openebs-ndm"
+              delay: 30
+              retries: 10
+
+            - name: Confirm that namespace has been deleted
+              shell: 'kubectl get namespaces'
+              args:
+                executable: /bin/bash
+              register: result
+              until: 'namespace not in result.stdout'
+              delay: 30
+              retries: 100
+
+            - name: Remove storage classes with specific storage policies
+              shell: kubectl delete -f localpv-sc.yml
+              args:
+                executable: /bin/bash
+              register: sc
+
+            - name: Confirm that the storage classes are removed
+              shell: kubectl get storageclass
+              args:
+                executable: /bin/bash
+              register: result_sc
+              until: '"{{ item }}" not in result_sc.stdout'
+              delay: 15
+              retries: 5
+              with_items:
+                 - openebs-hostpath
+                 - openebs-device               
+
+          when: lookup('env','ACTION') == "deprovision"
+
+        - set_fact:
+            flag: "Pass"
+      rescue:
+        - set_fact:
+            flag: "Fail"
+
+      always:
+        ## RECORD END-OF-TEST IN e2e RESULT CR
+        - include_tasks: /e2e-tests/utils/fcm/update_e2e_result_resource.yml
+          vars:
+            status: 'EOT'

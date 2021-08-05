@@ -1,0 +1,74 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  generateName: e2e-velero-backup-restore-
+  namespace: e2e
+spec:
+  template:
+    metadata:
+      name: e2e
+      labels:
+        app: velero-backup-restore
+
+    spec:
+      serviceAccountName: e2e
+      restartPolicy: Never
+      containers:
+      - name: ansibletest
+        image: openebs/localpv-e2e:ci
+        imagePullPolicy: IfNotPresent
+
+        env:
+          - name: ANSIBLE_STDOUT_CALLBACK
+            value: default
+
+          - name: APP_LABEL
+            value: 'name=percona'
+
+            # Application pvc
+          - name: APP_PVC
+            value: percona-mysql-claim
+
+            # Application namespace
+          - name: APP_NAMESPACE
+            value: app-percona-ns 
+
+          - name: DB_USER_NAME
+            value: root
+
+          - name: DB_PASSWORD
+            value: k8sDem0
+
+          - name: DEPLOY_TYPE
+            value: deployment
+
+          - name: BACKUP_NAME
+            value: percona-backup
+
+          - name: OPERATOR_NAMESPACE
+            value: "openebs"
+
+          - name: VELERO_PLUGIN_NAME
+            value: "openebs/velero-plugin:ci"
+
+          - name: VELERO_VERSION
+            value: "v1.1.0"
+
+          #Supported values are {'minio', 'GCP'}
+          - name: STORAGE_BUCKET
+            value: "minio"
+
+          - name: GCP_PROJECT_ID
+            value: "openebs-ci"
+
+           #Supported values are {'default', 'user-defined'}, can be set only true when {bucket-type=minio, local-snapshot=false}
+          - name: PROFILE
+            value: "default"
+
+          # supported values are: true & false (Deprovision velero namespace after test completion)
+          - name: DEPROVISION_VELERO
+            value: "false"          
+             
+        command: ["/bin/bash"]
+        args: ["-c", "ansible-playbook ./e2e-tests/experiments/functional/backup_and_restore/test.yml -i /etc/ansible/hosts -vv; exit 0"]

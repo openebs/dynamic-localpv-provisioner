@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: containerd-chaos
+spec:
+  selector:
+    matchLabels:
+      app: crictl
+  template:
+    metadata:
+      labels:
+        app: crictl
+      name: containerd-chaos
+    spec:
+      containers:
+      - image: gprasath/crictl:ci
+        imagePullPolicy: IfNotPresent
+        name: containerd-chaos
+        command: ['sh', '-c', 'echo Hello! && sleep 1800']
+        volumeMounts:
+          - name: cri-socket
+            mountPath: /run/containerd/containerd.sock
+          - name: cri-config
+            mountPath: /etc/crictl.yaml
+      volumes:
+        - hostPath:
+            path: /run/containerd/containerd.sock
+          name: cri-socket
+        - hostPath:
+            path: /etc/crictl.yaml 
+          name: cri-config
+

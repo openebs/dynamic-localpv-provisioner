@@ -1,0 +1,18 @@
+{
+    "spec": {
+        "template": {
+            "spec": {
+                "containers": [ 
+                    {
+                        "image": "gcr.io/heptio-images/velero:v1.1.0",
+                        "imagePullPolicy": "IfNotPresent",
+                        "name": "restic",
+                        "securityContext": { 
+                           "privileged": true
+                         }
+                            }
+                 ]
+                    }
+            }
+}
+}

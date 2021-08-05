@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: crio-chaos
+spec:
+  selector:
+    matchLabels:
+      app: crio
+  template:
+    metadata:
+      labels:
+        app: crio
+      name: crio-chaos
+    spec:
+      containers:
+      - image: quay.io/nsathyaseelan/crictl:latest
+        imagePullPolicy: IfNotPresent
+        name: crio-chaos
+        command: ['sh', '-c', 'echo Hello! && sleep 1800']
+        volumeMounts:
+          - name: cri-socket
+            mountPath: /run/crio/crio.sock
+          - name: cri-config
+            mountPath: /etc/crictl.yaml
+        securityContext:
+          privileged: true
+      volumes:
+        - hostPath:
+            path: /run/crio/crio.sock
+          name: cri-socket
+        - hostPath:
+            path: /etc/crictl.yaml 
+          name: cri-config

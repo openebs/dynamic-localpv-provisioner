@@ -1,0 +1,125 @@
+- hosts: localhost
+  connection: local
+  gather_facts: False
+
+  vars_files:
+    - test_vars.yml
+
+  tasks:
+
+    - block:
+    
+         # GENERATING THE TEST NAME
+        - include_tasks: /e2e-tests/utils/fcm/create_testname.yml
+
+         ##  RECORD START-OF-TEST IN e2e RESULT CR
+        - include_tasks: "/e2e-tests/utils/fcm/update_e2e_result_resource.yml"
+          vars:
+            status: 'SOT'
+
+        - name: Verify that the AUT is running
+          include_tasks: /e2e-tests/utils/k8s/check_deployment_status.yml
+
+        - include_tasks: "./setup_dependency.yml"
+
+        - name: Get Application pod details
+          shell: kubectl get pods -n {{ app_ns }} -l {{ app_label }} --no-headers -o custom-columns=:metadata.name
+          register: app_pod
+
+        - name: Create new database in the mysql
+          include_tasks: "/e2e-tests/utils/scm/applications/mysql/mysql_data_persistence.yml"
+          vars:
+            status: 'LOAD'
+            ns: "{{ app_ns }}"
+            pod_name: "{{ app_pod.stdout }}"
+            dbuser: 'root'
+            dbpassword: 'k8sDem0'
+            dbname: "backup"
+          
+        - name: Getting the application deployment name
+          shell: >
+             kubectl get deploy -n {{ app_ns }} -l {{ app_label }} -o jsonpath='{.items[0].metadata.name}'
+          register: app_deploy_name
+
+        - name: Fetching the volume name of application
+          shell: >
+             kubectl get deploy {{ app_deploy_name.stdout }} -n {{ app_ns }} -o jsonpath='{.spec.template.spec.volumes[0].name}'
+          register: app_vol_name
+
+        # annotation is limited to one volume only
+        - name: Annotating the application pod
+          shell: 
+            kubectl -n {{ app_ns }} annotate pod/{{ app_pod.stdout }} backup.velero.io/backup-volumes={{ app_vol_name.stdout }}
+
+        - name: Creating Backup for the provided application
+          include_tasks: "./backup-restore.yml"
+          vars:
+            action: 'BACKUP'
+            velero_backup_name: "{{ backup_name }}"
+
+        - name: Getting state of backup
+          include_tasks: "./backup-restore.yml"
+          vars:
+            action: 'BACKUP_STATE'
+            velero_backup_name: "{{ backup_name }}"
+
+        - name: Deleting Application
+          shell: |
+            kubectl delete pvc,deploy,svc --all -n {{ app_ns }}
+            kubectl delete ns {{ app_ns }}
+
+        - name: Checking whether namespace is deleted
+          shell: >
+            kubectl get ns 
+            --no-headers 
+            -o custom-columns=:metadata.name
+          args: 
+            executable: /bin/bash
+          register: ns_list
+          until: "app_ns not in ns_list.stdout_lines"
+          delay: 5
+          retries: 15
+             
+        - name: Restoring Application
+          include_tasks: "./backup-restore.yml"
+          vars:
+            action: 'RESTORE'
+            velero_backup_name: "{{ backup_name }}"    
+
+        - name: Waiting for application to be in running state
+          shell: kubectl get pod {{ app_pod.stdout }} -n {{ app_ns }} -o jsonpath='{.status.phase}'
+          register: app_pod_status
+          until: "'Running' in app_pod_status.stdout"
+          delay: 5
+          retries: 30
+
+        - name: Verifying Data persistense
+          include_tasks: "/e2e-tests/utils/scm/applications/mysql/mysql_data_persistence.yml"
+          vars:
+            status: 'VERIFY'
+            ns: "{{ app_ns }}"
+            pod_name: "{{ app_pod.stdout }}"
+            dbuser: 'root'
+            dbpassword: 'k8sDem0'
+            dbname: "backup"
+            label: "{{ app_label }}"
+                       
+        - set_fact:
+            flag: "Pass"
+
+      rescue:
+        - set_fact:
+            flag: "Fail"
+
+      always: 
+        - include_tasks: /e2e-tests/utils/fcm/update_e2e_result_resource.yml
+          vars:
+            status: 'EOT'    
+
+        - name: Deleting GCP bucket
+          shell: gsutil rm -r gs://e2e-gcp-bucket
+          when: "bucket_type == 'GCP'"
+
+        - name: Deprovisioning Velero server
+          shell: kubectl delete namespace velero 
+          when: lookup('env','DEPROVISION_VELERO') == 'true'

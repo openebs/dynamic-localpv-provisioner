@@ -1,0 +1,41 @@
+---
+- name: Creating Backup
+  shell: >
+    velero backup create {{ velero_backup_name }} -l {{ app_label }} --include-namespaces={{ app_ns }}
+  args:
+    executable: /bin/bash
+  when: action == "BACKUP"
+
+- name: Getting the state of Backup
+  shell: kubectl get backup {{ velero_backup_name }} -n velero -o jsonpath='{.status.phase}'
+  register: backup_state
+  until: "'Completed' in backup_state.stdout"
+  delay: 5
+  retries: 100
+  when: action == "BACKUP_STATE"
+   
+- block:
+    
+    - name: Creating application namespace
+      shell: kubectl create ns {{ app_ns }}
+      register: app_ns_create_status
+      failed_when: "'created' not in app_ns_create_status.stdout"
+
+    - name: Restoring application 
+      shell: >
+        velero restore create --from-backup {{ velero_backup_name }} --restore-volumes=true
+      args:
+        executable: /bin/bash
+
+    - name: Getting restore name
+      shell: velero get restore | grep {{ velero_backup_name }} | awk '{print $1}'
+      register: restore_name
+
+    - name: Checking the restore status
+      shell: kubectl get restore {{ restore_name.stdout }} -n velero -o jsonpath='{.status.phase}'
+      register: restore_state
+      until: "'Completed' in restore_state.stdout"
+      delay: 5
+      retries: 60     
+
+  when: action == "RESTORE"
