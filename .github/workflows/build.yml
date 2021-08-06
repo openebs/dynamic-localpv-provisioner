@@ -138,9 +138,8 @@ jobs:
             DBUILD_REPO_URL=https://github.com/openebs/dynamic-localpv-provisioner
             DBUILD_SITE_URL=https://openebs.io
 
-  ansible:
+  localpv-e2e:
     runs-on: ubuntu-latest
-    needs: ['unit-test']
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -156,7 +155,7 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and push the ansible image
+      - name: Build and push the localpv-e2e image
         uses: docker/build-push-action@v2
         with:
           file: ./e2e-tests/Dockerfile
@@ -164,4 +163,4 @@ jobs:
           load: false
           platforms: linux/amd64
           tags: |
-            ${{ env.IMAGE_ORG }}/localpv-e2e:ci           
+            ${{ env.IMAGE_ORG }}/localpv-e2e:ci   
