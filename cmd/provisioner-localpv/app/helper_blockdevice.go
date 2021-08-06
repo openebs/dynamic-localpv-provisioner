@@ -48,12 +48,9 @@ const (
 	LocalPVFinalizer = "local.openebs.io/finalizer"
 )
 
-//TODO
-var (
-	//WaitForBDTimeoutCounts specifies the duration to wait for BDC to be associated with a BD
-	//The duration is the value specified here multiplied by 5
-	WaitForBDTimeoutCounts = 12
-)
+// WaitForBDTimeoutCounts specifies the duration to wait for BDC to be associated with a BD
+// The duration is the value specified here multiplied by 5
+var WaitForBDTimeoutCounts int
 
 // HelperBlockDeviceOptions contains the options that
 // will launch a BDC on a specific node (nodeHostname)
