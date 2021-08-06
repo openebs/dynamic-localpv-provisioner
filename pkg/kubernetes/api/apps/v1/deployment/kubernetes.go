@@ -16,6 +16,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"context"
 	"encoding/json"
 	"strings"
 
@@ -40,6 +41,7 @@ type getClientsetForPathFn func(path string) (*kubernetes.Clientset, error)
 // getFn is a typed function that abstracts fetching a
 // deployment instance from kubernetes cluster
 type getFn func(
+	ctx context.Context,
 	cli *kubernetes.Clientset,
 	name string,
 	namespace string,
@@ -49,6 +51,7 @@ type getFn func(
 // listFn is a typed function that abstracts listing
 // deployment instances from kubernetes cluster
 type listFn func(
+	ctx context.Context,
 	cli *kubernetes.Clientset,
 	namespace string,
 	opts *metav1.ListOptions,
@@ -57,6 +60,7 @@ type listFn func(
 // createFn is a typed function that abstracts
 // creating a deployment instance in kubernetes cluster
 type createFn func(
+	ctx context.Context,
 	cli *kubernetes.Clientset,
 	namespace string,
 	deploy *appsv1.Deployment,
@@ -65,6 +69,7 @@ type createFn func(
 // updateFn is a typed function that abstracts
 // updating a deployment instance in kubernetes cluster
 type updateFn func(
+	ctx context.Context,
 	cli *kubernetes.Clientset,
 	namespace string,
 	deploy *appsv1.Deployment,
@@ -73,6 +78,7 @@ type updateFn func(
 // deleteFn is a typed function that abstracts
 // deleting a deployment from kubernetes cluster
 type deleteFn func(
+	ctx context.Context,
 	cli *kubernetes.Clientset,
 	namespace string,
 	name string,
@@ -82,6 +88,7 @@ type deleteFn func(
 // patchFn is a typed function that abstracts
 // patching a deployment from kubernetes cluster
 type patchFn func(
+	ctx context.Context,
 	cli *kubernetes.Clientset,
 	name, namespace string,
 	pt types.PatchType,
@@ -115,68 +122,74 @@ func defaultGetClientsetForPath(path string) (*kubernetes.Clientset, error) {
 // defaultGet is the default implementation to get a
 // deployment instance from kubernetes cluster
 func defaultGet(
+	ctx context.Context,
 	cli *kubernetes.Clientset,
 	name string,
 	namespace string,
 	opts *metav1.GetOptions,
 ) (*appsv1.Deployment, error) {
 
-	return cli.AppsV1().Deployments(namespace).Get(name, *opts)
+	return cli.AppsV1().Deployments(namespace).Get(ctx, name, *opts)
 }
 
 // defaultList is the default implementation to list
 // deployment instances from kubernetes cluster
 func defaultList(
+	ctx context.Context,
 	cli *kubernetes.Clientset,
 	namespace string,
 	opts *metav1.ListOptions,
 ) (*appsv1.DeploymentList, error) {
 
-	return cli.AppsV1().Deployments(namespace).List(*opts)
+	return cli.AppsV1().Deployments(namespace).List(ctx, *opts)
 }
 
 // defaultCreate is the default implementation to create
 // a deployment instance in kubernetes cluster
 func defaultCreate(
+	ctx context.Context,
 	cli *kubernetes.Clientset,
 	namespace string,
 	deploy *appsv1.Deployment,
 ) (*appsv1.Deployment, error) {
 
-	return cli.AppsV1().Deployments(namespace).Create(deploy)
+	return cli.AppsV1().Deployments(namespace).Create(ctx, deploy, metav1.CreateOptions{})
 }
 
 // defaultUpdate is the default implementation to update
 // a deployment instance in kubernetes cluster
 func defaultUpdate(
+	ctx context.Context,
 	cli *kubernetes.Clientset,
 	namespace string,
 	deploy *appsv1.Deployment,
 ) (*appsv1.Deployment, error) {
 
-	return cli.AppsV1().Deployments(namespace).Update(deploy)
+	return cli.AppsV1().Deployments(namespace).Update(ctx, deploy, metav1.UpdateOptions{})
 }
 
 // defaultDel is the default implementation to delete a
 // deployment instance in kubernetes cluster
 func defaultDel(
+	ctx context.Context,
 	cli *kubernetes.Clientset,
 	namespace string,
 	name string,
 	opts *metav1.DeleteOptions,
 ) error {
 
-	return cli.AppsV1().Deployments(namespace).Delete(name, opts)
+	return cli.AppsV1().Deployments(namespace).Delete(ctx, name, *opts)
 }
 
 func defaultPatch(
+	ctx context.Context,
 	cli *kubernetes.Clientset,
 	name, namespace string,
 	pt types.PatchType,
 	data []byte,
 	subresources ...string,
 ) (*appsv1.Deployment, error) {
-	return cli.AppsV1().Deployments(namespace).Patch(name, pt, data, subresources...)
+	return cli.AppsV1().Deployments(namespace).Patch(ctx, name, pt, data, metav1.PatchOptions{}, subresources...)
 }
 
 // defaultRolloutStatus is the default implementation to
@@ -326,26 +339,27 @@ func (k *Kubeclient) getClientOrCached() (*kubernetes.Clientset, error) {
 }
 
 // Get returns deployment object for given name
-func (k *Kubeclient) Get(name string) (*appsv1.Deployment, error) {
+func (k *Kubeclient) Get(ctx context.Context, name string) (*appsv1.Deployment, error) {
 	cli, err := k.getClientOrCached()
 	if err != nil {
 		return nil, err
 	}
 
-	return k.get(cli, name, k.namespace, &metav1.GetOptions{})
+	return k.get(ctx, cli, name, k.namespace, &metav1.GetOptions{})
 }
 
 // List returns deployment object for given name
-func (k *Kubeclient) List(opts *metav1.ListOptions) (*appsv1.DeploymentList, error) {
+func (k *Kubeclient) List(ctx context.Context, opts *metav1.ListOptions) (*appsv1.DeploymentList, error) {
 	cli, err := k.getClientOrCached()
 	if err != nil {
 		return nil, err
 	}
-	return k.list(cli, k.namespace, opts)
+	return k.list(ctx, cli, k.namespace, opts)
 }
 
 // Patch patches deployment object for given name
 func (k *Kubeclient) Patch(
+	ctx context.Context,
 	name string,
 	pt types.PatchType,
 	data []byte,
@@ -356,17 +370,17 @@ func (k *Kubeclient) Patch(
 		return nil, err
 	}
 
-	return k.patch(cli, name, k.namespace, pt, data, subresources...)
+	return k.patch(ctx, cli, name, k.namespace, pt, data, subresources...)
 }
 
 // GetRaw returns deployment object for given name
-func (k *Kubeclient) GetRaw(name string) ([]byte, error) {
+func (k *Kubeclient) GetRaw(ctx context.Context, name string) ([]byte, error) {
 	cli, err := k.getClientOrCached()
 	if err != nil {
 		return nil, err
 	}
 
-	d, err := k.get(cli, name, k.namespace, &metav1.GetOptions{})
+	d, err := k.get(ctx, cli, name, k.namespace, &metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -376,7 +390,7 @@ func (k *Kubeclient) GetRaw(name string) ([]byte, error) {
 
 // Delete deletes a deployment instance from the
 // kubernetes cluster
-func (k *Kubeclient) Delete(name string, opts *metav1.DeleteOptions) error {
+func (k *Kubeclient) Delete(ctx context.Context, name string, opts *metav1.DeleteOptions) error {
 
 	if debug.EI.IsDeploymentDeleteErrorInjected() {
 		return errors.New("Deployment delete error via injection")
@@ -391,11 +405,11 @@ func (k *Kubeclient) Delete(name string, opts *metav1.DeleteOptions) error {
 		return errors.Wrapf(err, "failed to delete deployment {%s}", name)
 	}
 
-	return k.del(cli, k.namespace, name, opts)
+	return k.del(ctx, cli, k.namespace, name, opts)
 }
 
 // Create creates a deployment in specified namespace in kubernetes cluster
-func (k *Kubeclient) Create(deployment *appsv1.Deployment) (*appsv1.Deployment, error) {
+func (k *Kubeclient) Create(ctx context.Context, deployment *appsv1.Deployment) (*appsv1.Deployment, error) {
 
 	if debug.EI.IsDeploymentCreateErrorInjected() {
 		return nil, errors.New("Deployment create error via injection")
@@ -415,11 +429,11 @@ func (k *Kubeclient) Create(deployment *appsv1.Deployment) (*appsv1.Deployment, 
 		)
 	}
 
-	return k.create(cli, k.namespace, deployment)
+	return k.create(ctx, cli, k.namespace, deployment)
 }
 
 // Update updates a deployment in specified namespace in kubernetes cluster
-func (k *Kubeclient) Update(deployment *appsv1.Deployment) (*appsv1.Deployment, error) {
+func (k *Kubeclient) Update(ctx context.Context, deployment *appsv1.Deployment) (*appsv1.Deployment, error) {
 
 	if debug.EI.IsDeploymentUpdateErrorInjected() {
 		return nil, errors.New("Deployment update error via injection")
@@ -439,18 +453,18 @@ func (k *Kubeclient) Update(deployment *appsv1.Deployment) (*appsv1.Deployment, 
 		)
 	}
 
-	return k.update(cli, k.namespace, deployment)
+	return k.update(ctx, cli, k.namespace, deployment)
 }
 
 // RolloutStatusf returns deployment's rollout status for given name
 // in raw bytes
-func (k *Kubeclient) RolloutStatusf(name string) (op []byte, err error) {
+func (k *Kubeclient) RolloutStatusf(ctx context.Context, name string) (op []byte, err error) {
 	cli, err := k.getClientOrCached()
 	if err != nil {
 		return nil, err
 	}
 
-	d, err := k.get(cli, name, k.namespace, &metav1.GetOptions{})
+	d, err := k.get(ctx, cli, name, k.namespace, &metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -459,13 +473,13 @@ func (k *Kubeclient) RolloutStatusf(name string) (op []byte, err error) {
 }
 
 // RolloutStatus returns deployment's rollout status for given name
-func (k *Kubeclient) RolloutStatus(name string) (*RolloutOutput, error) {
+func (k *Kubeclient) RolloutStatus(ctx context.Context, name string) (*RolloutOutput, error) {
 	cli, err := k.getClientOrCached()
 	if err != nil {
 		return nil, err
 	}
 
-	d, err := k.get(cli, name, k.namespace, &metav1.GetOptions{})
+	d, err := k.get(ctx, cli, name, k.namespace, &metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}

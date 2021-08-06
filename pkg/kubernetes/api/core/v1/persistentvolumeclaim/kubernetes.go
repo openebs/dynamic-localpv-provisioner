@@ -15,6 +15,7 @@
 package persistentvolumeclaim
 
 import (
+	"context"
 	"strings"
 
 	errors "github.com/pkg/errors"
@@ -35,27 +36,27 @@ type getClientsetForPathFn func(kubeConfigPath string) (clientset *kubernetes.Cl
 
 // getpvcFn is a typed function that
 // abstracts fetching of pvc
-type getFn func(cli *kubernetes.Clientset, name string, namespace string, opts metav1.GetOptions) (*corev1.PersistentVolumeClaim, error)
+type getFn func(ctx context.Context, cli *kubernetes.Clientset, name string, namespace string, opts metav1.GetOptions) (*corev1.PersistentVolumeClaim, error)
 
 // listFn is a typed function that abstracts
 // listing of pvcs
-type listFn func(cli *kubernetes.Clientset, namespace string, opts metav1.ListOptions) (*corev1.PersistentVolumeClaimList, error)
+type listFn func(ctx context.Context, cli *kubernetes.Clientset, namespace string, opts metav1.ListOptions) (*corev1.PersistentVolumeClaimList, error)
 
 // deleteFn is a typed function that abstracts
 // deletion of pvcs
-type deleteFn func(cli *kubernetes.Clientset, namespace string, name string, deleteOpts *metav1.DeleteOptions) error
+type deleteFn func(ctx context.Context, cli *kubernetes.Clientset, namespace string, name string, deleteOpts *metav1.DeleteOptions) error
 
 // deleteFn is a typed function that abstracts
 // deletion of pvc's collection
-type deleteCollectionFn func(cli *kubernetes.Clientset, namespace string, listOpts metav1.ListOptions, deleteOpts *metav1.DeleteOptions) error
+type deleteCollectionFn func(ctx context.Context, cli *kubernetes.Clientset, namespace string, listOpts metav1.ListOptions, deleteOpts *metav1.DeleteOptions) error
 
 // createFn is a typed function that abstracts
 // creation of pvc
-type createFn func(cli *kubernetes.Clientset, namespace string, pvc *corev1.PersistentVolumeClaim) (*corev1.PersistentVolumeClaim, error)
+type createFn func(ctx context.Context, cli *kubernetes.Clientset, namespace string, pvc *corev1.PersistentVolumeClaim) (*corev1.PersistentVolumeClaim, error)
 
 // updateFn is a typed function that abstracts
 // updation of pvc
-type updateFn func(cli *kubernetes.Clientset, namespace string, pvc *corev1.PersistentVolumeClaim) (*corev1.PersistentVolumeClaim, error)
+type updateFn func(ctx context.Context, cli *kubernetes.Clientset, namespace string, pvc *corev1.PersistentVolumeClaim) (*corev1.PersistentVolumeClaim, error)
 
 // Kubeclient enables kubernetes API operations
 // on pvc instance
@@ -103,38 +104,38 @@ func (k *Kubeclient) withDefaults() {
 	}
 
 	if k.get == nil {
-		k.get = func(cli *kubernetes.Clientset, name string, namespace string, opts metav1.GetOptions) (*corev1.PersistentVolumeClaim, error) {
-			return cli.CoreV1().PersistentVolumeClaims(namespace).Get(name, opts)
+		k.get = func(ctx context.Context, cli *kubernetes.Clientset, name string, namespace string, opts metav1.GetOptions) (*corev1.PersistentVolumeClaim, error) {
+			return cli.CoreV1().PersistentVolumeClaims(namespace).Get(ctx, name, opts)
 		}
 	}
 
 	if k.list == nil {
-		k.list = func(cli *kubernetes.Clientset, namespace string, opts metav1.ListOptions) (*corev1.PersistentVolumeClaimList, error) {
-			return cli.CoreV1().PersistentVolumeClaims(namespace).List(opts)
+		k.list = func(ctx context.Context, cli *kubernetes.Clientset, namespace string, opts metav1.ListOptions) (*corev1.PersistentVolumeClaimList, error) {
+			return cli.CoreV1().PersistentVolumeClaims(namespace).List(ctx, opts)
 		}
 	}
 
 	if k.del == nil {
-		k.del = func(cli *kubernetes.Clientset, namespace string, name string, deleteOpts *metav1.DeleteOptions) error {
-			return cli.CoreV1().PersistentVolumeClaims(namespace).Delete(name, deleteOpts)
+		k.del = func(ctx context.Context, cli *kubernetes.Clientset, namespace string, name string, deleteOpts *metav1.DeleteOptions) error {
+			return cli.CoreV1().PersistentVolumeClaims(namespace).Delete(ctx, name, *deleteOpts)
 		}
 	}
 
 	if k.delCollection == nil {
-		k.delCollection = func(cli *kubernetes.Clientset, namespace string, listOpts metav1.ListOptions, deleteOpts *metav1.DeleteOptions) error {
-			return cli.CoreV1().PersistentVolumeClaims(namespace).DeleteCollection(deleteOpts, listOpts)
+		k.delCollection = func(ctx context.Context, cli *kubernetes.Clientset, namespace string, listOpts metav1.ListOptions, deleteOpts *metav1.DeleteOptions) error {
+			return cli.CoreV1().PersistentVolumeClaims(namespace).DeleteCollection(ctx, *deleteOpts, listOpts)
 		}
 	}
 
 	if k.create == nil {
-		k.create = func(cli *kubernetes.Clientset, namespace string, pvc *corev1.PersistentVolumeClaim) (*corev1.PersistentVolumeClaim, error) {
-			return cli.CoreV1().PersistentVolumeClaims(namespace).Create(pvc)
+		k.create = func(ctx context.Context, cli *kubernetes.Clientset, namespace string, pvc *corev1.PersistentVolumeClaim) (*corev1.PersistentVolumeClaim, error) {
+			return cli.CoreV1().PersistentVolumeClaims(namespace).Create(ctx, pvc, metav1.CreateOptions{})
 		}
 	}
 
 	if k.update == nil {
-		k.update = func(cli *kubernetes.Clientset, namespace string, pvc *corev1.PersistentVolumeClaim) (*corev1.PersistentVolumeClaim, error) {
-			return cli.CoreV1().PersistentVolumeClaims(namespace).Update(pvc)
+		k.update = func(ctx context.Context, cli *kubernetes.Clientset, namespace string, pvc *corev1.PersistentVolumeClaim) (*corev1.PersistentVolumeClaim, error) {
+			return cli.CoreV1().PersistentVolumeClaims(namespace).Update(ctx, pvc, metav1.UpdateOptions{})
 		}
 	}
 }
@@ -197,7 +198,7 @@ func (k *Kubeclient) getClientsetOrCached() (*kubernetes.Clientset, error) {
 
 // Get returns a pvc resource
 // instances present in kubernetes cluster
-func (k *Kubeclient) Get(name string, opts metav1.GetOptions) (*corev1.PersistentVolumeClaim, error) {
+func (k *Kubeclient) Get(ctx context.Context, name string, opts metav1.GetOptions) (*corev1.PersistentVolumeClaim, error) {
 	if strings.TrimSpace(name) == "" {
 		return nil, errors.New("failed to get pvc: missing pvc name")
 	}
@@ -205,22 +206,22 @@ func (k *Kubeclient) Get(name string, opts metav1.GetOptions) (*corev1.Persisten
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to get pvc {%s}", name)
 	}
-	return k.get(cli, name, k.namespace, opts)
+	return k.get(ctx, cli, name, k.namespace, opts)
 }
 
 // List returns a list of pvc
 // instances present in kubernetes cluster
-func (k *Kubeclient) List(opts metav1.ListOptions) (*corev1.PersistentVolumeClaimList, error) {
+func (k *Kubeclient) List(ctx context.Context, opts metav1.ListOptions) (*corev1.PersistentVolumeClaimList, error) {
 	cli, err := k.getClientsetOrCached()
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to list pvc listoptions: '%v'", opts)
 	}
-	return k.list(cli, k.namespace, opts)
+	return k.list(ctx, cli, k.namespace, opts)
 }
 
 // Delete deletes a pvc instance from the
 // kubecrnetes cluster
-func (k *Kubeclient) Delete(name string, deleteOpts *metav1.DeleteOptions) error {
+func (k *Kubeclient) Delete(ctx context.Context, name string, deleteOpts *metav1.DeleteOptions) error {
 	if strings.TrimSpace(name) == "" {
 		return errors.New("failed to delete pvc: missing pvc name")
 	}
@@ -228,11 +229,11 @@ func (k *Kubeclient) Delete(name string, deleteOpts *metav1.DeleteOptions) error
 	if err != nil {
 		return errors.Wrapf(err, "failed to delete pvc {%s}", name)
 	}
-	return k.del(cli, k.namespace, name, deleteOpts)
+	return k.del(ctx, cli, k.namespace, name, deleteOpts)
 }
 
 // Create creates a pvc in specified namespace in kubernetes cluster
-func (k *Kubeclient) Create(pvc *corev1.PersistentVolumeClaim) (*corev1.PersistentVolumeClaim, error) {
+func (k *Kubeclient) Create(ctx context.Context, pvc *corev1.PersistentVolumeClaim) (*corev1.PersistentVolumeClaim, error) {
 	if pvc == nil {
 		return nil, errors.New("failed to create pvc: nil pvc object")
 	}
@@ -240,11 +241,11 @@ func (k *Kubeclient) Create(pvc *corev1.PersistentVolumeClaim) (*corev1.Persiste
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create pvc {%s} in namespace {%s}", pvc.Name, pvc.Namespace)
 	}
-	return k.create(cli, k.namespace, pvc)
+	return k.create(ctx, cli, k.namespace, pvc)
 }
 
 // Update updates a pvc in specified namespace in kubernetes cluster
-func (k *Kubeclient) Update(pvc *corev1.PersistentVolumeClaim) (*corev1.PersistentVolumeClaim, error) {
+func (k *Kubeclient) Update(ctx context.Context, pvc *corev1.PersistentVolumeClaim) (*corev1.PersistentVolumeClaim, error) {
 	if pvc == nil {
 		return nil, errors.New("failed to update pvc: nil pvc object")
 	}
@@ -252,12 +253,13 @@ func (k *Kubeclient) Update(pvc *corev1.PersistentVolumeClaim) (*corev1.Persiste
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to update pvc {%s} in namespace {%s}", pvc.Name, pvc.Namespace)
 	}
-	return k.update(cli, k.namespace, pvc)
+	return k.update(ctx, cli, k.namespace, pvc)
 }
 
 // CreateCollection creates a list of pvcs
 // in specified namespace in kubernetes cluster
 func (k *Kubeclient) CreateCollection(
+	ctx context.Context,
 	list *corev1.PersistentVolumeClaimList,
 ) (*corev1.PersistentVolumeClaimList, error) {
 	if list == nil || len(list.Items) == 0 {
@@ -267,7 +269,7 @@ func (k *Kubeclient) CreateCollection(
 	newlist := &corev1.PersistentVolumeClaimList{}
 	for _, item := range list.Items {
 		item := item
-		obj, err := k.Create(&item)
+		obj, err := k.Create(ctx, &item)
 		if err != nil {
 			return nil, err
 		}
@@ -279,10 +281,10 @@ func (k *Kubeclient) CreateCollection(
 }
 
 // DeleteCollection deletes a collection of pvc objects.
-func (k *Kubeclient) DeleteCollection(listOpts metav1.ListOptions, deleteOpts *metav1.DeleteOptions) error {
+func (k *Kubeclient) DeleteCollection(ctx context.Context, listOpts metav1.ListOptions, deleteOpts *metav1.DeleteOptions) error {
 	cli, err := k.getClientsetOrCached()
 	if err != nil {
 		return errors.Wrapf(err, "failed to delete the collection of pvcs")
 	}
-	return k.delCollection(cli, k.namespace, listOpts, deleteOpts)
+	return k.delCollection(ctx, cli, k.namespace, listOpts, deleteOpts)
 }

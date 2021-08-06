@@ -16,6 +16,7 @@ package pod
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 
 	client "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/client"
@@ -46,23 +47,23 @@ type getKubeConfigForPathFn func(kubeConfigPath string) (*rest.Config, error)
 
 // createFn is a typed function that abstracts
 // creation of pod
-type createFn func(cli *clientset.Clientset, namespace string, pod *corev1.Pod) (*corev1.Pod, error)
+type createFn func(ctx context.Context, cli *clientset.Clientset, namespace string, pod *corev1.Pod) (*corev1.Pod, error)
 
 // listFn is a typed function that abstracts
 // listing of pods
-type listFn func(cli *clientset.Clientset, namespace string, opts metav1.ListOptions) (*corev1.PodList, error)
+type listFn func(ctx context.Context, cli *clientset.Clientset, namespace string, opts metav1.ListOptions) (*corev1.PodList, error)
 
 // deleteFn is a typed function that abstracts
 // deleting of pod
-type deleteFn func(cli *clientset.Clientset, namespace, name string, opts *metav1.DeleteOptions) error
+type deleteFn func(ctx context.Context, cli *clientset.Clientset, namespace, name string, opts *metav1.DeleteOptions) error
 
 // deleteFn is a typed function that abstracts
 // deletion of pod's collection
-type deleteCollectionFn func(cli *clientset.Clientset, namespace string, listOpts metav1.ListOptions, deleteOpts *metav1.DeleteOptions) error
+type deleteCollectionFn func(ctx context.Context, cli *clientset.Clientset, namespace string, listOpts metav1.ListOptions, deleteOpts *metav1.DeleteOptions) error
 
 // getFn is a typed function that abstracts
 // to get pod
-type getFn func(cli *clientset.Clientset, namespace, name string, opts metav1.GetOptions) (*corev1.Pod, error)
+type getFn func(ctx context.Context, cli *clientset.Clientset, namespace, name string, opts metav1.GetOptions) (*corev1.Pod, error)
 
 // execFn is a typed function that abstracts
 // pod exec
@@ -180,33 +181,33 @@ func (k *KubeClient) withDefaults() {
 		}
 	}
 	if k.create == nil {
-		k.create = func(cli *clientset.Clientset,
+		k.create = func(ctx context.Context, cli *clientset.Clientset,
 			namespace string, pod *corev1.Pod) (*corev1.Pod, error) {
-			return cli.CoreV1().Pods(namespace).Create(pod)
+			return cli.CoreV1().Pods(namespace).Create(ctx, pod, metav1.CreateOptions{})
 		}
 	}
 	if k.list == nil {
-		k.list = func(cli *clientset.Clientset,
+		k.list = func(ctx context.Context, cli *clientset.Clientset,
 			namespace string, opts metav1.ListOptions) (*corev1.PodList, error) {
-			return cli.CoreV1().Pods(namespace).List(opts)
+			return cli.CoreV1().Pods(namespace).List(ctx, opts)
 		}
 	}
 	if k.del == nil {
-		k.del = func(cli *clientset.Clientset, namespace,
+		k.del = func(ctx context.Context, cli *clientset.Clientset, namespace,
 			name string, opts *metav1.DeleteOptions) error {
-			return cli.CoreV1().Pods(namespace).Delete(name, opts)
+			return cli.CoreV1().Pods(namespace).Delete(ctx, name, *opts)
 		}
 	}
 	if k.get == nil {
-		k.get = func(cli *clientset.Clientset, namespace,
+		k.get = func(ctx context.Context, cli *clientset.Clientset, namespace,
 			name string, opts metav1.GetOptions) (*corev1.Pod, error) {
-			return cli.CoreV1().Pods(namespace).Get(name, opts)
+			return cli.CoreV1().Pods(namespace).Get(ctx, name, opts)
 		}
 	}
 	if k.delCollection == nil {
-		k.delCollection = func(cli *clientset.Clientset, namespace string,
+		k.delCollection = func(ctx context.Context, cli *clientset.Clientset, namespace string,
 			listOpts metav1.ListOptions, deleteOpts *metav1.DeleteOptions) error {
-			return cli.CoreV1().Pods(namespace).DeleteCollection(deleteOpts, listOpts)
+			return cli.CoreV1().Pods(namespace).DeleteCollection(ctx, *deleteOpts, listOpts)
 		}
 	}
 	if k.exec == nil {
@@ -302,16 +303,16 @@ func (k *KubeClient) getKubeConfigOrCached() (*rest.Config, error) {
 
 // List returns a list of pod
 // instances present in kubernetes cluster
-func (k *KubeClient) List(opts metav1.ListOptions) (*corev1.PodList, error) {
+func (k *KubeClient) List(ctx context.Context, opts metav1.ListOptions) (*corev1.PodList, error) {
 	cli, err := k.getClientsetOrCached()
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to list pods")
 	}
-	return k.list(cli, k.namespace, opts)
+	return k.list(ctx, cli, k.namespace, opts)
 }
 
 // Delete deletes a pod instance present in kubernetes cluster
-func (k *KubeClient) Delete(name string, opts *metav1.DeleteOptions) error {
+func (k *KubeClient) Delete(ctx context.Context, name string, opts *metav1.DeleteOptions) error {
 	if len(name) == 0 {
 		return errors.New("failed to delete pod: missing pod name")
 	}
@@ -323,11 +324,11 @@ func (k *KubeClient) Delete(name string, opts *metav1.DeleteOptions) error {
 			name,
 		)
 	}
-	return k.del(cli, k.namespace, name, opts)
+	return k.del(ctx, cli, k.namespace, name, opts)
 }
 
 // Create creates a pod in specified namespace in kubernetes cluster
-func (k *KubeClient) Create(pod *corev1.Pod) (*corev1.Pod, error) {
+func (k *KubeClient) Create(ctx context.Context, pod *corev1.Pod) (*corev1.Pod, error) {
 	if pod == nil {
 		return nil, errors.New("failed to create pod: nil pod object")
 	}
@@ -340,11 +341,11 @@ func (k *KubeClient) Create(pod *corev1.Pod) (*corev1.Pod, error) {
 			pod.Namespace,
 		)
 	}
-	return k.create(cli, k.namespace, pod)
+	return k.create(ctx, cli, k.namespace, pod)
 }
 
 // Get gets a pod object present in kubernetes cluster
-func (k *KubeClient) Get(name string,
+func (k *KubeClient) Get(ctx context.Context, name string,
 	opts metav1.GetOptions) (*corev1.Pod, error) {
 	if len(name) == 0 {
 		return nil, errors.New("failed to get pod: missing pod name")
@@ -357,14 +358,14 @@ func (k *KubeClient) Get(name string,
 			name,
 		)
 	}
-	return k.get(cli, k.namespace, name, opts)
+	return k.get(ctx, cli, k.namespace, name, opts)
 }
 
 // GetRaw gets pod object for a given name and namespace present
 // in kubernetes cluster and returns result in raw byte.
-func (k *KubeClient) GetRaw(name string,
+func (k *KubeClient) GetRaw(ctx context.Context, name string,
 	opts metav1.GetOptions) ([]byte, error) {
-	p, err := k.Get(name, opts)
+	p, err := k.Get(ctx, name, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -397,10 +398,10 @@ func (k *KubeClient) ExecRaw(name string,
 }
 
 // DeleteCollection deletes a collection of pod objects.
-func (k *KubeClient) DeleteCollection(listOpts metav1.ListOptions, deleteOpts *metav1.DeleteOptions) error {
+func (k *KubeClient) DeleteCollection(ctx context.Context, listOpts metav1.ListOptions, deleteOpts *metav1.DeleteOptions) error {
 	cli, err := k.getClientsetOrCached()
 	if err != nil {
 		return errors.Wrapf(err, "failed to delete the collection of pods")
 	}
-	return k.delCollection(cli, k.namespace, listOpts, deleteOpts)
+	return k.delCollection(ctx, cli, k.namespace, listOpts, deleteOpts)
 }

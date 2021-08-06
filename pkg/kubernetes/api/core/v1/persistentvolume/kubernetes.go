@@ -15,6 +15,7 @@
 package persistentvolume
 
 import (
+	"context"
 	"strings"
 
 	stringer "github.com/openebs/maya/pkg/apis/stringer/v1alpha1"
@@ -42,23 +43,23 @@ type getClientsetForPathFn func(kubeConfigPath string) (clientset *kubernetes.Cl
 
 // getpvcFn is a typed function that
 // abstracts fetching of pv
-type getFn func(cli *kubernetes.Clientset, name string, opts metav1.GetOptions) (*corev1.PersistentVolume, error)
+type getFn func(ctx context.Context, cli *kubernetes.Clientset, name string, opts metav1.GetOptions) (*corev1.PersistentVolume, error)
 
 // listFn is a typed function that abstracts
 // listing of pvs
-type listFn func(cli *kubernetes.Clientset, opts metav1.ListOptions) (*corev1.PersistentVolumeList, error)
+type listFn func(ctx context.Context, cli *kubernetes.Clientset, opts metav1.ListOptions) (*corev1.PersistentVolumeList, error)
 
 // deleteFn is a typed function that abstracts
 // deletion of pvs
-type deleteFn func(cli *kubernetes.Clientset, name string, deleteOpts *metav1.DeleteOptions) error
+type deleteFn func(ctx context.Context, cli *kubernetes.Clientset, name string, deleteOpts *metav1.DeleteOptions) error
 
 // deleteFn is a typed function that abstracts
 // deletion of pv's collection
-type deleteCollectionFn func(cli *kubernetes.Clientset, listOpts metav1.ListOptions, deleteOpts *metav1.DeleteOptions) error
+type deleteCollectionFn func(ctx context.Context, cli *kubernetes.Clientset, listOpts metav1.ListOptions, deleteOpts *metav1.DeleteOptions) error
 
 // createFn is a typed function that abstracts
 // creation of pv
-type createFn func(cli *kubernetes.Clientset, pv *corev1.PersistentVolume) (*corev1.PersistentVolume, error)
+type createFn func(ctx context.Context, cli *kubernetes.Clientset, pv *corev1.PersistentVolume) (*corev1.PersistentVolume, error)
 
 // Kubeclient enables kubernetes API operations
 // on pv instance
@@ -99,28 +100,28 @@ func (k *Kubeclient) withDefaults() {
 		}
 	}
 	if k.get == nil {
-		k.get = func(cli *kubernetes.Clientset, name string, opts metav1.GetOptions) (*corev1.PersistentVolume, error) {
-			return cli.CoreV1().PersistentVolumes().Get(name, opts)
+		k.get = func(ctx context.Context, cli *kubernetes.Clientset, name string, opts metav1.GetOptions) (*corev1.PersistentVolume, error) {
+			return cli.CoreV1().PersistentVolumes().Get(ctx, name, opts)
 		}
 	}
 	if k.list == nil {
-		k.list = func(cli *kubernetes.Clientset, opts metav1.ListOptions) (*corev1.PersistentVolumeList, error) {
-			return cli.CoreV1().PersistentVolumes().List(opts)
+		k.list = func(ctx context.Context, cli *kubernetes.Clientset, opts metav1.ListOptions) (*corev1.PersistentVolumeList, error) {
+			return cli.CoreV1().PersistentVolumes().List(ctx, opts)
 		}
 	}
 	if k.del == nil {
-		k.del = func(cli *kubernetes.Clientset, name string, deleteOpts *metav1.DeleteOptions) error {
-			return cli.CoreV1().PersistentVolumes().Delete(name, deleteOpts)
+		k.del = func(ctx context.Context, cli *kubernetes.Clientset, name string, deleteOpts *metav1.DeleteOptions) error {
+			return cli.CoreV1().PersistentVolumes().Delete(ctx, name, *deleteOpts)
 		}
 	}
 	if k.delCollection == nil {
-		k.delCollection = func(cli *kubernetes.Clientset, listOpts metav1.ListOptions, deleteOpts *metav1.DeleteOptions) error {
-			return cli.CoreV1().PersistentVolumes().DeleteCollection(deleteOpts, listOpts)
+		k.delCollection = func(ctx context.Context, cli *kubernetes.Clientset, listOpts metav1.ListOptions, deleteOpts *metav1.DeleteOptions) error {
+			return cli.CoreV1().PersistentVolumes().DeleteCollection(ctx, *deleteOpts, listOpts)
 		}
 	}
 	if k.create == nil {
-		k.create = func(cli *kubernetes.Clientset, pv *corev1.PersistentVolume) (*corev1.PersistentVolume, error) {
-			return cli.CoreV1().PersistentVolumes().Create(pv)
+		k.create = func(ctx context.Context, cli *kubernetes.Clientset, pv *corev1.PersistentVolume) (*corev1.PersistentVolume, error) {
+			return cli.CoreV1().PersistentVolumes().Create(ctx, pv, metav1.CreateOptions{})
 		}
 	}
 }
@@ -176,7 +177,7 @@ func (k *Kubeclient) getClientsetOrCached() (*kubernetes.Clientset, error) {
 
 // Get returns a pv resource
 // instances present in kubernetes cluster
-func (k *Kubeclient) Get(name string, opts metav1.GetOptions) (*corev1.PersistentVolume, error) {
+func (k *Kubeclient) Get(ctx context.Context, name string, opts metav1.GetOptions) (*corev1.PersistentVolume, error) {
 	if strings.TrimSpace(name) == "" {
 		return nil, errors.New("failed to get pv: missing pv name")
 	}
@@ -184,22 +185,22 @@ func (k *Kubeclient) Get(name string, opts metav1.GetOptions) (*corev1.Persisten
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to get pv {%s}", name)
 	}
-	return k.get(cli, name, opts)
+	return k.get(ctx, cli, name, opts)
 }
 
 // List returns a list of pv
 // instances present in kubernetes cluster
-func (k *Kubeclient) List(opts metav1.ListOptions) (*corev1.PersistentVolumeList, error) {
+func (k *Kubeclient) List(ctx context.Context, opts metav1.ListOptions) (*corev1.PersistentVolumeList, error) {
 	cli, err := k.getClientsetOrCached()
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to list pv listoptions: '%v'", opts)
 	}
-	return k.list(cli, opts)
+	return k.list(ctx, cli, opts)
 }
 
 // Delete deletes a pv instance from the
 // kubecrnetes cluster
-func (k *Kubeclient) Delete(name string, deleteOpts *metav1.DeleteOptions) error {
+func (k *Kubeclient) Delete(ctx context.Context, name string, deleteOpts *metav1.DeleteOptions) error {
 	if strings.TrimSpace(name) == "" {
 		return errors.New("failed to delete pvc: missing pv name")
 	}
@@ -207,23 +208,23 @@ func (k *Kubeclient) Delete(name string, deleteOpts *metav1.DeleteOptions) error
 	if err != nil {
 		return errors.Wrapf(err, "failed to delete pv {%s}", name)
 	}
-	return k.del(cli, name, deleteOpts)
+	return k.del(ctx, cli, name, deleteOpts)
 }
 
 // Create creates a pv in kubernetes cluster
-func (k *Kubeclient) Create(pv *corev1.PersistentVolume) (*corev1.PersistentVolume, error) {
+func (k *Kubeclient) Create(ctx context.Context, pv *corev1.PersistentVolume) (*corev1.PersistentVolume, error) {
 	cli, err := k.getClientsetOrCached()
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create pv: %s", stringer.Yaml("persistent volume", pv))
 	}
-	return k.create(cli, pv)
+	return k.create(ctx, cli, pv)
 }
 
 // DeleteCollection deletes a collection of pv objects.
-func (k *Kubeclient) DeleteCollection(listOpts metav1.ListOptions, deleteOpts *metav1.DeleteOptions) error {
+func (k *Kubeclient) DeleteCollection(ctx context.Context, listOpts metav1.ListOptions, deleteOpts *metav1.DeleteOptions) error {
 	cli, err := k.getClientsetOrCached()
 	if err != nil {
 		return errors.Wrapf(err, "failed to delete the collection of pvs")
 	}
-	return k.delCollection(cli, listOpts, deleteOpts)
+	return k.delCollection(ctx, cli, listOpts, deleteOpts)
 }
