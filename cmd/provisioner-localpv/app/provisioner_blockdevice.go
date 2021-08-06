@@ -17,11 +17,13 @@ limitations under the License.
 package app
 
 import (
+	"context"
+
 	"github.com/openebs/maya/pkg/alertlog"
 	"github.com/pkg/errors"
-	"k8s.io/klog"
+	klog "k8s.io/klog/v2"
 
-	pvController "sigs.k8s.io/sig-storage-lib-external-provisioner/controller"
+	pvController "sigs.k8s.io/sig-storage-lib-external-provisioner/v7/controller"
 	//pvController "github.com/kubernetes-sigs/sig-storage-lib-external-provisioner/controller"
 	mconfig "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	mPV "github.com/openebs/maya/pkg/kubernetes/persistentvolume/v1alpha1"
@@ -31,7 +33,7 @@ import (
 
 // ProvisionBlockDevice is invoked by the Provisioner to create a Local PV
 //  with a Block Device
-func (p *Provisioner) ProvisionBlockDevice(opts pvController.ProvisionOptions, volumeConfig *VolumeConfig) (*v1.PersistentVolume, error) {
+func (p *Provisioner) ProvisionBlockDevice(ctx context.Context, opts pvController.ProvisionOptions, volumeConfig *VolumeConfig) (*v1.PersistentVolume, pvController.ProvisioningState, error) {
 	pvc := opts.PVC
 	nodeHostname := GetNodeHostname(opts.SelectedNode)
 	name := opts.PVName
@@ -48,7 +50,7 @@ func (p *Provisioner) ProvisionBlockDevice(opts pvController.ProvisionOptions, v
 		bdTagValue:   volumeConfig.GetBDTagValue(),
 	}
 
-	path, blkPath, err := p.getBlockDevicePath(blkDevOpts)
+	path, blkPath, err := p.getBlockDevicePath(ctx, blkDevOpts)
 	if err != nil {
 		klog.Infof("Initialize volume %v failed: %v", name, err)
 		alertlog.Logger.Errorw("",
@@ -58,7 +60,7 @@ func (p *Provisioner) ProvisionBlockDevice(opts pvController.ProvisionOptions, v
 			"reason", "Block device initialization failed",
 			"storagetype", stgType,
 		)
-		return nil, err
+		return nil, pvController.ProvisioningFinished, err
 	}
 	klog.Infof("Creating volume %v on %v at %v(%v)", name, nodeHostname, path, blkPath)
 
@@ -109,7 +111,7 @@ func (p *Provisioner) ProvisionBlockDevice(opts pvController.ProvisionOptions, v
 			"reason", "Building volume failed",
 			"storagetype", stgType,
 		)
-		return nil, err
+		return nil, pvController.ProvisioningFinished, err
 	}
 	alertlog.Logger.Infow("",
 		"eventcode", "local.pv.provision.success",
@@ -117,13 +119,13 @@ func (p *Provisioner) ProvisionBlockDevice(opts pvController.ProvisionOptions, v
 		"rname", opts.PVName,
 		"storagetype", stgType,
 	)
-	return pvObj, nil
+	return pvObj, pvController.ProvisioningFinished, nil
 }
 
 // DeleteBlockDevice is invoked by the PVC controller to perform clean-up
 //  activities before deleteing the PV object. If reclaim policy is
 //  set to not-retain, then this function will delete the associated BDC
-func (p *Provisioner) DeleteBlockDevice(pv *v1.PersistentVolume) (err error) {
+func (p *Provisioner) DeleteBlockDevice(ctx context.Context, pv *v1.PersistentVolume) (err error) {
 	defer func() {
 		err = errors.Wrapf(err, "failed to delete volume %v", pv.Name)
 	}()
@@ -140,7 +142,7 @@ func (p *Provisioner) DeleteBlockDevice(pv *v1.PersistentVolume) (err error) {
 	// BDC owner reference to PVC.
 	klog.Infof("Release the Block Device Claim %v for PV %v", blkDevOpts.bdcName, pv.Name)
 
-	if err := p.deleteBlockDeviceClaim(blkDevOpts); err != nil {
+	if err := p.deleteBlockDeviceClaim(ctx, blkDevOpts); err != nil {
 		klog.Infof("clean up volume %v failed: %v", pv.Name, err)
 		return err
 	}

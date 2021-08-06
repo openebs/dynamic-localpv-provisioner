@@ -17,6 +17,7 @@ limitations under the License.
 package app
 
 import (
+	"context"
 	"flag"
 	"os"
 	"strings"
@@ -24,11 +25,11 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	"k8s.io/klog"
+	klog "k8s.io/klog/v2"
 
 	mKube "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
-	pvController "sigs.k8s.io/sig-storage-lib-external-provisioner/controller"
+	pvController "sigs.k8s.io/sig-storage-lib-external-provisioner/v7/controller"
 )
 
 var (
@@ -82,24 +83,18 @@ func Start(cmd *cobra.Command) error {
 		return errors.Wrap(err, "unable to get k8s client")
 	}
 
-	serverVersion, err := kubeClient.Discovery().ServerVersion()
-	if err != nil {
-		return errors.Wrap(err, "Cannot start Provisioner: failed to get Kubernetes server version")
-	}
-
-	err = performPreupgradeTasks(kubeClient)
+	err = performPreupgradeTasks(context.TODO(), kubeClient)
 	if err != nil {
 		return errors.Wrap(err, "failure in preupgrade tasks")
 	}
 
-	//Create a channel to receive shutdown signal to help
+	//Create a context to receive shutdown signal to help
 	// with graceful exit of the provisioner.
-	stopCh := make(chan struct{})
-	RegisterShutdownChannel(stopCh)
+	ctx := context.TODO()
 
 	//Create an instance of ProvisionerHandler to handle PV
 	// create and delete events.
-	provisioner, err := NewProvisioner(stopCh, kubeClient)
+	provisioner, err := NewProvisioner(kubeClient)
 	if err != nil {
 		return err
 	}
@@ -111,12 +106,11 @@ func Start(cmd *cobra.Command) error {
 		kubeClient,
 		provisionerName,
 		provisioner,
-		serverVersion.GitVersion,
 		pvController.LeaderElection(isLeaderElectionEnabled()),
 	)
 	klog.V(4).Info("Provisioner started")
 	//Run the provisioner till a shutdown signal is received.
-	pc.Run(stopCh)
+	pc.Run(ctx)
 	klog.V(4).Info("Provisioner stopped")
 
 	return nil

@@ -17,6 +17,8 @@ limitations under the License.
 package app
 
 import (
+	"context"
+
 	"github.com/pkg/errors"
 
 	blockdeviceclaim "github.com/openebs/maya/pkg/blockdeviceclaim/v1alpha1"
@@ -24,18 +26,19 @@ import (
 	mconfig "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"
-	"k8s.io/klog"
+	klog "k8s.io/klog/v2"
 )
 
 // This function performs the preupgrade related tasks for 1.0 to 1.1
-func performPreupgradeTasks(kubeClient *clientset.Clientset) error {
-	return addLocalPVFinalizerOnAssociatedBDCs(kubeClient)
+func performPreupgradeTasks(ctx context.Context, kubeClient *clientset.Clientset) error {
+	return addLocalPVFinalizerOnAssociatedBDCs(ctx, kubeClient)
 }
 
 // Add localpv finalizer on the BDCs that are used by PVs provisioned from localpv provisioner
-func addLocalPVFinalizerOnAssociatedBDCs(kubeClient *clientset.Clientset) error {
+func addLocalPVFinalizerOnAssociatedBDCs(ctx context.Context, kubeClient *clientset.Clientset) error {
 	// Get the list of PVs that are provisioned by device based local pv provisioner
 	pvList, err := kubeClient.CoreV1().PersistentVolumes().List(
+		ctx,
 		metav1.ListOptions{
 			LabelSelector: string(mconfig.CASTypeKey) + "=local-device",
 		})
@@ -47,7 +50,7 @@ func addLocalPVFinalizerOnAssociatedBDCs(kubeClient *clientset.Clientset) error 
 		bdcName := "bdc-" + pvObj.Name
 
 		bdcObj, err := blockdeviceclaim.NewKubeClient().WithNamespace(getOpenEBSNamespace()).
-			Get(bdcName, metav1.GetOptions{})
+			Get(ctx, bdcName, metav1.GetOptions{})
 		if err != nil {
 			// BDCs may not exist if the PV reclaimPolicy is set
 			// to 'Retain' and the BDCs have been manually removed

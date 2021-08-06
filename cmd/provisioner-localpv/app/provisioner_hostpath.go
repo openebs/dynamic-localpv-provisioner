@@ -17,22 +17,23 @@ limitations under the License.
 package app
 
 import (
+	"context"
+
 	"github.com/openebs/maya/pkg/alertlog"
 	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/klog"
+	klog "k8s.io/klog/v2"
 
-	pvController "sigs.k8s.io/sig-storage-lib-external-provisioner/controller"
-	//pvController "github.com/kubernetes-sigs/sig-storage-lib-external-provisioner/controller"
 	"github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/persistentvolume"
 	mconfig "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	pvController "sigs.k8s.io/sig-storage-lib-external-provisioner/v7/controller"
 )
 
 // ProvisionHostPath is invoked by the Provisioner which expect HostPath PV
 //  to be provisioned and a valid PV spec returned.
-func (p *Provisioner) ProvisionHostPath(opts pvController.ProvisionOptions, volumeConfig *VolumeConfig) (*v1.PersistentVolume, error) {
+func (p *Provisioner) ProvisionHostPath(ctx context.Context, opts pvController.ProvisionOptions, volumeConfig *VolumeConfig) (*v1.PersistentVolume, pvController.ProvisioningState, error) {
 	pvc := opts.PVC
 	taints := GetTaints(opts.SelectedNode)
 	name := opts.PVName
@@ -54,7 +55,7 @@ func (p *Provisioner) ProvisionHostPath(opts pvController.ProvisionOptions, volu
 			"reason", "Unable to get volume config",
 			"storagetype", stgType,
 		)
-		return nil, err
+		return nil, pvController.ProvisioningFinished, err
 	}
 
 	imagePullSecrets := GetImagePullSecrets(getOpenEBSImagePullSecrets())
@@ -73,7 +74,7 @@ func (p *Provisioner) ProvisionHostPath(opts pvController.ProvisionOptions, volu
 		selectedNodeTaints:     taints,
 		imagePullSecrets:       imagePullSecrets,
 	}
-	iErr := p.createInitPod(podOpts)
+	iErr := p.createInitPod(ctx, podOpts)
 	if iErr != nil {
 		klog.Infof("Initialize volume %v failed: %v", name, iErr)
 		alertlog.Logger.Errorw("",
@@ -83,7 +84,7 @@ func (p *Provisioner) ProvisionHostPath(opts pvController.ProvisionOptions, volu
 			"reason", "Volume initialization failed",
 			"storagetype", stgType,
 		)
-		return nil, iErr
+		return nil, pvController.ProvisioningFinished, iErr
 	}
 
 	// VolumeMode will always be specified as Filesystem for host path volume,
@@ -124,7 +125,7 @@ func (p *Provisioner) ProvisionHostPath(opts pvController.ProvisionOptions, volu
 			"reason", "failed to build persistent volume",
 			"storagetype", stgType,
 		)
-		return nil, err
+		return nil, pvController.ProvisioningFinished, err
 	}
 	alertlog.Logger.Infow("",
 		"eventcode", "local.pv.provision.success",
@@ -132,7 +133,7 @@ func (p *Provisioner) ProvisionHostPath(opts pvController.ProvisionOptions, volu
 		"rname", opts.PVName,
 		"storagetype", stgType,
 	)
-	return pvObj, nil
+	return pvObj, pvController.ProvisioningFinished, nil
 }
 
 // GetNodeObjectFromLabels returns the Node Object with matching label key and value
@@ -141,7 +142,7 @@ func (p *Provisioner) GetNodeObjectFromLabels(key, value string) (*v1.Node, erro
 	listOptions := metav1.ListOptions{
 		LabelSelector: labels.Set(labelSelector.MatchLabels).String(),
 	}
-	nodeList, err := p.kubeClient.CoreV1().Nodes().List(listOptions)
+	nodeList, err := p.kubeClient.CoreV1().Nodes().List(context.TODO(), listOptions)
 	if err != nil || len(nodeList.Items) == 0 {
 		// After the PV is created and node affinity is set
 		// based on kubernetes.io/hostname label, either:
@@ -163,7 +164,7 @@ func (p *Provisioner) GetNodeObjectFromLabels(key, value string) (*v1.Node, erro
 //  activities before deleteing the PV object. If reclaim policy is
 //  set to not-retain, then this function will create a helper pod
 //  to delete the host path from the node.
-func (p *Provisioner) DeleteHostPath(pv *v1.PersistentVolume) (err error) {
+func (p *Provisioner) DeleteHostPath(ctx context.Context, pv *v1.PersistentVolume) (err error) {
 	defer func() {
 		err = errors.Wrapf(err, "failed to delete volume %v", pv.Name)
 	}()
@@ -205,7 +206,7 @@ func (p *Provisioner) DeleteHostPath(pv *v1.PersistentVolume) (err error) {
 		imagePullSecrets:       imagePullSecrets,
 	}
 
-	if err := p.createCleanupPod(podOpts); err != nil {
+	if err := p.createCleanupPod(ctx, podOpts); err != nil {
 		return errors.Wrapf(err, "clean up volume %v failed", pv.Name)
 	}
 	return nil
