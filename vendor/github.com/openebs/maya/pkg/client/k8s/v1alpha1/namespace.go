@@ -17,6 +17,8 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"context"
+
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -44,7 +46,7 @@ func (ns *namespace) Get(name string, options metav1.GetOptions) (*corev1.Namesp
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to get namespace: %s", name)
 	} else {
-		return cs.CoreV1().Namespaces().Get(name, options)
+		return cs.CoreV1().Namespaces().Get(context.TODO(), name, options)
 	}
 }
 
@@ -54,6 +56,6 @@ func (ns *namespace) List(options metav1.ListOptions) (*corev1.NamespaceList, er
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to get namespaces")
 	} else {
-		return cs.CoreV1().Namespaces().List(options)
+		return cs.CoreV1().Namespaces().List(context.TODO(), options)
 	}
 }

@@ -15,6 +15,7 @@
 package v1alpha1
 
 import (
+	"context"
 	"strings"
 
 	client "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
@@ -82,17 +83,17 @@ func (k *Kubeclient) withDefaults() {
 	}
 	if k.get == nil {
 		k.get = func(cli *kubernetes.Clientset, name string, opts metav1.GetOptions) (*corev1.Namespace, error) {
-			return cli.CoreV1().Namespaces().Get(name, opts)
+			return cli.CoreV1().Namespaces().Get(context.TODO(), name, opts)
 		}
 	}
 	if k.del == nil {
 		k.del = func(cli *kubernetes.Clientset, name string, deleteOpts *metav1.DeleteOptions) error {
-			return cli.CoreV1().Namespaces().Delete(name, deleteOpts)
+			return cli.CoreV1().Namespaces().Delete(context.TODO(), name, *deleteOpts)
 		}
 	}
 	if k.create == nil {
 		k.create = func(cli *kubernetes.Clientset, namespace *corev1.Namespace) (*corev1.Namespace, error) {
-			return cli.CoreV1().Namespaces().Create(namespace)
+			return cli.CoreV1().Namespaces().Create(context.TODO(), namespace, metav1.CreateOptions{})
 		}
 	}
 }

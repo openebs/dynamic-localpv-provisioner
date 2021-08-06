@@ -15,6 +15,7 @@
 package v1alpha1
 
 import (
+	"context"
 	"encoding/json"
 	"strings"
 	"sync"
@@ -101,23 +102,23 @@ func (k *Kubeclient) withDefaults() {
 	}
 	if k.get == nil {
 		k.get = func(cli *kubernetes.Clientset, name string, opts metav1.GetOptions) (*corev1.Node, error) {
-			return cli.CoreV1().Nodes().Get(name, opts)
+			return cli.CoreV1().Nodes().Get(context.TODO(), name, opts)
 		}
 	}
 	if k.list == nil {
 		k.list = func(cli *kubernetes.Clientset,
 			opts metav1.ListOptions) (*corev1.NodeList, error) {
-			return cli.CoreV1().Nodes().List(opts)
+			return cli.CoreV1().Nodes().List(context.TODO(), opts)
 		}
 	}
 	if k.patch == nil {
 		k.patch = func(cli *kubernetes.Clientset, name string, pt types.PatchType, data []byte, subresources ...string) (*corev1.Node, error) {
-			return cli.CoreV1().Nodes().Patch(name, pt, data, subresources...)
+			return cli.CoreV1().Nodes().Patch(context.TODO(), name, pt, data, metav1.PatchOptions{}, subresources...)
 		}
 	}
 	if k.update == nil {
 		k.update = func(cli *kubernetes.Clientset, node *corev1.Node) (*corev1.Node, error) {
-			return cli.CoreV1().Nodes().Update(node)
+			return cli.CoreV1().Nodes().Update(context.TODO(), node, metav1.UpdateOptions{})
 		}
 	}
 

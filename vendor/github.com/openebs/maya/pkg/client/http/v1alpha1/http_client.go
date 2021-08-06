@@ -17,11 +17,12 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
 	"github.com/pkg/errors"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/client-go/kubernetes/scheme"
 	. "k8s.io/client-go/rest"
@@ -95,7 +96,7 @@ func (r *Rest) Do() (res interface{}, err error) {
 	if r.body != nil {
 		req.Body(r.body)
 	}
-	b, err := req.DoRaw()
+	b, err := req.DoRaw(context.TODO())
 	if err != nil {
 		err = errors.Wrapf(err, "failed to invoke REST call %s %s %s", r.verb, r.base, r.name)
 		return
@@ -139,7 +140,7 @@ func URL(verb HttpVerb, url string) (b []byte, err error) {
 }
 
 func doRaw(verb HttpVerb, req *Request) (b []byte, err error) {
-	b, err = req.DoRaw()
+	b, err = req.DoRaw(context.TODO())
 	if err != nil {
 		err = errors.Wrapf(err, "error invoking REST API %s %s", verb, req.URL())
 		return

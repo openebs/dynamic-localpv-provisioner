@@ -17,6 +17,8 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"context"
+
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
 	ndm "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
@@ -147,7 +149,7 @@ func (bdc *BlockDeviceClaim) AddFinalizer(finalizer string) (*ndm.BlockDeviceCla
 
 	bdcAPIObj, err := NewKubeClient(WithKubeConfigPath(bdc.configPath)).
 		WithNamespace(bdc.Object.Namespace).
-		Update(bdc.Object)
+		Update(context.TODO(), bdc.Object)
 
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to update bdc %s while adding finalizer %s",
@@ -175,7 +177,7 @@ func (bdc *BlockDeviceClaim) RemoveFinalizer(
 
 	newBDC, err := NewKubeClient(WithKubeConfigPath(bdc.configPath)).
 		WithNamespace(bdc.Object.Namespace).
-		Update(bdc.Object)
+		Update(context.TODO(), bdc.Object)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to update object while removing finalizer")
 	}

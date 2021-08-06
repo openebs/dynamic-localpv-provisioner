@@ -19,6 +19,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"context"
 	"time"
 
 	v1alpha1 "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
@@ -37,14 +38,14 @@ type CASTemplatesGetter interface {
 
 // CASTemplateInterface has methods to work with CASTemplate resources.
 type CASTemplateInterface interface {
-	Create(*v1alpha1.CASTemplate) (*v1alpha1.CASTemplate, error)
-	Update(*v1alpha1.CASTemplate) (*v1alpha1.CASTemplate, error)
-	Delete(name string, options *v1.DeleteOptions) error
-	DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error
-	Get(name string, options v1.GetOptions) (*v1alpha1.CASTemplate, error)
-	List(opts v1.ListOptions) (*v1alpha1.CASTemplateList, error)
-	Watch(opts v1.ListOptions) (watch.Interface, error)
-	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.CASTemplate, err error)
+	Create(ctx context.Context, cASTemplate *v1alpha1.CASTemplate, opts v1.CreateOptions) (*v1alpha1.CASTemplate, error)
+	Update(ctx context.Context, cASTemplate *v1alpha1.CASTemplate, opts v1.UpdateOptions) (*v1alpha1.CASTemplate, error)
+	Delete(ctx context.Context, name string, opts v1.DeleteOptions) error
+	DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error
+	Get(ctx context.Context, name string, opts v1.GetOptions) (*v1alpha1.CASTemplate, error)
+	List(ctx context.Context, opts v1.ListOptions) (*v1alpha1.CASTemplateList, error)
+	Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.CASTemplate, err error)
 	CASTemplateExpansion
 }
 
@@ -61,19 +62,19 @@ func newCASTemplates(c *OpenebsV1alpha1Client) *cASTemplates {
 }
 
 // Get takes name of the cASTemplate, and returns the corresponding cASTemplate object, and an error if there is any.
-func (c *cASTemplates) Get(name string, options v1.GetOptions) (result *v1alpha1.CASTemplate, err error) {
+func (c *cASTemplates) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.CASTemplate, err error) {
 	result = &v1alpha1.CASTemplate{}
 	err = c.client.Get().
 		Resource("castemplates").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // List takes label and field selectors, and returns the list of CASTemplates that match those selectors.
-func (c *cASTemplates) List(opts v1.ListOptions) (result *v1alpha1.CASTemplateList, err error) {
+func (c *cASTemplates) List(ctx context.Context, opts v1.ListOptions) (result *v1alpha1.CASTemplateList, err error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
@@ -83,13 +84,13 @@ func (c *cASTemplates) List(opts v1.ListOptions) (result *v1alpha1.CASTemplateLi
 		Resource("castemplates").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Watch returns a watch.Interface that watches the requested cASTemplates.
-func (c *cASTemplates) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *cASTemplates) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
@@ -99,66 +100,69 @@ func (c *cASTemplates) Watch(opts v1.ListOptions) (watch.Interface, error) {
 		Resource("castemplates").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Watch()
+		Watch(ctx)
 }
 
 // Create takes the representation of a cASTemplate and creates it.  Returns the server's representation of the cASTemplate, and an error, if there is any.
-func (c *cASTemplates) Create(cASTemplate *v1alpha1.CASTemplate) (result *v1alpha1.CASTemplate, err error) {
+func (c *cASTemplates) Create(ctx context.Context, cASTemplate *v1alpha1.CASTemplate, opts v1.CreateOptions) (result *v1alpha1.CASTemplate, err error) {
 	result = &v1alpha1.CASTemplate{}
 	err = c.client.Post().
 		Resource("castemplates").
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(cASTemplate).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Update takes the representation of a cASTemplate and updates it. Returns the server's representation of the cASTemplate, and an error, if there is any.
-func (c *cASTemplates) Update(cASTemplate *v1alpha1.CASTemplate) (result *v1alpha1.CASTemplate, err error) {
+func (c *cASTemplates) Update(ctx context.Context, cASTemplate *v1alpha1.CASTemplate, opts v1.UpdateOptions) (result *v1alpha1.CASTemplate, err error) {
 	result = &v1alpha1.CASTemplate{}
 	err = c.client.Put().
 		Resource("castemplates").
 		Name(cASTemplate.Name).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(cASTemplate).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Delete takes name of the cASTemplate and deletes it. Returns an error if one occurs.
-func (c *cASTemplates) Delete(name string, options *v1.DeleteOptions) error {
+func (c *cASTemplates) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	return c.client.Delete().
 		Resource("castemplates").
 		Name(name).
-		Body(options).
-		Do().
+		Body(&opts).
+		Do(ctx).
 		Error()
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *cASTemplates) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+func (c *cASTemplates) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
 	var timeout time.Duration
-	if listOptions.TimeoutSeconds != nil {
-		timeout = time.Duration(*listOptions.TimeoutSeconds) * time.Second
+	if listOpts.TimeoutSeconds != nil {
+		timeout = time.Duration(*listOpts.TimeoutSeconds) * time.Second
 	}
 	return c.client.Delete().
 		Resource("castemplates").
-		VersionedParams(&listOptions, scheme.ParameterCodec).
+		VersionedParams(&listOpts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Body(options).
-		Do().
+		Body(&opts).
+		Do(ctx).
 		Error()
 }
 
 // Patch applies the patch and returns the patched cASTemplate.
-func (c *cASTemplates) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.CASTemplate, err error) {
+func (c *cASTemplates) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.CASTemplate, err error) {
 	result = &v1alpha1.CASTemplate{}
 	err = c.client.Patch(pt).
 		Resource("castemplates").
-		SubResource(subresources...).
 		Name(name).
+		SubResource(subresources...).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(data).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }

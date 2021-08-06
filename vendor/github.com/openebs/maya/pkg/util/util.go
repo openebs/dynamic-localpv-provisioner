@@ -275,9 +275,10 @@ func IsCurrentLessThanNewVersion(old, new string) bool {
 	for i := 0; i < len(oldVersions); i++ {
 		oldVersion, _ := strconv.Atoi(oldVersions[i])
 		newVersion, _ := strconv.Atoi(newVersions[i])
-		if oldVersion > newVersion {
-			return false
+		if oldVersion == newVersion {
+			continue
 		}
+		return oldVersion < newVersion
 	}
-	return true
+	return false
 }

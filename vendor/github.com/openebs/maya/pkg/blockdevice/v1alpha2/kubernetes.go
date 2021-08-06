@@ -17,6 +17,8 @@ limitations under the License.
 package v1alpha2
 
 import (
+	"context"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	kclient "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
@@ -99,23 +101,27 @@ func (k *Kubeclient) WithDefaults() {
 	}
 	if k.list == nil {
 		k.list = func(cli *clientset.Clientset, namespace string, opts metav1.ListOptions) (*apis.BlockDeviceList, error) {
-			return cli.OpenebsV1alpha1().BlockDevices(namespace).List(opts)
+			return cli.OpenebsV1alpha1().BlockDevices(namespace).
+				List(context.TODO(), opts)
 		}
 	}
 
 	if k.get == nil {
 		k.get = func(cli *clientset.Clientset, namespace, name string, opts metav1.GetOptions) (*apis.BlockDevice, error) {
-			return cli.OpenebsV1alpha1().BlockDevices(namespace).Get(name, opts)
+			return cli.OpenebsV1alpha1().BlockDevices(namespace).
+				Get(context.TODO(), name, opts)
 		}
 	}
 	if k.del == nil {
 		k.del = func(cli *clientset.Clientset, namespace, name string, opts *metav1.DeleteOptions) error {
-			return cli.OpenebsV1alpha1().BlockDevices(namespace).Delete(name, opts)
+			return cli.OpenebsV1alpha1().BlockDevices(namespace).
+				Delete(context.TODO(), name, *opts)
 		}
 	}
 	if k.update == nil {
 		k.update = func(cli *clientset.Clientset, namespace string, bd *apis.BlockDevice) (*apis.BlockDevice, error) {
-			return cli.OpenebsV1alpha1().BlockDevices(namespace).Update(bd)
+			return cli.OpenebsV1alpha1().BlockDevices(namespace).
+				Update(context.TODO(), bd, metav1.UpdateOptions{})
 		}
 	}
 }

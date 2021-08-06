@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"context"
 	"encoding/json"
 
 	client "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
@@ -134,7 +135,7 @@ func defaultGet(
 ) (r *corev1.Service, err error) {
 	r, err = cli.CoreV1().
 		Services(namespace).
-		Get(name, opts)
+		Get(context.TODO(), name, opts)
 	return
 }
 
@@ -147,7 +148,7 @@ func defaultList(
 ) (rl *corev1.ServiceList, err error) {
 	rl, err = cli.CoreV1().
 		Services(namespace).
-		List(opts)
+		List(context.TODO(), opts)
 	return
 }
 
@@ -162,7 +163,7 @@ func defaultDel(
 	opts.PropagationPolicy = &deletePropagation
 	err = cli.CoreV1().
 		Services(namespace).
-		Delete(name, opts)
+		Delete(context.TODO(), name, *opts)
 	return
 }
 
@@ -175,7 +176,7 @@ func defaultCreate(
 ) (*corev1.Service, error) {
 	return cli.CoreV1().
 		Services(namespace).
-		Create(service)
+		Create(context.TODO(), service, metav1.CreateOptions{})
 }
 
 // defaultUpdate is the default implementation to update
@@ -187,7 +188,7 @@ func defaultUpdate(
 ) (*corev1.Service, error) {
 	return cli.CoreV1().
 		Services(namespace).
-		Update(service)
+		Update(context.TODO(), service, metav1.UpdateOptions{})
 }
 
 // defaultPatch is the default implementation to patch
@@ -201,7 +202,7 @@ func defaultPatch(
 ) (*corev1.Service, error) {
 	return cli.CoreV1().
 		Services(namespace).
-		Patch(name, pt, data, subresources...)
+		Patch(context.TODO(), name, pt, data, metav1.PatchOptions{}, subresources...)
 }
 
 // withDefaults sets the default options of kubeclient instance

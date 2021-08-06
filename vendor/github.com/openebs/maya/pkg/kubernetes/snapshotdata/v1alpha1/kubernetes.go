@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"context"
 	"encoding/json"
 
 	snapshotapi "github.com/openebs/maya/pkg/apis/openebs.io/snapshot/v1"
@@ -95,22 +96,26 @@ func (k *Kubeclient) withDefaults() {
 	}
 	if k.list == nil {
 		k.list = func(cli *clientset.Clientset, opts metav1.ListOptions) (*snapshotapi.VolumeSnapshotDataList, error) {
-			return cli.VolumesnapshotV1().VolumeSnapshotDatas().List(opts)
+			return cli.VolumesnapshotV1().VolumeSnapshotDatas().
+				List(context.TODO(), opts)
 		}
 	}
 	if k.get == nil {
 		k.get = func(cli *clientset.Clientset, name string, opts metav1.GetOptions) (*snapshotapi.VolumeSnapshotData, error) {
-			return cli.VolumesnapshotV1().VolumeSnapshotDatas().Get(name, opts)
+			return cli.VolumesnapshotV1().VolumeSnapshotDatas().
+				Get(context.TODO(), name, opts)
 		}
 	}
 	if k.del == nil {
 		k.del = func(cli *clientset.Clientset, name string, opts *metav1.DeleteOptions) error {
-			return cli.VolumesnapshotV1().VolumeSnapshotDatas().Delete(name, opts)
+			return cli.VolumesnapshotV1().VolumeSnapshotDatas().
+				Delete(context.TODO(), name, *opts)
 		}
 	}
 	if k.patch == nil {
 		k.patch = func(cli *clientset.Clientset, name string, pt types.PatchType, data []byte, subresources ...string) (*snapshotapi.VolumeSnapshotData, error) {
-			return cli.VolumesnapshotV1().VolumeSnapshotDatas().Patch(name, pt, data, subresources...)
+			return cli.VolumesnapshotV1().VolumeSnapshotDatas().
+				Patch(context.TODO(), name, pt, data, metav1.PatchOptions{}, subresources...)
 		}
 	}
 }

@@ -17,6 +17,8 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"context"
+
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -43,7 +45,7 @@ func (n *node) Get(name string, options metav1.GetOptions) (*corev1.Node, error)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to get node: %s", name)
 	} else {
-		return cs.CoreV1().Nodes().Get(name, options)
+		return cs.CoreV1().Nodes().Get(context.TODO(), name, options)
 	}
 }
 
@@ -53,7 +55,7 @@ func (n *node) List(options metav1.ListOptions) (*corev1.NodeList, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to get nodes")
 	} else {
-		return cs.CoreV1().Nodes().List(options)
+		return cs.CoreV1().Nodes().List(context.TODO(), options)
 	}
 }
 

@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha2
 
 import (
+	"context"
 	"strings"
 
 	"k8s.io/apimachinery/pkg/types"
@@ -91,7 +92,7 @@ func (k *Kubeclient) withDefaults() {
 			opts metav1.ListOptions) (*apis.CStorPoolList, error) {
 			return cs.OpenebsV1alpha1().
 				CStorPools().
-				List(opts)
+				List(context.TODO(), opts)
 		}
 	}
 
@@ -100,7 +101,7 @@ func (k *Kubeclient) withDefaults() {
 			name string, opts metav1.GetOptions) (*apis.CStorPool, error) {
 			return cs.OpenebsV1alpha1().
 				CStorPools().
-				Get(name, opts)
+				Get(context.TODO(), name, opts)
 		}
 	}
 
@@ -109,7 +110,7 @@ func (k *Kubeclient) withDefaults() {
 			obj *apis.CStorPool) (*apis.CStorPool, error) {
 			return cs.OpenebsV1alpha1().
 				CStorPools().
-				Create(obj)
+				Create(context.TODO(), obj, metav1.CreateOptions{})
 		}
 	}
 
@@ -118,7 +119,7 @@ func (k *Kubeclient) withDefaults() {
 			pt types.PatchType, patchObj []byte) (*apis.CStorPool, error) {
 			return cs.OpenebsV1alpha1().
 				CStorPools().
-				Patch(name, pt, patchObj)
+				Patch(context.TODO(), name, pt, patchObj, metav1.PatchOptions{})
 		}
 	}
 
@@ -127,7 +128,7 @@ func (k *Kubeclient) withDefaults() {
 			opts *metav1.DeleteOptions) error {
 			return cs.OpenebsV1alpha1().
 				CStorPools().
-				Delete(name, opts)
+				Delete(context.TODO(), name, *opts)
 		}
 	}
 }

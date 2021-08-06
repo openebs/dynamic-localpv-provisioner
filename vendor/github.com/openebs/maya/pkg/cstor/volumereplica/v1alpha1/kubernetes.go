@@ -15,6 +15,7 @@
 package v1alpha1
 
 import (
+	"context"
 	"errors"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -132,7 +133,7 @@ func defaultPatch(
 ) (*apis.CStorVolumeReplica, error) {
 	return cli.OpenebsV1alpha1().
 		CStorVolumeReplicas(namespace).
-		Patch(name, pt, data)
+		Patch(context.TODO(), name, pt, data, metav1.PatchOptions{})
 }
 
 // defaultGetClientsetForPath is the default implementation to
@@ -159,7 +160,7 @@ func defaultGet(
 ) (*apis.CStorVolumeReplica, error) {
 	return cli.OpenebsV1alpha1().
 		CStorVolumeReplicas(namespace).
-		Get(name, opts)
+		Get(context.TODO(), name, opts)
 }
 
 // defaultGet is the default implementation to list
@@ -171,7 +172,7 @@ func defaultList(
 ) (*apis.CStorVolumeReplicaList, error) {
 	return cli.OpenebsV1alpha1().
 		CStorVolumeReplicas(namespace).
-		List(opts)
+		List(context.TODO(), opts)
 }
 
 // defaultGet is the default implementation to delete a
@@ -190,7 +191,7 @@ func defaultDel(
 	opts.PropagationPolicy = &deletePropagation
 	err := cli.OpenebsV1alpha1().
 		CStorVolumeReplicas(namespace).
-		Delete(name, opts)
+		Delete(context.TODO(), name, *opts)
 	return err
 }
 
@@ -203,7 +204,7 @@ func defaultCreate(
 ) (*apis.CStorVolumeReplica, error) {
 	return cli.OpenebsV1alpha1().
 		CStorVolumeReplicas(namespace).
-		Create(volr)
+		Create(context.TODO(), volr, metav1.CreateOptions{})
 }
 
 // defaultUpdate is the default implementation to update a
@@ -215,7 +216,7 @@ func defaultUpdate(
 ) (*apis.CStorVolumeReplica, error) {
 	return cli.OpenebsV1alpha1().
 		CStorVolumeReplicas(namespace).
-		Update(volr)
+		Update(context.TODO(), volr, metav1.UpdateOptions{})
 }
 
 // withDefaults sets the default options

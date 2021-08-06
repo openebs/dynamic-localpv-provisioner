@@ -19,6 +19,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"context"
 	"time"
 
 	v1alpha1 "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
@@ -37,15 +38,15 @@ type CStorVolumesGetter interface {
 
 // CStorVolumeInterface has methods to work with CStorVolume resources.
 type CStorVolumeInterface interface {
-	Create(*v1alpha1.CStorVolume) (*v1alpha1.CStorVolume, error)
-	Update(*v1alpha1.CStorVolume) (*v1alpha1.CStorVolume, error)
-	UpdateStatus(*v1alpha1.CStorVolume) (*v1alpha1.CStorVolume, error)
-	Delete(name string, options *v1.DeleteOptions) error
-	DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error
-	Get(name string, options v1.GetOptions) (*v1alpha1.CStorVolume, error)
-	List(opts v1.ListOptions) (*v1alpha1.CStorVolumeList, error)
-	Watch(opts v1.ListOptions) (watch.Interface, error)
-	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.CStorVolume, err error)
+	Create(ctx context.Context, cStorVolume *v1alpha1.CStorVolume, opts v1.CreateOptions) (*v1alpha1.CStorVolume, error)
+	Update(ctx context.Context, cStorVolume *v1alpha1.CStorVolume, opts v1.UpdateOptions) (*v1alpha1.CStorVolume, error)
+	UpdateStatus(ctx context.Context, cStorVolume *v1alpha1.CStorVolume, opts v1.UpdateOptions) (*v1alpha1.CStorVolume, error)
+	Delete(ctx context.Context, name string, opts v1.DeleteOptions) error
+	DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error
+	Get(ctx context.Context, name string, opts v1.GetOptions) (*v1alpha1.CStorVolume, error)
+	List(ctx context.Context, opts v1.ListOptions) (*v1alpha1.CStorVolumeList, error)
+	Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.CStorVolume, err error)
 	CStorVolumeExpansion
 }
 
@@ -64,20 +65,20 @@ func newCStorVolumes(c *OpenebsV1alpha1Client, namespace string) *cStorVolumes {
 }
 
 // Get takes name of the cStorVolume, and returns the corresponding cStorVolume object, and an error if there is any.
-func (c *cStorVolumes) Get(name string, options v1.GetOptions) (result *v1alpha1.CStorVolume, err error) {
+func (c *cStorVolumes) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.CStorVolume, err error) {
 	result = &v1alpha1.CStorVolume{}
 	err = c.client.Get().
 		Namespace(c.ns).
 		Resource("cstorvolumes").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // List takes label and field selectors, and returns the list of CStorVolumes that match those selectors.
-func (c *cStorVolumes) List(opts v1.ListOptions) (result *v1alpha1.CStorVolumeList, err error) {
+func (c *cStorVolumes) List(ctx context.Context, opts v1.ListOptions) (result *v1alpha1.CStorVolumeList, err error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
@@ -88,13 +89,13 @@ func (c *cStorVolumes) List(opts v1.ListOptions) (result *v1alpha1.CStorVolumeLi
 		Resource("cstorvolumes").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Watch returns a watch.Interface that watches the requested cStorVolumes.
-func (c *cStorVolumes) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *cStorVolumes) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
@@ -105,87 +106,90 @@ func (c *cStorVolumes) Watch(opts v1.ListOptions) (watch.Interface, error) {
 		Resource("cstorvolumes").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Watch()
+		Watch(ctx)
 }
 
 // Create takes the representation of a cStorVolume and creates it.  Returns the server's representation of the cStorVolume, and an error, if there is any.
-func (c *cStorVolumes) Create(cStorVolume *v1alpha1.CStorVolume) (result *v1alpha1.CStorVolume, err error) {
+func (c *cStorVolumes) Create(ctx context.Context, cStorVolume *v1alpha1.CStorVolume, opts v1.CreateOptions) (result *v1alpha1.CStorVolume, err error) {
 	result = &v1alpha1.CStorVolume{}
 	err = c.client.Post().
 		Namespace(c.ns).
 		Resource("cstorvolumes").
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(cStorVolume).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Update takes the representation of a cStorVolume and updates it. Returns the server's representation of the cStorVolume, and an error, if there is any.
-func (c *cStorVolumes) Update(cStorVolume *v1alpha1.CStorVolume) (result *v1alpha1.CStorVolume, err error) {
+func (c *cStorVolumes) Update(ctx context.Context, cStorVolume *v1alpha1.CStorVolume, opts v1.UpdateOptions) (result *v1alpha1.CStorVolume, err error) {
 	result = &v1alpha1.CStorVolume{}
 	err = c.client.Put().
 		Namespace(c.ns).
 		Resource("cstorvolumes").
 		Name(cStorVolume.Name).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(cStorVolume).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-
-func (c *cStorVolumes) UpdateStatus(cStorVolume *v1alpha1.CStorVolume) (result *v1alpha1.CStorVolume, err error) {
+func (c *cStorVolumes) UpdateStatus(ctx context.Context, cStorVolume *v1alpha1.CStorVolume, opts v1.UpdateOptions) (result *v1alpha1.CStorVolume, err error) {
 	result = &v1alpha1.CStorVolume{}
 	err = c.client.Put().
 		Namespace(c.ns).
 		Resource("cstorvolumes").
 		Name(cStorVolume.Name).
 		SubResource("status").
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(cStorVolume).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Delete takes name of the cStorVolume and deletes it. Returns an error if one occurs.
-func (c *cStorVolumes) Delete(name string, options *v1.DeleteOptions) error {
+func (c *cStorVolumes) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("cstorvolumes").
 		Name(name).
-		Body(options).
-		Do().
+		Body(&opts).
+		Do(ctx).
 		Error()
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *cStorVolumes) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+func (c *cStorVolumes) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
 	var timeout time.Duration
-	if listOptions.TimeoutSeconds != nil {
-		timeout = time.Duration(*listOptions.TimeoutSeconds) * time.Second
+	if listOpts.TimeoutSeconds != nil {
+		timeout = time.Duration(*listOpts.TimeoutSeconds) * time.Second
 	}
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("cstorvolumes").
-		VersionedParams(&listOptions, scheme.ParameterCodec).
+		VersionedParams(&listOpts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Body(options).
-		Do().
+		Body(&opts).
+		Do(ctx).
 		Error()
 }
 
 // Patch applies the patch and returns the patched cStorVolume.
-func (c *cStorVolumes) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.CStorVolume, err error) {
+func (c *cStorVolumes) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.CStorVolume, err error) {
 	result = &v1alpha1.CStorVolume{}
 	err = c.client.Patch(pt).
 		Namespace(c.ns).
 		Resource("cstorvolumes").
-		SubResource(subresources...).
 		Name(name).
+		SubResource(subresources...).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(data).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }

@@ -50,16 +50,12 @@ func init() {
 // Adds the list of known types to api.Scheme.
 func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(SchemeGroupVersion,
-		&CStorPoolCluster{},
-		&CStorPoolClusterList{},
 		&StoragePoolClaim{},
 		&StoragePoolClaimList{},
 		&StoragePool{},
 		&StoragePoolList{},
 		&CStorPool{},
 		&CStorPoolList{},
-		&CStorPoolInstance{},
-		&CStorPoolInstanceList{},
 		&CStorVolumeReplica{},
 		&CStorVolumeReplicaList{},
 		&CASTemplate{},
@@ -72,10 +68,6 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&CStorCompletedBackupList{},
 		&CStorRestore{},
 		&CStorRestoreList{},
-		&CStorVolumeClaim{},
-		&CStorVolumeClaimList{},
-		&CStorVolumePolicy{},
-		&CStorVolumePolicyList{},
 	)
 	metav1.AddToGroupVersion(scheme, SchemeGroupVersion)
 	return nil

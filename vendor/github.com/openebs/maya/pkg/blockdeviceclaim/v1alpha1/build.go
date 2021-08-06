@@ -18,7 +18,6 @@ package v1alpha1
 
 import (
 	ndm "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
-	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	errors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -26,15 +25,6 @@ import (
 )
 
 const (
-	// StoragePoolKind holds the value of StoragePoolClaim
-	StoragePoolKind = "StoragePoolClaim"
-
-	// StoragePoolKindCSPC holds the value of CStorPoolCluster
-	StoragePoolKindCSPC = "CStorPoolCluster"
-
-	// APIVersion holds the value of OpenEBS version
-	APIVersion = "openebs.io/v1alpha1"
-
 	// bdTagKey defines the label selector key
 	// used for grouping block devices using a tag.
 	bdTagKey = "openebs.io/block-device-tag"
@@ -256,47 +246,8 @@ func (b *Builder) WithCapacity(capacity string) *Builder {
 
 // WithOwnerReference sets the OwnerReference field in BDC with required
 //fields
-func (b *Builder) WithOwnerReference(spc *apis.StoragePoolClaim) *Builder {
-	if spc == nil {
-		b.errs = append(
-			b.errs,
-			errors.New("failed to build BDC object: spc object is nil"),
-		)
-		return b
-	}
-	trueVal := true
-	reference := metav1.OwnerReference{
-		APIVersion:         APIVersion,
-		Kind:               StoragePoolKind,
-		UID:                spc.ObjectMeta.UID,
-		Name:               spc.ObjectMeta.Name,
-		BlockOwnerDeletion: &trueVal,
-		Controller:         &trueVal,
-	}
-	b.BDC.Object.OwnerReferences = append(b.BDC.Object.OwnerReferences, reference)
-	return b
-}
-
-// WithCSPCOwnerReference sets the OwnerReference field in BDC with required
-//fields
-func (b *Builder) WithCSPCOwnerReference(cspc *apis.CStorPoolCluster) *Builder {
-	if cspc == nil {
-		b.errs = append(
-			b.errs,
-			errors.New("failed to build BDC object: cspc object is nil"),
-		)
-		return b
-	}
-	trueVal := true
-	reference := metav1.OwnerReference{
-		APIVersion:         APIVersion,
-		Kind:               StoragePoolKindCSPC,
-		UID:                cspc.ObjectMeta.UID,
-		Name:               cspc.ObjectMeta.Name,
-		BlockOwnerDeletion: &trueVal,
-		Controller:         &trueVal,
-	}
-	b.BDC.Object.OwnerReferences = append(b.BDC.Object.OwnerReferences, reference)
+func (b *Builder) WithOwnerReference(owner metav1.OwnerReference) *Builder {
+	b.BDC.Object.OwnerReferences = append(b.BDC.Object.OwnerReferences, owner)
 	return b
 }
 
