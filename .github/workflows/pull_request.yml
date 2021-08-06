@@ -80,3 +80,31 @@ jobs:
           platforms: linux/amd64, linux/arm64, linux/arm/v7, linux/ppc64le
           tags: |
             openebs/provisioner-localpv:ci
+
+  ansible:
+    runs-on: ubuntu-latest
+    needs: ['unit-test']
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Set Image Org
+        # sets the default IMAGE_ORG to openebs
+        run: |
+          [ -z "${{ secrets.IMAGE_ORG }}" ] && IMAGE_ORG=openebs || IMAGE_ORG=${{ secrets.IMAGE_ORG}}
+          echo "IMAGE_ORG=${IMAGE_ORG}" >> $GITHUB_ENV
+      - name: Login to Docker Hub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push the ansible image
+        uses: docker/build-push-action@v2
+        with:
+          file: ./e2e-tests/Dockerfile
+          push: true
+          load: false
+          platforms: linux/amd64
+          tags: |
+            ${{ env.IMAGE_ORG }}/localpv-e2e:ci 
