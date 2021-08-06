@@ -18,6 +18,8 @@ limitations under the License.
 package app
 
 import (
+	"context"
+
 	v1 "k8s.io/api/core/v1"
 	clientset "k8s.io/client-go/kubernetes"
 
@@ -33,7 +35,6 @@ const (
 //Provisioner struct has the configuration and utilities required
 // across the different work-flows.
 type Provisioner struct {
-	stopCh      chan struct{}
 	kubeClient  *clientset.Clientset
 	namespace   string
 	helperImage string
@@ -67,4 +68,4 @@ type VolumeConfig struct {
 
 // GetVolumeConfigFn allows to plugin a custom function
 //  and makes it easy to unit test provisioner
-type GetVolumeConfigFn func(pvName string, pvc *v1.PersistentVolumeClaim) (*VolumeConfig, error)
+type GetVolumeConfigFn func(ctx context.Context, pvName string, pvc *v1.PersistentVolumeClaim) (*VolumeConfig, error)

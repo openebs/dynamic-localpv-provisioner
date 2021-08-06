@@ -18,6 +18,7 @@ package tests
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"strconv"
 	"time"
@@ -272,7 +273,7 @@ func (ops *Operations) GetPodRunningCountEventually(namespace, lselector string,
 func (ops *Operations) GetPodRunningCount(namespace, lselector string) int {
 	pods, err := ops.PodClient.
 		WithNamespace(namespace).
-		List(metav1.ListOptions{LabelSelector: lselector})
+		List(context.TODO(), metav1.ListOptions{LabelSelector: lselector})
 	Expect(err).ShouldNot(HaveOccurred())
 	return pod.
 		ListBuilderForAPIList(pods).
@@ -297,7 +298,7 @@ func (ops *Operations) GetReadyNodes() *corev1.NodeList {
 // IsPVCBound checks if the pvc is bound or not
 func (ops *Operations) IsPVCBound(pvcName string) bool {
 	volume, err := ops.PVCClient.
-		Get(pvcName, metav1.GetOptions{})
+		Get(context.TODO(), pvcName, metav1.GetOptions{})
 	Expect(err).ShouldNot(HaveOccurred())
 	return pvc.NewForAPIObject(volume).IsBound()
 }
@@ -306,7 +307,7 @@ func (ops *Operations) IsPVCBound(pvcName string) bool {
 func (ops *Operations) IsPVCBoundEventually(pvcName string) bool {
 	return Eventually(func() bool {
 		volume, err := ops.PVCClient.
-			Get(pvcName, metav1.GetOptions{})
+			Get(context.TODO(), pvcName, metav1.GetOptions{})
 		Expect(err).ShouldNot(HaveOccurred())
 		return pvc.NewForAPIObject(volume).IsBound()
 	},
@@ -318,7 +319,7 @@ func (ops *Operations) IsPVCBoundEventually(pvcName string) bool {
 func (ops *Operations) VerifyCapacity(pvcName, capacity string) bool {
 	return Eventually(func() bool {
 		volume, err := ops.PVCClient.
-			Get(pvcName, metav1.GetOptions{})
+			Get(context.TODO(), pvcName, metav1.GetOptions{})
 		Expect(err).ShouldNot(HaveOccurred())
 		actualCapacity := volume.Status.Capacity[corev1.ResourceStorage]
 		desiredCapacity, _ := resource.ParseQuantity(capacity)
@@ -335,7 +336,7 @@ func (ops *Operations) PodDeleteCollection(ns string, lopts metav1.ListOptions) 
 	dopts := &metav1.DeleteOptions{
 		PropagationPolicy: &deletePolicy,
 	}
-	return ops.PodClient.WithNamespace(ns).DeleteCollection(lopts, dopts)
+	return ops.PodClient.WithNamespace(ns).DeleteCollection(context.TODO(), lopts, dopts)
 }
 
 // IsPodRunningEventually return true if the pod comes to running state
@@ -343,7 +344,7 @@ func (ops *Operations) IsPodRunningEventually(namespace, podName string) bool {
 	return Eventually(func() bool {
 		p, err := ops.PodClient.
 			WithNamespace(namespace).
-			Get(podName, metav1.GetOptions{})
+			Get(context.TODO(), podName, metav1.GetOptions{})
 		Expect(err).ShouldNot(HaveOccurred())
 		return pod.NewForAPIObject(p).
 			IsRunning()
@@ -429,7 +430,7 @@ func (ops *Operations) RestartPodEventually(podObj *corev1.Pod) error {
 	}
 
 	err := ops.PodClient.WithNamespace(podObj.Namespace).
-		Delete(podObj.Name, &metav1.DeleteOptions{})
+		Delete(context.TODO(), podObj.Name, &metav1.DeleteOptions{})
 	if err != nil {
 		return errors.Wrapf(err,
 			"failed to delete pod {%s} in namespace {%s}",
@@ -454,7 +455,7 @@ func (ops *Operations) RestartPodEventually(podObj *corev1.Pod) error {
 // else returns false
 func (ops *Operations) IsPVCDeleted(pvcName string) bool {
 	_, err := ops.PVCClient.
-		Get(pvcName, metav1.GetOptions{})
+		Get(context.TODO(), pvcName, metav1.GetOptions{})
 	return isNotFound(err)
 }
 
@@ -464,7 +465,7 @@ func (ops *Operations) IsPVCDeleted(pvcName string) bool {
 func (ops *Operations) IsPVCDeletedEventually(pvcName string) bool {
 	return Eventually(func() bool {
 		_, err := ops.PVCClient.
-			Get(pvcName, metav1.GetOptions{})
+			Get(context.TODO(), pvcName, metav1.GetOptions{})
 		return isNotFound(err)
 	},
 		120, 10).
@@ -476,7 +477,7 @@ func (ops *Operations) IsPodDeletedEventually(namespace, podName string) bool {
 	return Eventually(func() bool {
 		_, err := ops.PodClient.
 			WithNamespace(namespace).
-			Get(podName, metav1.GetOptions{})
+			Get(context.TODO(), podName, metav1.GetOptions{})
 		return isNotFound(err)
 	},
 		120, 10).
@@ -486,7 +487,7 @@ func (ops *Operations) IsPodDeletedEventually(namespace, podName string) bool {
 // GetPVNameFromPVCName gives the pv name for the given pvc
 func (ops *Operations) GetPVNameFromPVCName(pvcName string) string {
 	p, err := ops.PVCClient.
-		Get(pvcName, metav1.GetOptions{})
+		Get(context.TODO(), pvcName, metav1.GetOptions{})
 	Expect(err).ShouldNot(HaveOccurred())
 	return p.Spec.VolumeName
 }
@@ -508,7 +509,7 @@ func isNotFound(err error) bool {
 func (ops *Operations) GetBDCCountEventually(listOptions metav1.ListOptions, expectedBDCCount int, namespace string) int {
 	var bdcCount int
 	for i := 0; i < maxRetry; i++ {
-		bdcAPIList, err := ops.BDCClient.WithNamespace(namespace).List(listOptions)
+		bdcAPIList, err := ops.BDCClient.WithNamespace(namespace).List(context.TODO(), listOptions)
 		Expect(err).To(BeNil())
 		bdcCount = len(bdcAPIList.Items)
 		if bdcCount == expectedBDCCount {
@@ -522,7 +523,7 @@ func (ops *Operations) GetBDCCountEventually(listOptions metav1.ListOptions, exp
 // IsFinalizerExistsOnBDC returns true if the object with provided name contains the finalizer.
 func (ops *Operations) IsFinalizerExistsOnBDC(bdcName, finalizer string) bool {
 	for i := 0; i < maxRetry; i++ {
-		bdcObj, err := ops.BDCClient.Get(bdcName, metav1.GetOptions{})
+		bdcObj, err := ops.BDCClient.Get(context.TODO(), bdcName, metav1.GetOptions{})
 		Expect(err).To(BeNil())
 		for _, f := range bdcObj.Finalizers {
 			if f == finalizer {
@@ -597,7 +598,7 @@ func (ops *Operations) GetPodCompletedCountEventually(namespace, lselector strin
 func (ops *Operations) GetPodCompletedCount(namespace, lselector string) int {
 	pods, err := ops.PodClient.
 		WithNamespace(namespace).
-		List(metav1.ListOptions{LabelSelector: lselector})
+		List(context.TODO(), metav1.ListOptions{LabelSelector: lselector})
 	Expect(err).ShouldNot(HaveOccurred())
 	return pod.
 		ListBuilderForAPIList(pods).
@@ -610,7 +611,7 @@ func (ops *Operations) GetPodCompletedCount(namespace, lselector string) int {
 func (ops *Operations) GetPodList(namespace, lselector string, predicateList pod.PredicateList) *pod.PodList {
 	pods, err := ops.PodClient.
 		WithNamespace(namespace).
-		List(metav1.ListOptions{LabelSelector: lselector})
+		List(context.TODO(), metav1.ListOptions{LabelSelector: lselector})
 	Expect(err).ShouldNot(HaveOccurred())
 	return pod.
 		ListBuilderForAPIList(pods).
@@ -654,7 +655,7 @@ func (ops *Operations) VerifyUpgradeResultTasksIsNotFail(namespace, lselector st
 func (ops *Operations) GetBDCCount(lSelector, namespace string) int {
 	bdcList, err := ops.BDCClient.
 		WithNamespace(namespace).
-		List(metav1.ListOptions{LabelSelector: lSelector})
+		List(context.TODO(), metav1.ListOptions{LabelSelector: lSelector})
 	Expect(err).ShouldNot(HaveOccurred())
 	return len(bdcList.Items)
 }
@@ -674,7 +675,7 @@ func (ops *Operations) BuildAndCreatePVC() *corev1.PersistentVolumeClaim {
 		pvcConfig.Name,
 		pvcConfig.Namespace,
 	)
-	pvcObj, err = ops.PVCClient.WithNamespace(pvcConfig.Namespace).Create(pvcObj)
+	pvcObj, err = ops.PVCClient.WithNamespace(pvcConfig.Namespace).Create(context.TODO(), pvcObj)
 	Expect(err).To(
 		BeNil(),
 		"while creating pvc {%s} in namespace {%s}",
@@ -705,7 +706,7 @@ func (ops *Operations) BuildAndCreateService() *corev1.Service {
 // DeletePersistentVolumeClaim deletes PVC from cluster based on provided
 // argument
 func (ops *Operations) DeletePersistentVolumeClaim(name, namespace string) {
-	err := ops.PVCClient.WithNamespace(namespace).Delete(name, &metav1.DeleteOptions{})
+	err := ops.PVCClient.WithNamespace(namespace).Delete(context.TODO(), name, &metav1.DeleteOptions{})
 	Expect(err).To(BeNil())
 }
 
@@ -780,7 +781,7 @@ func (ops *Operations) BuildAndDeployBusyBoxPod(
 		return nil, errors.Wrapf(err, "failed to build busybox: %s deployment", appName)
 	}
 
-	appDeployment, err = ops.DeployClient.WithNamespace(namespace).Create(appDeployment)
+	appDeployment, err = ops.DeployClient.WithNamespace(namespace).Create(context.TODO(), appDeployment)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create busybox %s deployment in namespace %s", appName, namespace)
 	}

@@ -15,6 +15,7 @@
 package persistentvolumeclaim
 
 import (
+	"context"
 	"testing"
 
 	errors "github.com/pkg/errors"
@@ -35,27 +36,27 @@ func fakeGetClientSetForPathErr(fakeConfigPath string) (cli *kubernetes.Clientse
 	return nil, errors.New("fake error")
 }
 
-func fakeGetOk(cli *kubernetes.Clientset, name, namespace string, opts metav1.GetOptions) (*v1.PersistentVolumeClaim, error) {
+func fakeGetOk(ctx context.Context, cli *kubernetes.Clientset, name, namespace string, opts metav1.GetOptions) (*v1.PersistentVolumeClaim, error) {
 	return &v1.PersistentVolumeClaim{}, nil
 }
 
-func fakeListOk(cli *kubernetes.Clientset, namespace string, opts metav1.ListOptions) (*v1.PersistentVolumeClaimList, error) {
+func fakeListOk(ctx context.Context, cli *kubernetes.Clientset, namespace string, opts metav1.ListOptions) (*v1.PersistentVolumeClaimList, error) {
 	return &v1.PersistentVolumeClaimList{}, nil
 }
 
-func fakeDeleteOk(cli *kubernetes.Clientset, name, namespace string, opts *metav1.DeleteOptions) error {
+func fakeDeleteOk(ctx context.Context, cli *kubernetes.Clientset, name, namespace string, opts *metav1.DeleteOptions) error {
 	return nil
 }
 
-func fakeListErr(cli *kubernetes.Clientset, namespace string, opts metav1.ListOptions) (*v1.PersistentVolumeClaimList, error) {
+func fakeListErr(ctx context.Context, cli *kubernetes.Clientset, namespace string, opts metav1.ListOptions) (*v1.PersistentVolumeClaimList, error) {
 	return &v1.PersistentVolumeClaimList{}, errors.New("some error")
 }
 
-func fakeGetErr(cli *kubernetes.Clientset, name, namespace string, opts metav1.GetOptions) (*v1.PersistentVolumeClaim, error) {
+func fakeGetErr(ctx context.Context, cli *kubernetes.Clientset, name, namespace string, opts metav1.GetOptions) (*v1.PersistentVolumeClaim, error) {
 	return &v1.PersistentVolumeClaim{}, errors.New("some error")
 }
 
-func fakeDeleteErr(cli *kubernetes.Clientset, name, namespace string, opts *metav1.DeleteOptions) error {
+func fakeDeleteErr(ctx context.Context, cli *kubernetes.Clientset, name, namespace string, opts *metav1.DeleteOptions) error {
 	return errors.New("some error")
 }
 
@@ -81,11 +82,11 @@ func fakeGetClientSetErr() (clientset *kubernetes.Clientset, err error) {
 
 func fakeClientSet(k *Kubeclient) {}
 
-func fakeCreateFnOk(cli *kubernetes.Clientset, namespace string, pvc *v1.PersistentVolumeClaim) (*v1.PersistentVolumeClaim, error) {
+func fakeCreateFnOk(ctx context.Context, cli *kubernetes.Clientset, namespace string, pvc *v1.PersistentVolumeClaim) (*v1.PersistentVolumeClaim, error) {
 	return &v1.PersistentVolumeClaim{}, nil
 }
 
-func fakeCreateFnErr(cli *kubernetes.Clientset, namespace string, pvc *v1.PersistentVolumeClaim) (*v1.PersistentVolumeClaim, error) {
+func fakeCreateFnErr(ctx context.Context, cli *kubernetes.Clientset, namespace string, pvc *v1.PersistentVolumeClaim) (*v1.PersistentVolumeClaim, error) {
 	return nil, errors.New("failed to create PVC")
 }
 
@@ -332,7 +333,7 @@ func TestKubernetesPVCList(t *testing.T) {
 				kubeConfigPath:      mock.kubeConfigPath,
 				list:                mock.list,
 			}
-			_, err := fc.List(metav1.ListOptions{})
+			_, err := fc.List(context.TODO(), metav1.ListOptions{})
 			if mock.expectedErr && err == nil {
 				t.Fatalf("Test %q failed: expected error not to be nil", name)
 			}
@@ -390,7 +391,7 @@ func TestKubenetesGetPVC(t *testing.T) {
 				namespace:           "",
 				get:                 mock.get,
 			}
-			_, err := k.Get(mock.podName, metav1.GetOptions{})
+			_, err := k.Get(context.TODO(), mock.podName, metav1.GetOptions{})
 			if mock.expectErr && err == nil {
 				t.Fatalf("Test %q failed: expected error not to be nil", name)
 			}
@@ -429,7 +430,7 @@ func TestKubernetesDeletePVC(t *testing.T) {
 				namespace:           "",
 				del:                 mock.delete,
 			}
-			err := k.Delete(mock.podName, &metav1.DeleteOptions{})
+			err := k.Delete(context.TODO(), mock.podName, &metav1.DeleteOptions{})
 			if mock.expectErr && err == nil {
 				t.Fatalf("Test %q failed: expected error not to be nil", name)
 			}
@@ -500,7 +501,7 @@ func TestKubernetesPVCCreate(t *testing.T) {
 				kubeConfigPath:      mock.kubeConfigPath,
 				create:              mock.create,
 			}
-			_, err := fc.Create(mock.pvc)
+			_, err := fc.Create(context.TODO(), mock.pvc)
 			if mock.expectErr && err == nil {
 				t.Fatalf("Test %q failed: expected error not to be nil", name)
 			}
@@ -558,7 +559,7 @@ func TestKubernetesPVCCreateCollection(t *testing.T) {
 				create:       mock.create,
 			}
 			pvclist, _ := ListBuilderFromTemplate(mock.pvc).WithCount(10).APIList()
-			newlist, err := fc.CreateCollection(pvclist)
+			newlist, err := fc.CreateCollection(context.TODO(), pvclist)
 			if mock.expectErr && err == nil {
 				t.Fatalf("Test %q failed: expected error not to be nil", name)
 			}

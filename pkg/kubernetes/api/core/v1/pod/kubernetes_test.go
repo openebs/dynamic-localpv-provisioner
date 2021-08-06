@@ -15,6 +15,7 @@
 package pod
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -27,27 +28,27 @@ func fakeGetClientSetOk() (cli *clientset.Clientset, err error) {
 	return &clientset.Clientset{}, nil
 }
 
-func fakeListFnOk(cli *clientset.Clientset, namespace string, opts metav1.ListOptions) (*corev1.PodList, error) {
+func fakeListFnOk(ctx context.Context, cli *clientset.Clientset, namespace string, opts metav1.ListOptions) (*corev1.PodList, error) {
 	return &corev1.PodList{}, nil
 }
 
-func fakeListFnErr(cli *clientset.Clientset, namespace string, opts metav1.ListOptions) (*corev1.PodList, error) {
+func fakeListFnErr(ctx context.Context, cli *clientset.Clientset, namespace string, opts metav1.ListOptions) (*corev1.PodList, error) {
 	return &corev1.PodList{}, errors.New("some error")
 }
 
-func fakeDeleteFnOk(cli *clientset.Clientset, namespace, name string, opts *metav1.DeleteOptions) error {
+func fakeDeleteFnOk(ctx context.Context, cli *clientset.Clientset, namespace, name string, opts *metav1.DeleteOptions) error {
 	return nil
 }
 
-func fakeDeleteFnErr(cli *clientset.Clientset, namespace, name string, opts *metav1.DeleteOptions) error {
+func fakeDeleteFnErr(ctx context.Context, cli *clientset.Clientset, namespace, name string, opts *metav1.DeleteOptions) error {
 	return errors.New("some error while delete")
 }
 
-func fakeGetFnOk(cli *clientset.Clientset, namespace, name string, opts metav1.GetOptions) (*corev1.Pod, error) {
+func fakeGetFnOk(ctx context.Context, cli *clientset.Clientset, namespace, name string, opts metav1.GetOptions) (*corev1.Pod, error) {
 	return &corev1.Pod{}, nil
 }
 
-func fakeGetErrfn(cli *clientset.Clientset, namespace, name string, opts metav1.GetOptions) (*corev1.Pod, error) {
+func fakeGetErrfn(ctx context.Context, cli *clientset.Clientset, namespace, name string, opts metav1.GetOptions) (*corev1.Pod, error) {
 	return &corev1.Pod{}, errors.New("Not found")
 }
 
@@ -77,11 +78,11 @@ func fakeGetClientSetForPathErr(fakeConfigPath string) (cli *clientset.Clientset
 	return nil, errors.New("fake error")
 }
 
-func fakeDeleteCollectionOk(cli *clientset.Clientset, namespace string, listOpts metav1.ListOptions, deleteOpts *metav1.DeleteOptions) error {
+func fakeDeleteCollectionOk(ctx context.Context, cli *clientset.Clientset, namespace string, listOpts metav1.ListOptions, deleteOpts *metav1.DeleteOptions) error {
 	return nil
 }
 
-func fakeDeleteCollectionErr(cli *clientset.Clientset, namespace string, listOpts metav1.ListOptions, deleteOpts *metav1.DeleteOptions) error {
+func fakeDeleteCollectionErr(ctx context.Context, cli *clientset.Clientset, namespace string, listOpts metav1.ListOptions, deleteOpts *metav1.DeleteOptions) error {
 	return errors.New("fake error")
 }
 
@@ -314,7 +315,7 @@ func TestKubernetesPodList(t *testing.T) {
 				kubeConfigPath:      mock.kubeConfigPath,
 				list:                mock.list,
 			}
-			_, err := fc.List(metav1.ListOptions{})
+			_, err := fc.List(context.TODO(), metav1.ListOptions{})
 			if mock.expectErr && err == nil {
 				t.Fatalf("Test %q failed: expected error not to be nil", name)
 			}
@@ -353,7 +354,7 @@ func TestKubernetesDeletePod(t *testing.T) {
 				namespace:           "",
 				del:                 mock.delete,
 			}
-			err := k.Delete(mock.podName, &metav1.DeleteOptions{})
+			err := k.Delete(context.TODO(), mock.podName, &metav1.DeleteOptions{})
 			if mock.expectErr && err == nil {
 				t.Fatalf("Test %q failed: expected error not to be nil", name)
 			}
@@ -393,6 +394,7 @@ func TestKubernetesDeleteCollection(t *testing.T) {
 				delCollection:       mock.deleteCollection,
 			}
 			err := k.DeleteCollection(
+				context.TODO(),
 				metav1.ListOptions{LabelSelector: mock.listOpts},
 				&metav1.DeleteOptions{},
 			)
@@ -433,7 +435,7 @@ func TestKubernetesGetPod(t *testing.T) {
 				namespace:           "",
 				get:                 mock.get,
 			}
-			_, err := k.Get(mock.podName, metav1.GetOptions{})
+			_, err := k.Get(context.TODO(), mock.podName, metav1.GetOptions{})
 			if mock.expectErr && err == nil {
 				t.Fatalf("Test %q failed: expected error not to be nil", name)
 			}

@@ -32,12 +32,13 @@ The handler that are madatory to be implemented:
 package app
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
 	"github.com/pkg/errors"
-	"k8s.io/klog"
-	pvController "sigs.k8s.io/sig-storage-lib-external-provisioner/controller"
+	klog "k8s.io/klog/v2"
+	pvController "sigs.k8s.io/sig-storage-lib-external-provisioner/v7/controller"
 
 	//pvController "github.com/kubernetes-sigs/sig-storage-lib-external-provisioner/controller"
 	v1 "k8s.io/api/core/v1"
@@ -54,7 +55,7 @@ import (
 
 // NewProvisioner will create a new Provisioner object and initialize
 //  it with global information used across PV create and delete operations.
-func NewProvisioner(stopCh chan struct{}, kubeClient *clientset.Clientset) (*Provisioner, error) {
+func NewProvisioner(kubeClient *clientset.Clientset) (*Provisioner, error) {
 
 	namespace := getOpenEBSNamespace() //menv.Get(menv.OpenEBSNamespace)
 	if len(strings.TrimSpace(namespace)) == 0 {
@@ -62,8 +63,6 @@ func NewProvisioner(stopCh chan struct{}, kubeClient *clientset.Clientset) (*Pro
 	}
 
 	p := &Provisioner{
-		stopCh: stopCh,
-
 		kubeClient:  kubeClient,
 		namespace:   namespace,
 		helperImage: getDefaultHelperImage(),
@@ -87,29 +86,29 @@ func (p *Provisioner) SupportsBlock() bool {
 
 // Provision is invoked by the PVC controller which expect the PV
 //  to be provisioned and a valid PV spec returned.
-func (p *Provisioner) Provision(opts pvController.ProvisionOptions) (*v1.PersistentVolume, error) {
+func (p *Provisioner) Provision(ctx context.Context, opts pvController.ProvisionOptions) (*v1.PersistentVolume, pvController.ProvisioningState, error) {
 	pvc := opts.PVC
 
 	// validate pvc dataSource
 	if err := validateVolumeSource(*pvc); err != nil {
-		return nil, err
+		return nil, pvController.ProvisioningFinished, err
 	}
 
 	if pvc.Spec.Selector != nil {
-		return nil, fmt.Errorf("claim.Spec.Selector is not supported")
+		return nil, pvController.ProvisioningFinished, fmt.Errorf("claim.Spec.Selector is not supported")
 	}
 	for _, accessMode := range pvc.Spec.AccessModes {
 		if accessMode != v1.ReadWriteOnce {
-			return nil, fmt.Errorf("Only support ReadWriteOnce access mode")
+			return nil, pvController.ProvisioningFinished, fmt.Errorf("Only support ReadWriteOnce access mode")
 		}
 	}
 
 	if opts.SelectedNode == nil {
-		return nil, fmt.Errorf("configuration error, no node was specified")
+		return nil, pvController.ProvisioningReschedule, fmt.Errorf("configuration error, no node was specified")
 	}
 
 	if GetNodeHostname(opts.SelectedNode) == "" {
-		return nil, fmt.Errorf("configuration error, node{%v} hostname is empty", opts.SelectedNode.Name)
+		return nil, pvController.ProvisioningFinished, fmt.Errorf("configuration error, node{%v} hostname is empty", opts.SelectedNode.Name)
 	}
 
 	name := opts.PVName
@@ -117,9 +116,9 @@ func (p *Provisioner) Provision(opts pvController.ProvisionOptions) (*v1.Persist
 	// Create a new Config instance for the PV by merging the
 	// default configuration with configuration provided
 	// via PVC and the associated StorageClass
-	pvCASConfig, err := p.getVolumeConfig(name, pvc)
+	pvCASConfig, err := p.getVolumeConfig(ctx, name, pvc)
 	if err != nil {
-		return nil, err
+		return nil, pvController.ProvisioningFinished, err
 	}
 
 	//TODO: Determine if hostpath or device based Local PV should be created
@@ -133,17 +132,17 @@ func (p *Provisioner) Provision(opts pvController.ProvisionOptions) (*v1.Persist
 
 	// StorageType: Device
 	if stgType == "device" {
-		return p.ProvisionBlockDevice(opts, pvCASConfig)
+		return p.ProvisionBlockDevice(ctx, opts, pvCASConfig)
 	}
 
 	// EXCEPTION: Block VolumeMode
 	if *opts.PVC.Spec.VolumeMode == v1.PersistentVolumeBlock && stgType != "device" {
-		return nil, fmt.Errorf("PV with BlockMode is not supported with StorageType %v", stgType)
+		return nil, pvController.ProvisioningFinished, fmt.Errorf("PV with BlockMode is not supported with StorageType %v", stgType)
 	}
 
 	// StorageType: Hostpath
 	if stgType == "hostpath" {
-		return p.ProvisionHostPath(opts, pvCASConfig)
+		return p.ProvisionHostPath(ctx, opts, pvCASConfig)
 	}
 	alertlog.Logger.Errorw("",
 		"eventcode", "local.pv.provision.failure",
@@ -152,14 +151,14 @@ func (p *Provisioner) Provision(opts pvController.ProvisionOptions) (*v1.Persist
 		"reason", "StorageType not supported",
 		"storagetype", stgType,
 	)
-	return nil, fmt.Errorf("PV with StorageType %v is not supported", stgType)
+	return nil, pvController.ProvisioningFinished, fmt.Errorf("PV with StorageType %v is not supported", stgType)
 }
 
 // Delete is invoked by the PVC controller to perform clean-up
 //  activities before deleteing the PV object. If reclaim policy is
 //  set to not-retain, then this function will create a helper pod
 //  to delete the host path from the node.
-func (p *Provisioner) Delete(pv *v1.PersistentVolume) (err error) {
+func (p *Provisioner) Delete(ctx context.Context, pv *v1.PersistentVolume) (err error) {
 	defer func() {
 		err = errors.Wrapf(err, "failed to delete volume %v", pv.Name)
 	}()
@@ -179,7 +178,7 @@ func (p *Provisioner) Delete(pv *v1.PersistentVolume) (err error) {
 		}
 		sendEventOrIgnore(pvcName, pv.Name, size.String(), pvType, analytics.VolumeDeprovision)
 		if pvType == "local-device" {
-			err := p.DeleteBlockDevice(pv)
+			err := p.DeleteBlockDevice(ctx, pv)
 			if err != nil {
 				alertlog.Logger.Errorw("",
 					"eventcode", "local.pv.delete.failure",
@@ -192,7 +191,7 @@ func (p *Provisioner) Delete(pv *v1.PersistentVolume) (err error) {
 			return err
 		}
 
-		err = p.DeleteHostPath(pv)
+		err = p.DeleteHostPath(ctx, pv)
 		if err != nil {
 			alertlog.Logger.Errorw("",
 				"eventcode", "local.pv.delete.failure",

@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha3
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -103,7 +104,7 @@ func defaultList(
 	cli *clientset.Clientset,
 	opts metav1.ListOptions,
 ) (*apis.CStorPoolList, error) {
-	return cli.OpenebsV1alpha1().CStorPools().List(opts)
+	return cli.OpenebsV1alpha1().CStorPools().List(context.TODO(), opts)
 }
 
 func defaultGet(
@@ -111,7 +112,7 @@ func defaultGet(
 	name string,
 	opts metav1.GetOptions,
 ) (*apis.CStorPool, error) {
-	return cli.OpenebsV1alpha1().CStorPools().Get(name, opts)
+	return cli.OpenebsV1alpha1().CStorPools().Get(context.TODO(), name, opts)
 }
 
 func defaultDel(
@@ -119,7 +120,7 @@ func defaultDel(
 	name string,
 	opts *metav1.DeleteOptions,
 ) (*apis.CStorPool, error) {
-	return nil, cli.OpenebsV1alpha1().CStorPools().Delete(name, opts)
+	return nil, cli.OpenebsV1alpha1().CStorPools().Delete(context.TODO(), name, *opts)
 }
 
 func defaultDelCollection(
@@ -129,7 +130,7 @@ func defaultDelCollection(
 ) error {
 	return cs.OpenebsV1alpha1().
 		CStorPools().
-		DeleteCollection(deleteOpts, listOpts)
+		DeleteCollection(context.TODO(), *deleteOpts, listOpts)
 }
 
 func defaultPatch(
@@ -140,7 +141,7 @@ func defaultPatch(
 ) (*apis.CStorPool, error) {
 	return cli.OpenebsV1alpha1().
 		CStorPools().
-		Patch(name, pt, data)
+		Patch(context.TODO(), name, pt, data, metav1.PatchOptions{})
 }
 
 // withDefaults sets the default options

@@ -15,6 +15,7 @@
 package persistentvolume
 
 import (
+	"context"
 	"testing"
 
 	errors "github.com/pkg/errors"
@@ -35,27 +36,27 @@ func fakeGetClientSetForPathErr(fakeConfigPath string) (cli *kubernetes.Clientse
 	return nil, errors.New("fake error")
 }
 
-func fakeGetOk(cli *kubernetes.Clientset, name string, opts metav1.GetOptions) (*v1.PersistentVolume, error) {
+func fakeGetOk(ctx context.Context, cli *kubernetes.Clientset, name string, opts metav1.GetOptions) (*v1.PersistentVolume, error) {
 	return &v1.PersistentVolume{}, nil
 }
 
-func fakeListOk(cli *kubernetes.Clientset, opts metav1.ListOptions) (*v1.PersistentVolumeList, error) {
+func fakeListOk(ctx context.Context, cli *kubernetes.Clientset, opts metav1.ListOptions) (*v1.PersistentVolumeList, error) {
 	return &v1.PersistentVolumeList{}, nil
 }
 
-func fakeDeleteOk(cli *kubernetes.Clientset, name string, opts *metav1.DeleteOptions) error {
+func fakeDeleteOk(ctx context.Context, cli *kubernetes.Clientset, name string, opts *metav1.DeleteOptions) error {
 	return nil
 }
 
-func fakeListErr(cli *kubernetes.Clientset, opts metav1.ListOptions) (*v1.PersistentVolumeList, error) {
+func fakeListErr(ctx context.Context, cli *kubernetes.Clientset, opts metav1.ListOptions) (*v1.PersistentVolumeList, error) {
 	return &v1.PersistentVolumeList{}, errors.New("some error")
 }
 
-func fakeGetErr(cli *kubernetes.Clientset, name string, opts metav1.GetOptions) (*v1.PersistentVolume, error) {
+func fakeGetErr(ctx context.Context, cli *kubernetes.Clientset, name string, opts metav1.GetOptions) (*v1.PersistentVolume, error) {
 	return &v1.PersistentVolume{}, errors.New("some error")
 }
 
-func fakeDeleteErr(cli *kubernetes.Clientset, name string, opts *metav1.DeleteOptions) error {
+func fakeDeleteErr(ctx context.Context, cli *kubernetes.Clientset, name string, opts *metav1.DeleteOptions) error {
 	return errors.New("some error")
 }
 
@@ -81,11 +82,11 @@ func fakeGetClientSetErr() (clientset *kubernetes.Clientset, err error) {
 
 func fakeClientSet(k *Kubeclient) {}
 
-func fakeCreateFnOk(cli *kubernetes.Clientset, pv *v1.PersistentVolume) (*v1.PersistentVolume, error) {
+func fakeCreateFnOk(ctx context.Context, cli *kubernetes.Clientset, pv *v1.PersistentVolume) (*v1.PersistentVolume, error) {
 	return &v1.PersistentVolume{}, nil
 }
 
-func fakeCreateFnErr(cli *kubernetes.Clientset, pv *v1.PersistentVolume) (*v1.PersistentVolume, error) {
+func fakeCreateFnErr(ctx context.Context, cli *kubernetes.Clientset, pv *v1.PersistentVolume) (*v1.PersistentVolume, error) {
 	return nil, errors.New("failed to create PV")
 }
 
@@ -332,7 +333,7 @@ func TestKubernetesPVList(t *testing.T) {
 				kubeConfigPath:      mock.kubeConfigPath,
 				list:                mock.list,
 			}
-			_, err := fc.List(metav1.ListOptions{})
+			_, err := fc.List(context.TODO(), metav1.ListOptions{})
 			if mock.expectedErr && err == nil {
 				t.Fatalf("Test %q failed: expected error not to be nil", name)
 			}
@@ -369,7 +370,7 @@ func TestKubenetesGetPV(t *testing.T) {
 				kubeConfigPath:      mock.kubeConfigPath,
 				get:                 mock.get,
 			}
-			_, err := k.Get(mock.podName, metav1.GetOptions{})
+			_, err := k.Get(context.TODO(), mock.podName, metav1.GetOptions{})
 			if mock.expectErr && err == nil {
 				t.Fatalf("Test %q failed: expected error not to be nil", name)
 			}
@@ -407,7 +408,7 @@ func TestKubernetesDeletePV(t *testing.T) {
 				kubeConfigPath:      mock.kubeConfigPath,
 				del:                 mock.delete,
 			}
-			err := k.Delete(mock.podName, &metav1.DeleteOptions{})
+			err := k.Delete(context.TODO(), mock.podName, &metav1.DeleteOptions{})
 			if mock.expectErr && err == nil {
 				t.Fatalf("Test %q failed: expected error not to be nil", name)
 			}
@@ -478,7 +479,7 @@ func TestKubernetesPVCreate(t *testing.T) {
 				kubeConfigPath:      mock.kubeConfigPath,
 				create:              mock.create,
 			}
-			_, err := fc.Create(mock.pv)
+			_, err := fc.Create(context.TODO(), mock.pv)
 			if mock.expectErr && err == nil {
 				t.Fatalf("Test %q failed: expected error not to be nil", name)
 			}

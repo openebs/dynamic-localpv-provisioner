@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"context"
 	"strings"
 	"sync"
 
@@ -42,31 +43,31 @@ type getClientsetForPathFn func(kubeConfigPath string) (clientset *clientset.Cli
 
 // listFn is a typed function that abstracts
 // listing of block device
-type listFn func(cli *clientset.Clientset, namespace string, opts metav1.ListOptions) (*apis.BlockDeviceClaimList, error)
+type listFn func(ctx context.Context, cli *clientset.Clientset, namespace string, opts metav1.ListOptions) (*apis.BlockDeviceClaimList, error)
 
 // getFn is a typed function that
 // abstracts fetching of block device
-type getFn func(cli *clientset.Clientset, namespace, name string, opts metav1.GetOptions) (*apis.BlockDeviceClaim, error)
+type getFn func(ctx context.Context, cli *clientset.Clientset, namespace, name string, opts metav1.GetOptions) (*apis.BlockDeviceClaim, error)
 
 // createFn is a typed function that abstracts
 // creation of block device
-type createFn func(cli *clientset.Clientset, namespace string, bdc *apis.BlockDeviceClaim) (*apis.BlockDeviceClaim, error)
+type createFn func(ctx context.Context, cli *clientset.Clientset, namespace string, bdc *apis.BlockDeviceClaim) (*apis.BlockDeviceClaim, error)
 
 // deleteFn is a typed function that abstracts
 // deletion of bdcs
-type deleteFn func(cli *clientset.Clientset, namespace string, name string, deleteOpts *metav1.DeleteOptions) error
+type deleteFn func(ctx context.Context, cli *clientset.Clientset, namespace string, name string, deleteOpts *metav1.DeleteOptions) error
 
 // deleteFn is a typed function that abstracts
 // deletion of bdc's collection
-type deleteCollectionFn func(cli *clientset.Clientset, namespace string, listOpts metav1.ListOptions, deleteOpts *metav1.DeleteOptions) error
+type deleteCollectionFn func(ctx context.Context, cli *clientset.Clientset, namespace string, listOpts metav1.ListOptions, deleteOpts *metav1.DeleteOptions) error
 
 // patchFn is a typed function that abstracts
 // to patch block device claim
-type patchFn func(cli *clientset.Clientset, namespace, name string, pt types.PatchType, data []byte, subresources ...string) (*apis.BlockDeviceClaim, error)
+type patchFn func(ctx context.Context, cli *clientset.Clientset, namespace, name string, pt types.PatchType, data []byte, subresources ...string) (*apis.BlockDeviceClaim, error)
 
 // updateFn is a typed function that abstracts to update
 // block device claim
-type updateFn func(cli *clientset.Clientset, namespace string, bdc *apis.BlockDeviceClaim) (*apis.BlockDeviceClaim, error)
+type updateFn func(ctx context.Context, cli *clientset.Clientset, namespace string, bdc *apis.BlockDeviceClaim) (*apis.BlockDeviceClaim, error)
 
 // make ndm clientset as singleton
 var (
@@ -132,39 +133,46 @@ func (k *Kubeclient) WithDefaults() {
 		}
 	}
 	if k.list == nil {
-		k.list = func(cli *clientset.Clientset, namespace string, opts metav1.ListOptions) (*apis.BlockDeviceClaimList, error) {
-			return cli.OpenebsV1alpha1().BlockDeviceClaims(namespace).List(opts)
+		k.list = func(ctx context.Context, cli *clientset.Clientset, namespace string, opts metav1.ListOptions) (*apis.BlockDeviceClaimList, error) {
+			return cli.OpenebsV1alpha1().BlockDeviceClaims(namespace).
+				List(ctx, opts)
 		}
 	}
 
 	if k.get == nil {
-		k.get = func(cli *clientset.Clientset, namespace, name string, opts metav1.GetOptions) (*apis.BlockDeviceClaim, error) {
-			return cli.OpenebsV1alpha1().BlockDeviceClaims(namespace).Get(name, opts)
+		k.get = func(ctx context.Context, cli *clientset.Clientset, namespace, name string, opts metav1.GetOptions) (*apis.BlockDeviceClaim, error) {
+			return cli.OpenebsV1alpha1().BlockDeviceClaims(namespace).
+				Get(ctx, name, opts)
 		}
 	}
 	if k.create == nil {
-		k.create = func(cli *clientset.Clientset, namespace string, bdc *apis.BlockDeviceClaim) (*apis.BlockDeviceClaim, error) {
-			return cli.OpenebsV1alpha1().BlockDeviceClaims(namespace).Create(bdc)
+		k.create = func(ctx context.Context, cli *clientset.Clientset, namespace string, bdc *apis.BlockDeviceClaim) (*apis.BlockDeviceClaim, error) {
+			return cli.OpenebsV1alpha1().BlockDeviceClaims(namespace).
+				Create(ctx, bdc, metav1.CreateOptions{})
 		}
 	}
 	if k.del == nil {
-		k.del = func(cli *clientset.Clientset, namespace string, name string, deleteOpts *metav1.DeleteOptions) error {
-			return cli.OpenebsV1alpha1().BlockDeviceClaims(namespace).Delete(name, deleteOpts)
+		k.del = func(ctx context.Context, cli *clientset.Clientset, namespace string, name string, deleteOpts *metav1.DeleteOptions) error {
+			return cli.OpenebsV1alpha1().BlockDeviceClaims(namespace).
+				Delete(ctx, name, *deleteOpts)
 		}
 	}
 	if k.delCollection == nil {
-		k.delCollection = func(cli *clientset.Clientset, namespace string, listOpts metav1.ListOptions, deleteOpts *metav1.DeleteOptions) error {
-			return cli.OpenebsV1alpha1().BlockDeviceClaims(namespace).DeleteCollection(deleteOpts, listOpts)
+		k.delCollection = func(ctx context.Context, cli *clientset.Clientset, namespace string, listOpts metav1.ListOptions, deleteOpts *metav1.DeleteOptions) error {
+			return cli.OpenebsV1alpha1().BlockDeviceClaims(namespace).
+				DeleteCollection(ctx, *deleteOpts, listOpts)
 		}
 	}
 	if k.patch == nil {
-		k.patch = func(cli *clientset.Clientset, namespace, name string, pt types.PatchType, data []byte, subresources ...string) (*apis.BlockDeviceClaim, error) {
-			return cli.OpenebsV1alpha1().BlockDeviceClaims(namespace).Patch(name, pt, data, subresources...)
+		k.patch = func(ctx context.Context, cli *clientset.Clientset, namespace, name string, pt types.PatchType, data []byte, subresources ...string) (*apis.BlockDeviceClaim, error) {
+			return cli.OpenebsV1alpha1().BlockDeviceClaims(namespace).
+				Patch(ctx, name, pt, data, metav1.PatchOptions{}, subresources...)
 		}
 	}
 	if k.update == nil {
-		k.update = func(cli *clientset.Clientset, namespace string, bdc *apis.BlockDeviceClaim) (*apis.BlockDeviceClaim, error) {
-			return cli.OpenebsV1alpha1().BlockDeviceClaims(namespace).Update(bdc)
+		k.update = func(ctx context.Context, cli *clientset.Clientset, namespace string, bdc *apis.BlockDeviceClaim) (*apis.BlockDeviceClaim, error) {
+			return cli.OpenebsV1alpha1().BlockDeviceClaims(namespace).
+				Update(ctx, bdc, metav1.UpdateOptions{})
 		}
 	}
 }
@@ -226,16 +234,16 @@ func (k *Kubeclient) getClientsetOrCached() (*clientset.Clientset, error) {
 
 // List returns a list of disk
 // instances present in kubernetes cluster
-func (k *Kubeclient) List(opts metav1.ListOptions) (*apis.BlockDeviceClaimList, error) {
+func (k *Kubeclient) List(ctx context.Context, opts metav1.ListOptions) (*apis.BlockDeviceClaimList, error) {
 	cli, err := k.getClientsetOrCached()
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to list bdc in namespace {%s}", k.namespace)
 	}
-	return k.list(cli, k.namespace, opts)
+	return k.list(ctx, cli, k.namespace, opts)
 }
 
 // Get returns a disk object
-func (k *Kubeclient) Get(name string, opts metav1.GetOptions) (*apis.BlockDeviceClaim, error) {
+func (k *Kubeclient) Get(ctx context.Context, name string, opts metav1.GetOptions) (*apis.BlockDeviceClaim, error) {
 	if strings.TrimSpace(name) == "" {
 		return nil, errors.New("failed to get bdc: missing bdc name")
 	}
@@ -243,11 +251,11 @@ func (k *Kubeclient) Get(name string, opts metav1.GetOptions) (*apis.BlockDevice
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to get bdc {%s} in namespace {%s}", name, k.namespace)
 	}
-	return k.get(cli, k.namespace, name, opts)
+	return k.get(ctx, cli, k.namespace, name, opts)
 }
 
 // Create creates a bdc in specified namespace in kubernetes cluster
-func (k *Kubeclient) Create(bdc *apis.BlockDeviceClaim) (*apis.BlockDeviceClaim, error) {
+func (k *Kubeclient) Create(ctx context.Context, bdc *apis.BlockDeviceClaim) (*apis.BlockDeviceClaim, error) {
 	if bdc == nil {
 		return nil, errors.New("failed to create bdc: nil bdc object")
 	}
@@ -255,21 +263,21 @@ func (k *Kubeclient) Create(bdc *apis.BlockDeviceClaim) (*apis.BlockDeviceClaim,
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create bdc {%s} in namespace {%s}", bdc.Name, bdc.Namespace)
 	}
-	return k.create(cli, k.namespace, bdc)
+	return k.create(ctx, cli, k.namespace, bdc)
 }
 
 // DeleteCollection deletes a collection of bdc objects.
-func (k *Kubeclient) DeleteCollection(listOpts metav1.ListOptions, deleteOpts *metav1.DeleteOptions) error {
+func (k *Kubeclient) DeleteCollection(ctx context.Context, listOpts metav1.ListOptions, deleteOpts *metav1.DeleteOptions) error {
 	cli, err := k.getClientsetOrCached()
 	if err != nil {
 		return errors.Wrapf(err, "failed to delete the collection of bdcs")
 	}
-	return k.delCollection(cli, k.namespace, listOpts, deleteOpts)
+	return k.delCollection(ctx, cli, k.namespace, listOpts, deleteOpts)
 }
 
 // Delete deletes a bdc instance from the
 // kubecrnetes cluster
-func (k *Kubeclient) Delete(name string, deleteOpts *metav1.DeleteOptions) error {
+func (k *Kubeclient) Delete(ctx context.Context, name string, deleteOpts *metav1.DeleteOptions) error {
 	if strings.TrimSpace(name) == "" {
 		return errors.New("failed to delete bdc: missing bdc name")
 	}
@@ -277,11 +285,11 @@ func (k *Kubeclient) Delete(name string, deleteOpts *metav1.DeleteOptions) error
 	if err != nil {
 		return errors.Wrapf(err, "failed to delete bdc {%s} in namespace {%s}", name, k.namespace)
 	}
-	return k.del(cli, k.namespace, name, deleteOpts)
+	return k.del(ctx, cli, k.namespace, name, deleteOpts)
 }
 
 // Patch patches the block device claim if present in kubernetes cluster
-func (k *Kubeclient) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (*apis.BlockDeviceClaim, error) {
+func (k *Kubeclient) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, subresources ...string) (*apis.BlockDeviceClaim, error) {
 	if len(name) == 0 {
 		return nil, errors.New("failed to patch block device claim: missing bdc name")
 	}
@@ -289,11 +297,11 @@ func (k *Kubeclient) Patch(name string, pt types.PatchType, data []byte, subreso
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to patch bdc: {%s}", name)
 	}
-	return k.patch(cli, k.namespace, name, pt, data, subresources...)
+	return k.patch(ctx, cli, k.namespace, name, pt, data, subresources...)
 }
 
 // Update updates the block device claim if present in kubernetes cluster
-func (k *Kubeclient) Update(bdc *apis.BlockDeviceClaim) (*apis.BlockDeviceClaim, error) {
+func (k *Kubeclient) Update(ctx context.Context, bdc *apis.BlockDeviceClaim) (*apis.BlockDeviceClaim, error) {
 	if bdc == nil {
 		return nil, errors.New("failed to udpate bdc: nil bdc object")
 	}
@@ -301,5 +309,5 @@ func (k *Kubeclient) Update(bdc *apis.BlockDeviceClaim) (*apis.BlockDeviceClaim,
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to update bdc {%s} in namespace {%s}", bdc.Name, bdc.Namespace)
 	}
-	return k.update(cli, k.namespace, bdc)
+	return k.update(ctx, cli, k.namespace, bdc)
 }

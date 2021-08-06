@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"context"
 	"encoding/json"
 
 	client "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
@@ -76,7 +77,7 @@ func (k *Kubeclient) withDefaults() {
 			d *extnv1beta1.Deployment, err error) {
 			d, err = cli.ExtensionsV1beta1().
 				Deployments(namespace).
-				Get(name, *opts)
+				Get(context.TODO(), name, *opts)
 			return
 		}
 	}

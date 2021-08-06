@@ -470,8 +470,6 @@ func (m *executor) ExecuteIt() (err error) {
 		err = m.patchAppsV1B1Deploy()
 	} else if m.MetaExec.isPatchOEV1alpha1SPC() {
 		err = m.patchOEV1alpha1SPC()
-	} else if m.MetaExec.isPatchOEV1alpha1CSPC() {
-		err = m.patchOEV1alpha1CSPC()
 	} else if m.MetaExec.isPutCoreV1Service() {
 		err = m.putCoreV1Service()
 	} else if m.MetaExec.isPatchV1alpha1VolumeSnapshotData() {
@@ -500,8 +498,6 @@ func (m *executor) ExecuteIt() (err error) {
 		err = m.getV1alpha1VolumeSnapshotData()
 	} else if m.MetaExec.isGetOEV1alpha1SPC() {
 		err = m.getOEV1alpha1SPC()
-	} else if m.MetaExec.isGetOEV1alpha1CSPC() {
-		err = m.getOEV1alpha1CSPC()
 	} else if m.MetaExec.isGetOEV1alpha1SP() {
 		err = m.getOEV1alpha1SP()
 	} else if m.MetaExec.isGetOEV1alpha1CSP() {
@@ -812,34 +808,6 @@ func (m *executor) patchOEV1alpha1SPC() error {
 
 	util.SetNestedField(m.Values, spc, string(v1alpha1.CurrentJSONResultTLP))
 	return nil
-}
-
-// patchOEV1alpha1CSPC will patch a CSPC object in a kubernetes cluster.
-// The patch specifications as configured in the RunTask
-func (m *executor) patchOEV1alpha1CSPC() (err error) {
-	patch, err := asTaskPatch("patchSPC", m.Runtask.Spec.Task, m.Values)
-	if err != nil {
-		return errors.Wrap(err, "failed to patch cspc object")
-	}
-
-	pe, err := newTaskPatchExecutor(patch)
-	if err != nil {
-		return errors.Wrap(err, "failed to patch cspc object")
-	}
-
-	raw, err := pe.toJson()
-	if err != nil {
-		return errors.Wrap(err, "failed to patch cspc object")
-	}
-
-	// patch the CSPC
-	cspc, err := m.getK8sClient().PatchOEV1alpha1CSPCAsRaw(m.getTaskObjectName(), pe.patchType(), raw)
-	if err != nil {
-		return errors.Wrap(err, "failed to patch cspc object")
-	}
-
-	util.SetNestedField(m.Values, cspc, string(v1alpha1.CurrentJSONResultTLP))
-	return
 }
 
 func (m *executor) patchV1alpha1VolumeSnapshotData() (err error) {
@@ -1285,17 +1253,6 @@ func (m *executor) getOEV1alpha1SPC() error {
 
 	util.SetNestedField(m.Values, spc, string(v1alpha1.CurrentJSONResultTLP))
 	return nil
-}
-
-// getOEV1alpha1CSPC() will get the CStorPoolCluster as specified in the RunTask
-func (m *executor) getOEV1alpha1CSPC() (err error) {
-	cspc, err := m.getK8sClient().GetOEV1alpha1CSPCAsRaw(m.getTaskObjectName())
-	if err != nil {
-		return errors.Wrap(err, "failed to get cstor pool cluster")
-	}
-
-	util.SetNestedField(m.Values, cspc, string(v1alpha1.CurrentJSONResultTLP))
-	return
 }
 
 // getOEV1alpha1SP will get the StoragePool as specified in the RunTask

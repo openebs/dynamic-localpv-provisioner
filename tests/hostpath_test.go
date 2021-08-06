@@ -17,6 +17,8 @@ limitations under the License.
 package tests
 
 import (
+	"context"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	deploy "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/apps/v1/deployment"
@@ -64,7 +66,7 @@ var _ = Describe("TEST HOSTPATH LOCAL PV", func() {
 			)
 
 			By("creating above pvc")
-			_, err = ops.PVCClient.WithNamespace(namespaceObj.Name).Create(pvcObj)
+			_, err = ops.PVCClient.WithNamespace(namespaceObj.Name).Create(context.TODO(), pvcObj)
 			Expect(err).To(
 				BeNil(),
 				"while creating pvc {%s} in namespace {%s}",
@@ -121,7 +123,7 @@ var _ = Describe("TEST HOSTPATH LOCAL PV", func() {
 
 			By("creating above deployment")
 			_, err = ops.DeployClient.WithNamespace(namespaceObj.Name).
-				Create(deployObj)
+				Create(context.TODO(), deployObj)
 			Expect(err).To(
 				BeNil(),
 				"while creating deployment {%s} in namespace {%s}",
@@ -140,7 +142,7 @@ var _ = Describe("TEST HOSTPATH LOCAL PV", func() {
 		It("should not have any deployment or running pod", func() {
 
 			By("deleting above deployment")
-			err = ops.DeployClient.WithNamespace(namespaceObj.Name).Delete(deployName, &metav1.DeleteOptions{})
+			err = ops.DeployClient.WithNamespace(namespaceObj.Name).Delete(context.TODO(), deployName, &metav1.DeleteOptions{})
 			Expect(err).To(
 				BeNil(),
 				"while deleting deployment {%s} in namespace {%s}",
@@ -159,7 +161,7 @@ var _ = Describe("TEST HOSTPATH LOCAL PV", func() {
 		It("should delete the pvc", func() {
 
 			By("deleting above pvc")
-			err = ops.PVCClient.Delete(pvcName, &metav1.DeleteOptions{})
+			err = ops.PVCClient.Delete(context.TODO(), pvcName, &metav1.DeleteOptions{})
 			Expect(err).To(
 				BeNil(),
 				"while deleting pvc {%s} in namespace {%s}",

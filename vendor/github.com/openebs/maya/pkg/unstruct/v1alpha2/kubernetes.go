@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha2
 
 import (
+	"context"
 	"strings"
 
 	k8s "github.com/openebs/maya/pkg/client/k8s/v1alpha1"
@@ -103,7 +104,7 @@ func withDefaults(k *Kubeclient) {
 			return cli.
 				Resource(opt.gvr).
 				Namespace(namespace).
-				Get(name, *opt.GetOptions, opt.subresources...)
+				Get(context.TODO(), name, *opt.GetOptions, opt.subresources...)
 		}
 	}
 	if k.create == nil {
@@ -114,7 +115,7 @@ func withDefaults(k *Kubeclient) {
 			return cli.
 				Resource(k8s.GroupVersionResourceFromGVK(obj)).
 				Namespace(obj.GetNamespace()).
-				Create(obj, *opt.CreateOptions, opt.subresources...)
+				Create(context.TODO(), obj, *opt.CreateOptions, opt.subresources...)
 		}
 	}
 	if k.delete == nil {
@@ -124,7 +125,7 @@ func withDefaults(k *Kubeclient) {
 			return cli.
 				Resource(k8s.GroupVersionResourceFromGVK(obj)).
 				Namespace(obj.GetNamespace()).
-				Delete(obj.GetName(), opt.DeleteOptions, opt.subresources...)
+				Delete(context.TODO(), obj.GetName(), *opt.DeleteOptions, opt.subresources...)
 		}
 	}
 }

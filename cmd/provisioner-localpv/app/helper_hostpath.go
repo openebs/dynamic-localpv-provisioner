@@ -20,11 +20,12 @@ and modified to work with the configuration options used by OpenEBS
 package app
 
 import (
+	"context"
 	"path/filepath"
 	"time"
 
 	errors "github.com/pkg/errors"
-	"k8s.io/klog"
+	klog "k8s.io/klog/v2"
 
 	hostpath "github.com/openebs/maya/pkg/hostpath/v1alpha1"
 
@@ -94,7 +95,7 @@ func (pOpts *HelperPodOptions) validate() error {
 // createInitPod launches a helper(busybox) pod, to create the host path.
 //  The local pv expect the hostpath to be already present before mounting
 //  into pod. Validate that the local pv host path is not created under root.
-func (p *Provisioner) createInitPod(pOpts *HelperPodOptions) error {
+func (p *Provisioner) createInitPod(ctx context.Context, pOpts *HelperPodOptions) error {
 	var config podConfig
 	config.pOpts, config.podName = pOpts, "init"
 	//err := pOpts.validate()
@@ -116,12 +117,12 @@ func (p *Provisioner) createInitPod(pOpts *HelperPodOptions) error {
 	//Pass on the taints, to create tolerations.
 	config.taints = pOpts.selectedNodeTaints
 
-	iPod, err := p.launchPod(config)
+	iPod, err := p.launchPod(ctx, config)
 	if err != nil {
 		return err
 	}
 
-	if err := p.exitPod(iPod); err != nil {
+	if err := p.exitPod(ctx, iPod); err != nil {
 		return err
 	}
 
@@ -133,7 +134,7 @@ func (p *Provisioner) createInitPod(pOpts *HelperPodOptions) error {
 //  an unique PV path - under a given BasePath. From the absolute path,
 //  it extracts the base path and the PV path. The helper pod is then launched
 //  by mounting the base path - and performing a delete on the unique PV path.
-func (p *Provisioner) createCleanupPod(pOpts *HelperPodOptions) error {
+func (p *Provisioner) createCleanupPod(ctx context.Context, pOpts *HelperPodOptions) error {
 	var config podConfig
 	config.pOpts, config.podName = pOpts, "cleanup"
 	//err := pOpts.validate()
@@ -153,18 +154,18 @@ func (p *Provisioner) createCleanupPod(pOpts *HelperPodOptions) error {
 		return vErr
 	}
 
-	cPod, err := p.launchPod(config)
+	cPod, err := p.launchPod(ctx, config)
 	if err != nil {
 		return err
 	}
 
-	if err := p.exitPod(cPod); err != nil {
+	if err := p.exitPod(ctx, cPod); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (p *Provisioner) launchPod(config podConfig) (*corev1.Pod, error) {
+func (p *Provisioner) launchPod(ctx context.Context, config podConfig) (*corev1.Pod, error) {
 	// the helper pod need to be launched in privileged mode. This is because in CoreOS
 	// nodes, pods without privileged access cannot write to the host directory.
 	// Helper pods need to create and delete directories on the host.
@@ -206,13 +207,13 @@ func (p *Provisioner) launchPod(config podConfig) (*corev1.Pod, error) {
 	var hPod *corev1.Pod
 
 	//Launch the helper pod.
-	hPod, err = p.kubeClient.CoreV1().Pods(p.namespace).Create(helperPod)
+	hPod, err = p.kubeClient.CoreV1().Pods(p.namespace).Create(ctx, helperPod, metav1.CreateOptions{})
 	return hPod, err
 }
 
-func (p *Provisioner) exitPod(hPod *corev1.Pod) error {
+func (p *Provisioner) exitPod(ctx context.Context, hPod *corev1.Pod) error {
 	defer func() {
-		e := p.kubeClient.CoreV1().Pods(p.namespace).Delete(hPod.Name, &metav1.DeleteOptions{})
+		e := p.kubeClient.CoreV1().Pods(p.namespace).Delete(ctx, hPod.Name, metav1.DeleteOptions{})
 		if e != nil {
 			klog.Errorf("unable to delete the helper pod: %v", e)
 		}
@@ -221,7 +222,7 @@ func (p *Provisioner) exitPod(hPod *corev1.Pod) error {
 	//Wait for the helper pod to complete it job and exit
 	completed := false
 	for i := 0; i < CmdTimeoutCounts; i++ {
-		checkPod, err := p.kubeClient.CoreV1().Pods(p.namespace).Get(hPod.Name, metav1.GetOptions{})
+		checkPod, err := p.kubeClient.CoreV1().Pods(p.namespace).Get(ctx, hPod.Name, metav1.GetOptions{})
 		if err != nil {
 			return err
 		} else if checkPod.Status.Phase == corev1.PodSucceeded {

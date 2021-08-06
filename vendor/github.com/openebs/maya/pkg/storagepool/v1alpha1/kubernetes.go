@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"context"
 	"strings"
 
 	"k8s.io/apimachinery/pkg/types"
@@ -95,7 +96,7 @@ func (k *Kubeclient) withDefaults() {
 			opts metav1.ListOptions) (*apis.StoragePoolList, error) {
 			return cs.OpenebsV1alpha1().
 				StoragePools().
-				List(opts)
+				List(context.TODO(), opts)
 		}
 	}
 
@@ -104,7 +105,7 @@ func (k *Kubeclient) withDefaults() {
 			name string, opts metav1.GetOptions) (*apis.StoragePool, error) {
 			return cs.OpenebsV1alpha1().
 				StoragePools().
-				Get(name, opts)
+				Get(context.TODO(), name, opts)
 		}
 	}
 
@@ -113,7 +114,7 @@ func (k *Kubeclient) withDefaults() {
 			storagePoolObj *apis.StoragePool) (*apis.StoragePool, error) {
 			return cs.OpenebsV1alpha1().
 				StoragePools().
-				Create(storagePoolObj)
+				Create(context.TODO(), storagePoolObj, metav1.CreateOptions{})
 		}
 	}
 
@@ -122,7 +123,7 @@ func (k *Kubeclient) withDefaults() {
 			pt types.PatchType, patchObj []byte) (*apis.StoragePool, error) {
 			return cs.OpenebsV1alpha1().
 				StoragePools().
-				Patch(name, pt, patchObj)
+				Patch(context.TODO(), name, pt, patchObj, metav1.PatchOptions{})
 		}
 	}
 
@@ -131,7 +132,7 @@ func (k *Kubeclient) withDefaults() {
 			opts *metav1.DeleteOptions) error {
 			return cs.OpenebsV1alpha1().
 				StoragePools().
-				Delete(name, opts)
+				Delete(context.TODO(), name, *opts)
 		}
 	}
 }

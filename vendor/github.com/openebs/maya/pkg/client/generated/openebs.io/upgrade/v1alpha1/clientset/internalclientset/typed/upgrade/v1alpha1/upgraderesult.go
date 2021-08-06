@@ -19,6 +19,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"context"
 	"time"
 
 	v1alpha1 "github.com/openebs/maya/pkg/apis/openebs.io/upgrade/v1alpha1"
@@ -37,15 +38,15 @@ type UpgradeResultsGetter interface {
 
 // UpgradeResultInterface has methods to work with UpgradeResult resources.
 type UpgradeResultInterface interface {
-	Create(*v1alpha1.UpgradeResult) (*v1alpha1.UpgradeResult, error)
-	Update(*v1alpha1.UpgradeResult) (*v1alpha1.UpgradeResult, error)
-	UpdateStatus(*v1alpha1.UpgradeResult) (*v1alpha1.UpgradeResult, error)
-	Delete(name string, options *v1.DeleteOptions) error
-	DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error
-	Get(name string, options v1.GetOptions) (*v1alpha1.UpgradeResult, error)
-	List(opts v1.ListOptions) (*v1alpha1.UpgradeResultList, error)
-	Watch(opts v1.ListOptions) (watch.Interface, error)
-	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.UpgradeResult, err error)
+	Create(ctx context.Context, upgradeResult *v1alpha1.UpgradeResult, opts v1.CreateOptions) (*v1alpha1.UpgradeResult, error)
+	Update(ctx context.Context, upgradeResult *v1alpha1.UpgradeResult, opts v1.UpdateOptions) (*v1alpha1.UpgradeResult, error)
+	UpdateStatus(ctx context.Context, upgradeResult *v1alpha1.UpgradeResult, opts v1.UpdateOptions) (*v1alpha1.UpgradeResult, error)
+	Delete(ctx context.Context, name string, opts v1.DeleteOptions) error
+	DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error
+	Get(ctx context.Context, name string, opts v1.GetOptions) (*v1alpha1.UpgradeResult, error)
+	List(ctx context.Context, opts v1.ListOptions) (*v1alpha1.UpgradeResultList, error)
+	Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.UpgradeResult, err error)
 	UpgradeResultExpansion
 }
 
@@ -64,20 +65,20 @@ func newUpgradeResults(c *OpenebsV1alpha1Client, namespace string) *upgradeResul
 }
 
 // Get takes name of the upgradeResult, and returns the corresponding upgradeResult object, and an error if there is any.
-func (c *upgradeResults) Get(name string, options v1.GetOptions) (result *v1alpha1.UpgradeResult, err error) {
+func (c *upgradeResults) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.UpgradeResult, err error) {
 	result = &v1alpha1.UpgradeResult{}
 	err = c.client.Get().
 		Namespace(c.ns).
 		Resource("upgraderesults").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // List takes label and field selectors, and returns the list of UpgradeResults that match those selectors.
-func (c *upgradeResults) List(opts v1.ListOptions) (result *v1alpha1.UpgradeResultList, err error) {
+func (c *upgradeResults) List(ctx context.Context, opts v1.ListOptions) (result *v1alpha1.UpgradeResultList, err error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
@@ -88,13 +89,13 @@ func (c *upgradeResults) List(opts v1.ListOptions) (result *v1alpha1.UpgradeResu
 		Resource("upgraderesults").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Watch returns a watch.Interface that watches the requested upgradeResults.
-func (c *upgradeResults) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *upgradeResults) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
@@ -105,87 +106,90 @@ func (c *upgradeResults) Watch(opts v1.ListOptions) (watch.Interface, error) {
 		Resource("upgraderesults").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Watch()
+		Watch(ctx)
 }
 
 // Create takes the representation of a upgradeResult and creates it.  Returns the server's representation of the upgradeResult, and an error, if there is any.
-func (c *upgradeResults) Create(upgradeResult *v1alpha1.UpgradeResult) (result *v1alpha1.UpgradeResult, err error) {
+func (c *upgradeResults) Create(ctx context.Context, upgradeResult *v1alpha1.UpgradeResult, opts v1.CreateOptions) (result *v1alpha1.UpgradeResult, err error) {
 	result = &v1alpha1.UpgradeResult{}
 	err = c.client.Post().
 		Namespace(c.ns).
 		Resource("upgraderesults").
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(upgradeResult).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Update takes the representation of a upgradeResult and updates it. Returns the server's representation of the upgradeResult, and an error, if there is any.
-func (c *upgradeResults) Update(upgradeResult *v1alpha1.UpgradeResult) (result *v1alpha1.UpgradeResult, err error) {
+func (c *upgradeResults) Update(ctx context.Context, upgradeResult *v1alpha1.UpgradeResult, opts v1.UpdateOptions) (result *v1alpha1.UpgradeResult, err error) {
 	result = &v1alpha1.UpgradeResult{}
 	err = c.client.Put().
 		Namespace(c.ns).
 		Resource("upgraderesults").
 		Name(upgradeResult.Name).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(upgradeResult).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-
-func (c *upgradeResults) UpdateStatus(upgradeResult *v1alpha1.UpgradeResult) (result *v1alpha1.UpgradeResult, err error) {
+func (c *upgradeResults) UpdateStatus(ctx context.Context, upgradeResult *v1alpha1.UpgradeResult, opts v1.UpdateOptions) (result *v1alpha1.UpgradeResult, err error) {
 	result = &v1alpha1.UpgradeResult{}
 	err = c.client.Put().
 		Namespace(c.ns).
 		Resource("upgraderesults").
 		Name(upgradeResult.Name).
 		SubResource("status").
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(upgradeResult).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Delete takes name of the upgradeResult and deletes it. Returns an error if one occurs.
-func (c *upgradeResults) Delete(name string, options *v1.DeleteOptions) error {
+func (c *upgradeResults) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("upgraderesults").
 		Name(name).
-		Body(options).
-		Do().
+		Body(&opts).
+		Do(ctx).
 		Error()
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *upgradeResults) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+func (c *upgradeResults) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
 	var timeout time.Duration
-	if listOptions.TimeoutSeconds != nil {
-		timeout = time.Duration(*listOptions.TimeoutSeconds) * time.Second
+	if listOpts.TimeoutSeconds != nil {
+		timeout = time.Duration(*listOpts.TimeoutSeconds) * time.Second
 	}
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("upgraderesults").
-		VersionedParams(&listOptions, scheme.ParameterCodec).
+		VersionedParams(&listOpts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Body(options).
-		Do().
+		Body(&opts).
+		Do(ctx).
 		Error()
 }
 
 // Patch applies the patch and returns the patched upgradeResult.
-func (c *upgradeResults) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.UpgradeResult, err error) {
+func (c *upgradeResults) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.UpgradeResult, err error) {
 	result = &v1alpha1.UpgradeResult{}
 	err = c.client.Patch(pt).
 		Namespace(c.ns).
 		Resource("upgraderesults").
-		SubResource(subresources...).
 		Name(name).
+		SubResource(subresources...).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(data).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }

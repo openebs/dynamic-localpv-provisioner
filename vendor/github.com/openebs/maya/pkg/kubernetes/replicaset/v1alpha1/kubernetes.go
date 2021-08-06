@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"context"
 	"encoding/json"
 
 	client "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
@@ -76,7 +77,7 @@ func (k *kubeclient) withDefaults() {
 			r *extnv1beta1.ReplicaSet, err error) {
 			r, err = cli.ExtensionsV1beta1().
 				ReplicaSets(namespace).
-				Get(name, opts)
+				Get(context.TODO(), name, opts)
 			return
 		}
 	}
@@ -87,7 +88,7 @@ func (k *kubeclient) withDefaults() {
 			rl *extnv1beta1.ReplicaSetList, err error) {
 			rl, err = cli.ExtensionsV1beta1().
 				ReplicaSets(namespace).
-				List(opts)
+				List(context.TODO(), opts)
 			return
 		}
 	}
@@ -99,7 +100,7 @@ func (k *kubeclient) withDefaults() {
 			opts.PropagationPolicy = &deletePropagation
 			err = cli.ExtensionsV1beta1().
 				ReplicaSets(namespace).
-				Delete(name, opts)
+				Delete(context.TODO(), name, *opts)
 			return
 		}
 	}

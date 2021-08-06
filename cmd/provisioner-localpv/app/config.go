@@ -18,18 +18,18 @@ limitations under the License.
 package app
 
 import (
+	"context"
 	"strings"
 
 	mconfig "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	cast "github.com/openebs/maya/pkg/castemplate/v1alpha1"
 	hostpath "github.com/openebs/maya/pkg/hostpath/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
-	"k8s.io/klog"
+	klog "k8s.io/klog/v2"
 
 	//"github.com/pkg/errors"
 	errors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	//storagev1 "k8s.io/api/storage/v1"
 )
@@ -129,13 +129,13 @@ const (
 // parsing and merging the configuration provided in the PVC
 // annotation - cas.openebs.io/config with the
 // default configuration of the provisioner.
-func (p *Provisioner) GetVolumeConfig(pvName string, pvc *v1.PersistentVolumeClaim) (*VolumeConfig, error) {
+func (p *Provisioner) GetVolumeConfig(ctx context.Context, pvName string, pvc *corev1.PersistentVolumeClaim) (*VolumeConfig, error) {
 
 	pvConfig := p.defaultConfig
 
 	//Fetch the SC
 	scName := GetStorageClassName(pvc)
-	sc, err := p.kubeClient.StorageV1().StorageClasses().Get(*scName, metav1.GetOptions{})
+	sc, err := p.kubeClient.StorageV1().StorageClasses().Get(ctx, *scName, metav1.GetOptions{})
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to get storageclass: missing sc name {%v}", scName)
 	}
@@ -284,7 +284,7 @@ func (c *VolumeConfig) getValue(key string) string {
 }
 
 // GetStorageClassName extracts the StorageClass name from PVC
-func GetStorageClassName(pvc *v1.PersistentVolumeClaim) *string {
+func GetStorageClassName(pvc *corev1.PersistentVolumeClaim) *string {
 	// Use beta annotation first
 	class, found := pvc.Annotations[betaStorageClassAnnotation]
 	if found {
@@ -294,7 +294,7 @@ func GetStorageClassName(pvc *v1.PersistentVolumeClaim) *string {
 }
 
 // GetLocalPVType extracts the Local PV Type from PV
-func GetLocalPVType(pv *v1.PersistentVolume) string {
+func GetLocalPVType(pv *corev1.PersistentVolume) string {
 	casType, found := pv.Labels[string(mconfig.CASTypeKey)]
 	if found {
 		return casType
@@ -305,7 +305,7 @@ func GetLocalPVType(pv *v1.PersistentVolume) string {
 // GetNodeHostname extracts the Hostname from the labels on the Node
 // If hostname label `kubernetes.io/hostname` is not present
 // an empty string is returned.
-func GetNodeHostname(n *v1.Node) string {
+func GetNodeHostname(n *corev1.Node) string {
 	hostname, found := n.Labels[k8sNodeLabelKeyHostname]
 	if !found {
 		return ""
@@ -315,7 +315,7 @@ func GetNodeHostname(n *v1.Node) string {
 
 // GetNodeLabelValue extracts the value from the given label on the Node
 // If specificed label is not present an empty string is returned.
-func GetNodeLabelValue(n *v1.Node, labelKey string) string {
+func GetNodeLabelValue(n *corev1.Node, labelKey string) string {
 	labelValue, found := n.Labels[labelKey]
 	if !found {
 		return ""
@@ -325,7 +325,7 @@ func GetNodeLabelValue(n *v1.Node, labelKey string) string {
 
 // GetTaints extracts the Taints from the Spec on the node
 // If Taints are empty, it just returns empty structure of corev1.Taints
-func GetTaints(n *v1.Node) []v1.Taint {
+func GetTaints(n *corev1.Node) []corev1.Taint {
 	return n.Spec.Taints
 }
 

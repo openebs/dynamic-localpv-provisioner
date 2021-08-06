@@ -17,10 +17,12 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"context"
+	"strings"
+
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"strings"
 )
 
 // ConfigMapGetter abstracts fetching of ConfigMap instance from kubernetes
@@ -48,5 +50,5 @@ func (c *configmap) Get(options metav1.GetOptions) (cm *corev1.ConfigMap, err er
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to get config map %s %s", c.namespace, c.name)
 	}
-	return cs.CoreV1().ConfigMaps(c.namespace).Get(c.name, options)
+	return cs.CoreV1().ConfigMaps(c.namespace).Get(context.TODO(), c.name, options)
 }

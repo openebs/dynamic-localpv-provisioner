@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"context"
 	"sync"
 
 	client "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
@@ -113,31 +114,36 @@ func (k *Kubeclient) withDefaults() {
 	}
 	if k.list == nil {
 		k.list = func(cli *clientset.Clientset, opts metav1.ListOptions) (*apis.StoragePoolClaimList, error) {
-			return cli.OpenebsV1alpha1().StoragePoolClaims().List(opts)
+			return cli.OpenebsV1alpha1().StoragePoolClaims().
+				List(context.TODO(), opts)
 		}
 	}
 
 	if k.get == nil {
 		k.get = func(cli *clientset.Clientset, name string, opts metav1.GetOptions) (*apis.StoragePoolClaim, error) {
-			return cli.OpenebsV1alpha1().StoragePoolClaims().Get(name, opts)
+			return cli.OpenebsV1alpha1().StoragePoolClaims().
+				Get(context.TODO(), name, opts)
 		}
 	}
 
 	if k.create == nil {
 		k.create = func(cli *clientset.Clientset, spc *apis.StoragePoolClaim) (*apis.StoragePoolClaim, error) {
-			return cli.OpenebsV1alpha1().StoragePoolClaims().Create(spc)
+			return cli.OpenebsV1alpha1().StoragePoolClaims().
+				Create(context.TODO(), spc, metav1.CreateOptions{})
 		}
 	}
 
 	if k.update == nil {
 		k.update = func(cli *clientset.Clientset, spc *apis.StoragePoolClaim) (*apis.StoragePoolClaim, error) {
-			return cli.OpenebsV1alpha1().StoragePoolClaims().Update(spc)
+			return cli.OpenebsV1alpha1().StoragePoolClaims().
+				Update(context.TODO(), spc, metav1.UpdateOptions{})
 		}
 	}
 
 	if k.del == nil {
 		k.del = func(cli *clientset.Clientset, name string, opts *metav1.DeleteOptions) error {
-			return cli.OpenebsV1alpha1().StoragePoolClaims().Delete(name, opts)
+			return cli.OpenebsV1alpha1().StoragePoolClaims().
+				Delete(context.TODO(), name, *opts)
 		}
 	}
 }

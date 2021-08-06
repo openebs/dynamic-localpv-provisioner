@@ -19,6 +19,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"context"
 	"time"
 
 	v1alpha1 "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
@@ -37,14 +38,14 @@ type StoragePoolClaimsGetter interface {
 
 // StoragePoolClaimInterface has methods to work with StoragePoolClaim resources.
 type StoragePoolClaimInterface interface {
-	Create(*v1alpha1.StoragePoolClaim) (*v1alpha1.StoragePoolClaim, error)
-	Update(*v1alpha1.StoragePoolClaim) (*v1alpha1.StoragePoolClaim, error)
-	Delete(name string, options *v1.DeleteOptions) error
-	DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error
-	Get(name string, options v1.GetOptions) (*v1alpha1.StoragePoolClaim, error)
-	List(opts v1.ListOptions) (*v1alpha1.StoragePoolClaimList, error)
-	Watch(opts v1.ListOptions) (watch.Interface, error)
-	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.StoragePoolClaim, err error)
+	Create(ctx context.Context, storagePoolClaim *v1alpha1.StoragePoolClaim, opts v1.CreateOptions) (*v1alpha1.StoragePoolClaim, error)
+	Update(ctx context.Context, storagePoolClaim *v1alpha1.StoragePoolClaim, opts v1.UpdateOptions) (*v1alpha1.StoragePoolClaim, error)
+	Delete(ctx context.Context, name string, opts v1.DeleteOptions) error
+	DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error
+	Get(ctx context.Context, name string, opts v1.GetOptions) (*v1alpha1.StoragePoolClaim, error)
+	List(ctx context.Context, opts v1.ListOptions) (*v1alpha1.StoragePoolClaimList, error)
+	Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.StoragePoolClaim, err error)
 	StoragePoolClaimExpansion
 }
 
@@ -61,19 +62,19 @@ func newStoragePoolClaims(c *OpenebsV1alpha1Client) *storagePoolClaims {
 }
 
 // Get takes name of the storagePoolClaim, and returns the corresponding storagePoolClaim object, and an error if there is any.
-func (c *storagePoolClaims) Get(name string, options v1.GetOptions) (result *v1alpha1.StoragePoolClaim, err error) {
+func (c *storagePoolClaims) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.StoragePoolClaim, err error) {
 	result = &v1alpha1.StoragePoolClaim{}
 	err = c.client.Get().
 		Resource("storagepoolclaims").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // List takes label and field selectors, and returns the list of StoragePoolClaims that match those selectors.
-func (c *storagePoolClaims) List(opts v1.ListOptions) (result *v1alpha1.StoragePoolClaimList, err error) {
+func (c *storagePoolClaims) List(ctx context.Context, opts v1.ListOptions) (result *v1alpha1.StoragePoolClaimList, err error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
@@ -83,13 +84,13 @@ func (c *storagePoolClaims) List(opts v1.ListOptions) (result *v1alpha1.StorageP
 		Resource("storagepoolclaims").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Watch returns a watch.Interface that watches the requested storagePoolClaims.
-func (c *storagePoolClaims) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *storagePoolClaims) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
@@ -99,66 +100,69 @@ func (c *storagePoolClaims) Watch(opts v1.ListOptions) (watch.Interface, error) 
 		Resource("storagepoolclaims").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Watch()
+		Watch(ctx)
 }
 
 // Create takes the representation of a storagePoolClaim and creates it.  Returns the server's representation of the storagePoolClaim, and an error, if there is any.
-func (c *storagePoolClaims) Create(storagePoolClaim *v1alpha1.StoragePoolClaim) (result *v1alpha1.StoragePoolClaim, err error) {
+func (c *storagePoolClaims) Create(ctx context.Context, storagePoolClaim *v1alpha1.StoragePoolClaim, opts v1.CreateOptions) (result *v1alpha1.StoragePoolClaim, err error) {
 	result = &v1alpha1.StoragePoolClaim{}
 	err = c.client.Post().
 		Resource("storagepoolclaims").
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(storagePoolClaim).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Update takes the representation of a storagePoolClaim and updates it. Returns the server's representation of the storagePoolClaim, and an error, if there is any.
-func (c *storagePoolClaims) Update(storagePoolClaim *v1alpha1.StoragePoolClaim) (result *v1alpha1.StoragePoolClaim, err error) {
+func (c *storagePoolClaims) Update(ctx context.Context, storagePoolClaim *v1alpha1.StoragePoolClaim, opts v1.UpdateOptions) (result *v1alpha1.StoragePoolClaim, err error) {
 	result = &v1alpha1.StoragePoolClaim{}
 	err = c.client.Put().
 		Resource("storagepoolclaims").
 		Name(storagePoolClaim.Name).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(storagePoolClaim).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Delete takes name of the storagePoolClaim and deletes it. Returns an error if one occurs.
-func (c *storagePoolClaims) Delete(name string, options *v1.DeleteOptions) error {
+func (c *storagePoolClaims) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	return c.client.Delete().
 		Resource("storagepoolclaims").
 		Name(name).
-		Body(options).
-		Do().
+		Body(&opts).
+		Do(ctx).
 		Error()
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *storagePoolClaims) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+func (c *storagePoolClaims) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
 	var timeout time.Duration
-	if listOptions.TimeoutSeconds != nil {
-		timeout = time.Duration(*listOptions.TimeoutSeconds) * time.Second
+	if listOpts.TimeoutSeconds != nil {
+		timeout = time.Duration(*listOpts.TimeoutSeconds) * time.Second
 	}
 	return c.client.Delete().
 		Resource("storagepoolclaims").
-		VersionedParams(&listOptions, scheme.ParameterCodec).
+		VersionedParams(&listOpts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Body(options).
-		Do().
+		Body(&opts).
+		Do(ctx).
 		Error()
 }
 
 // Patch applies the patch and returns the patched storagePoolClaim.
-func (c *storagePoolClaims) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.StoragePoolClaim, err error) {
+func (c *storagePoolClaims) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.StoragePoolClaim, err error) {
 	result = &v1alpha1.StoragePoolClaim{}
 	err = c.client.Patch(pt).
 		Resource("storagepoolclaims").
-		SubResource(subresources...).
 		Name(name).
+		SubResource(subresources...).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(data).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }

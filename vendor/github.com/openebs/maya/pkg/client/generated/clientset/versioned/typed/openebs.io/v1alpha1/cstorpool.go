@@ -19,6 +19,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"context"
 	"time"
 
 	v1alpha1 "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
@@ -37,14 +38,14 @@ type CStorPoolsGetter interface {
 
 // CStorPoolInterface has methods to work with CStorPool resources.
 type CStorPoolInterface interface {
-	Create(*v1alpha1.CStorPool) (*v1alpha1.CStorPool, error)
-	Update(*v1alpha1.CStorPool) (*v1alpha1.CStorPool, error)
-	Delete(name string, options *v1.DeleteOptions) error
-	DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error
-	Get(name string, options v1.GetOptions) (*v1alpha1.CStorPool, error)
-	List(opts v1.ListOptions) (*v1alpha1.CStorPoolList, error)
-	Watch(opts v1.ListOptions) (watch.Interface, error)
-	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.CStorPool, err error)
+	Create(ctx context.Context, cStorPool *v1alpha1.CStorPool, opts v1.CreateOptions) (*v1alpha1.CStorPool, error)
+	Update(ctx context.Context, cStorPool *v1alpha1.CStorPool, opts v1.UpdateOptions) (*v1alpha1.CStorPool, error)
+	Delete(ctx context.Context, name string, opts v1.DeleteOptions) error
+	DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error
+	Get(ctx context.Context, name string, opts v1.GetOptions) (*v1alpha1.CStorPool, error)
+	List(ctx context.Context, opts v1.ListOptions) (*v1alpha1.CStorPoolList, error)
+	Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.CStorPool, err error)
 	CStorPoolExpansion
 }
 
@@ -61,19 +62,19 @@ func newCStorPools(c *OpenebsV1alpha1Client) *cStorPools {
 }
 
 // Get takes name of the cStorPool, and returns the corresponding cStorPool object, and an error if there is any.
-func (c *cStorPools) Get(name string, options v1.GetOptions) (result *v1alpha1.CStorPool, err error) {
+func (c *cStorPools) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.CStorPool, err error) {
 	result = &v1alpha1.CStorPool{}
 	err = c.client.Get().
 		Resource("cstorpools").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // List takes label and field selectors, and returns the list of CStorPools that match those selectors.
-func (c *cStorPools) List(opts v1.ListOptions) (result *v1alpha1.CStorPoolList, err error) {
+func (c *cStorPools) List(ctx context.Context, opts v1.ListOptions) (result *v1alpha1.CStorPoolList, err error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
@@ -83,13 +84,13 @@ func (c *cStorPools) List(opts v1.ListOptions) (result *v1alpha1.CStorPoolList, 
 		Resource("cstorpools").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Watch returns a watch.Interface that watches the requested cStorPools.
-func (c *cStorPools) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *cStorPools) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
@@ -99,66 +100,69 @@ func (c *cStorPools) Watch(opts v1.ListOptions) (watch.Interface, error) {
 		Resource("cstorpools").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Watch()
+		Watch(ctx)
 }
 
 // Create takes the representation of a cStorPool and creates it.  Returns the server's representation of the cStorPool, and an error, if there is any.
-func (c *cStorPools) Create(cStorPool *v1alpha1.CStorPool) (result *v1alpha1.CStorPool, err error) {
+func (c *cStorPools) Create(ctx context.Context, cStorPool *v1alpha1.CStorPool, opts v1.CreateOptions) (result *v1alpha1.CStorPool, err error) {
 	result = &v1alpha1.CStorPool{}
 	err = c.client.Post().
 		Resource("cstorpools").
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(cStorPool).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Update takes the representation of a cStorPool and updates it. Returns the server's representation of the cStorPool, and an error, if there is any.
-func (c *cStorPools) Update(cStorPool *v1alpha1.CStorPool) (result *v1alpha1.CStorPool, err error) {
+func (c *cStorPools) Update(ctx context.Context, cStorPool *v1alpha1.CStorPool, opts v1.UpdateOptions) (result *v1alpha1.CStorPool, err error) {
 	result = &v1alpha1.CStorPool{}
 	err = c.client.Put().
 		Resource("cstorpools").
 		Name(cStorPool.Name).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(cStorPool).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Delete takes name of the cStorPool and deletes it. Returns an error if one occurs.
-func (c *cStorPools) Delete(name string, options *v1.DeleteOptions) error {
+func (c *cStorPools) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	return c.client.Delete().
 		Resource("cstorpools").
 		Name(name).
-		Body(options).
-		Do().
+		Body(&opts).
+		Do(ctx).
 		Error()
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *cStorPools) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+func (c *cStorPools) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
 	var timeout time.Duration
-	if listOptions.TimeoutSeconds != nil {
-		timeout = time.Duration(*listOptions.TimeoutSeconds) * time.Second
+	if listOpts.TimeoutSeconds != nil {
+		timeout = time.Duration(*listOpts.TimeoutSeconds) * time.Second
 	}
 	return c.client.Delete().
 		Resource("cstorpools").
-		VersionedParams(&listOptions, scheme.ParameterCodec).
+		VersionedParams(&listOpts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Body(options).
-		Do().
+		Body(&opts).
+		Do(ctx).
 		Error()
 }
 
 // Patch applies the patch and returns the patched cStorPool.
-func (c *cStorPools) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.CStorPool, err error) {
+func (c *cStorPools) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.CStorPool, err error) {
 	result = &v1alpha1.CStorPool{}
 	err = c.client.Patch(pt).
 		Resource("cstorpools").
-		SubResource(subresources...).
 		Name(name).
+		SubResource(subresources...).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(data).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }

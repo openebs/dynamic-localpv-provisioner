@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"context"
 	"errors"
 	"strings"
 
@@ -64,7 +65,7 @@ func (k *Kubeclient) withDefaults() {
 
 	if k.get == nil {
 		k.get = func(cs *clientset.Clientset, name string, opts metav1.GetOptions) (*apis.CASTemplate, error) {
-			return cs.OpenebsV1alpha1().CASTemplates().Get(name, opts)
+			return cs.OpenebsV1alpha1().CASTemplates().Get(context.TODO(), name, opts)
 		}
 	}
 }

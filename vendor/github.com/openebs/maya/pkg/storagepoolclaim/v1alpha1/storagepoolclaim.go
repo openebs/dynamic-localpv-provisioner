@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -181,6 +182,7 @@ func (spc *SPC) addSPCFinalizerOnAssociatedBDCs() error {
 	namespace := env.Get(env.OpenEBSNamespace)
 
 	bdcList, err := bdc.NewKubeClient().WithNamespace(namespace).List(
+		context.TODO(),
 		metav1.ListOptions{
 			LabelSelector: string(apis.StoragePoolClaimCPK) + "=" + spc.Object.Name,
 		})

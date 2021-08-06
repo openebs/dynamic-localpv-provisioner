@@ -15,6 +15,7 @@
 package v1alpha1
 
 import (
+	"context"
 	"encoding/json"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
@@ -142,7 +143,7 @@ func defaultGet(
 ) (*apis.CStorVolume, error) {
 	return cli.OpenebsV1alpha1().
 		CStorVolumes(namespace).
-		Get(name, opts)
+		Get(context.TODO(), name, opts)
 }
 
 func defaultUpdate(
@@ -152,7 +153,7 @@ func defaultUpdate(
 ) (*apis.CStorVolume, error) {
 	return cli.OpenebsV1alpha1().
 		CStorVolumes(namespace).
-		Update(vol)
+		Update(context.TODO(), vol, metav1.UpdateOptions{})
 }
 
 // defaultList is the default implementation to list
@@ -164,7 +165,7 @@ func defaultList(
 ) (*apis.CStorVolumeList, error) {
 	return cli.OpenebsV1alpha1().
 		CStorVolumes(namespace).
-		List(opts)
+		List(context.TODO(), opts)
 }
 
 // defaultDel is the default implementation to delete a
@@ -183,7 +184,7 @@ func defaultDel(
 	opts.PropagationPolicy = &deletePropagation
 	err := cli.OpenebsV1alpha1().
 		CStorVolumes(namespace).
-		Delete(name, opts)
+		Delete(context.TODO(), name, *opts)
 	return err
 }
 
@@ -196,7 +197,7 @@ func defaultCreate(
 ) (*apis.CStorVolume, error) {
 	return cli.OpenebsV1alpha1().
 		CStorVolumes(namespace).
-		Create(vol)
+		Create(context.TODO(), vol, metav1.CreateOptions{})
 }
 
 // defaultPatch is the default implementation to
@@ -209,7 +210,7 @@ func defaultPatch(
 ) (*apis.CStorVolume, error) {
 	return cli.OpenebsV1alpha1().
 		CStorVolumes(namespace).
-		Patch(name, pt, data)
+		Patch(context.TODO(), name, pt, data, metav1.PatchOptions{})
 }
 
 // withDefaults sets the default options

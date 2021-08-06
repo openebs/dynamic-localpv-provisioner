@@ -8,6 +8,8 @@ import (
 	fmt "fmt"
 	proto "github.com/golang/protobuf/proto"
 	grpc "google.golang.org/grpc"
+	codes "google.golang.org/grpc/codes"
+	status "google.golang.org/grpc/status"
 	math "math"
 )
 
@@ -300,6 +302,17 @@ func (c *runSnapCommandClient) RunVolumeSnapDeleteCommand(ctx context.Context, i
 type RunSnapCommandServer interface {
 	RunVolumeSnapCreateCommand(context.Context, *VolumeSnapCreateRequest) (*VolumeSnapCreateResponse, error)
 	RunVolumeSnapDeleteCommand(context.Context, *VolumeSnapDeleteRequest) (*VolumeSnapDeleteResponse, error)
+}
+
+// UnimplementedRunSnapCommandServer can be embedded to have forward compatible implementations.
+type UnimplementedRunSnapCommandServer struct {
+}
+
+func (*UnimplementedRunSnapCommandServer) RunVolumeSnapCreateCommand(ctx context.Context, req *VolumeSnapCreateRequest) (*VolumeSnapCreateResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RunVolumeSnapCreateCommand not implemented")
+}
+func (*UnimplementedRunSnapCommandServer) RunVolumeSnapDeleteCommand(ctx context.Context, req *VolumeSnapDeleteRequest) (*VolumeSnapDeleteResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RunVolumeSnapDeleteCommand not implemented")
 }
 
 func RegisterRunSnapCommandServer(s *grpc.Server, srv RunSnapCommandServer) {

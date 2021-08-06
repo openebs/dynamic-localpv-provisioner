@@ -24,9 +24,10 @@ import (
 	//"fmt"
 	//"path/filepath"
 	//"strings"
+	"context"
 	"time"
 
-	"k8s.io/klog"
+	klog "k8s.io/klog/v2"
 	//"github.com/pkg/errors"
 	errors "github.com/pkg/errors"
 
@@ -38,6 +39,7 @@ import (
 	blockdevice "github.com/openebs/maya/pkg/blockdevice/v1alpha2"
 	blockdeviceclaim "github.com/openebs/maya/pkg/blockdeviceclaim/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
+
 	//ndmv1alpha1 "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -96,7 +98,7 @@ func (blkDevOpts *HelperBlockDeviceOptions) setBlockDeviceClaimFromPV(pv *corev1
 
 // createBlockDeviceClaim creates a new BlockDeviceClaim for a given
 //  Local PV
-func (p *Provisioner) createBlockDeviceClaim(blkDevOpts *HelperBlockDeviceOptions) error {
+func (p *Provisioner) createBlockDeviceClaim(ctx context.Context, blkDevOpts *HelperBlockDeviceOptions) error {
 	klog.V(4).Infof("Creating Block Device Claim")
 	if err := blkDevOpts.validate(); err != nil {
 		return err
@@ -114,7 +116,7 @@ func (p *Provisioner) createBlockDeviceClaim(blkDevOpts *HelperBlockDeviceOption
 	//creating a BDC, but BD was not yet available for 60+ seconds
 	_, err := blockdeviceclaim.NewKubeClient().
 		WithNamespace(p.namespace).
-		Get(bdcName, metav1.GetOptions{})
+		Get(ctx, bdcName, metav1.GetOptions{})
 	if err == nil {
 		blkDevOpts.bdcName = bdcName
 		klog.Infof("Volume %v has been initialized with BDC:%v", blkDevOpts.name, bdcName)
@@ -143,7 +145,7 @@ func (p *Provisioner) createBlockDeviceClaim(blkDevOpts *HelperBlockDeviceOption
 
 	_, err = blockdeviceclaim.NewKubeClient().
 		WithNamespace(p.namespace).
-		Create(bdcObj.Object)
+		Create(ctx, bdcObj.Object)
 
 	if err != nil {
 		//TODO : Need to relook at this error
@@ -158,11 +160,11 @@ func (p *Provisioner) createBlockDeviceClaim(blkDevOpts *HelperBlockDeviceOption
 
 // getBlockDevicePath fetches the BDC associated with this Local PV
 // or creates one. From the BDC, fetch the BD and get the path
-func (p *Provisioner) getBlockDevicePath(blkDevOpts *HelperBlockDeviceOptions) (string, string, error) {
+func (p *Provisioner) getBlockDevicePath(ctx context.Context, blkDevOpts *HelperBlockDeviceOptions) (string, string, error) {
 
 	klog.V(4).Infof("Getting Block Device Path")
 	if !blkDevOpts.hasBDC() {
-		err := p.createBlockDeviceClaim(blkDevOpts)
+		err := p.createBlockDeviceClaim(ctx, blkDevOpts)
 		if err != nil {
 			return "", "", err
 		}
@@ -176,7 +178,7 @@ func (p *Provisioner) getBlockDevicePath(blkDevOpts *HelperBlockDeviceOptions) (
 
 		bdc, err := blockdeviceclaim.NewKubeClient().
 			WithNamespace(p.namespace).
-			Get(blkDevOpts.bdcName, metav1.GetOptions{})
+			Get(ctx, blkDevOpts.bdcName, metav1.GetOptions{})
 		if err != nil {
 			//TODO : Need to relook at this error
 			//If the error is about BDC being already present, then return nil
@@ -195,7 +197,7 @@ func (p *Provisioner) getBlockDevicePath(blkDevOpts *HelperBlockDeviceOptions) (
 	// if bdName not found should delete BDC and return err
 	if bdName == "" {
 		err := errors.Errorf("unable to find BD for BDC:%v associated with PV:%v and try to delete BDC", blkDevOpts.bdcName, blkDevOpts.name)
-		delErr := p.deleteBlockDeviceClaim(blkDevOpts)
+		delErr := p.deleteBlockDeviceClaim(ctx, blkDevOpts)
 		if delErr != nil {
 			return "", "", delErr
 		} else {
@@ -232,13 +234,13 @@ func (p *Provisioner) getBlockDevicePath(blkDevOpts *HelperBlockDeviceOptions) (
 
 // deleteBlockDeviceClaim deletes the BlockDeviceClaim associated with the
 //  PV being deleted.
-func (p *Provisioner) deleteBlockDeviceClaim(blkDevOpts *HelperBlockDeviceOptions) error {
+func (p *Provisioner) deleteBlockDeviceClaim(ctx context.Context, blkDevOpts *HelperBlockDeviceOptions) error {
 	klog.V(4).Infof("Delete Block Device Claim")
 	if !blkDevOpts.hasBDC() {
 		return nil
 	}
 
-	err := p.removeFinalizer(blkDevOpts)
+	err := p.removeFinalizer(ctx, blkDevOpts)
 	if err != nil {
 		// if finalizer is not removed, donot proceed with deletion
 		return errors.Errorf("unable to remove finalizer on BDC %v : %v", blkDevOpts.name, err)
@@ -246,7 +248,7 @@ func (p *Provisioner) deleteBlockDeviceClaim(blkDevOpts *HelperBlockDeviceOption
 
 	err = blockdeviceclaim.NewKubeClient().
 		WithNamespace(p.namespace).
-		Delete(blkDevOpts.bdcName, &metav1.DeleteOptions{})
+		Delete(ctx, blkDevOpts.bdcName, &metav1.DeleteOptions{})
 
 	if err != nil {
 		//TODO : Need to relook at this error
@@ -256,12 +258,12 @@ func (p *Provisioner) deleteBlockDeviceClaim(blkDevOpts *HelperBlockDeviceOption
 }
 
 //
-func (p *Provisioner) removeFinalizer(blkDevOpts *HelperBlockDeviceOptions) error {
+func (p *Provisioner) removeFinalizer(ctx context.Context, blkDevOpts *HelperBlockDeviceOptions) error {
 	klog.V(4).Info("removing local-pv finalizer on the BDC")
 
 	bdc, err := blockdeviceclaim.NewKubeClient().
 		WithNamespace(p.namespace).
-		Get(blkDevOpts.bdcName, metav1.GetOptions{})
+		Get(ctx, blkDevOpts.bdcName, metav1.GetOptions{})
 	if err != nil {
 		return errors.Errorf("unable to get BDC %s for removing finalizer", blkDevOpts.bdcName)
 	}
@@ -272,7 +274,7 @@ func (p *Provisioner) removeFinalizer(blkDevOpts *HelperBlockDeviceOptions) erro
 	// udpate the BDC with the new finalizer array
 	_, err = blockdeviceclaim.NewKubeClient().
 		WithNamespace(p.namespace).
-		Update(bdc)
+		Update(ctx, bdc)
 
 	return err
 }

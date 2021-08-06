@@ -17,6 +17,7 @@ limitations under the License.
 package k8s
 
 import (
+	"context"
 	"encoding/json"
 
 	openebs "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
@@ -208,11 +209,6 @@ type K8sClient struct {
 	// during unit testing
 	StoragePoolClaim *api_oe_v1alpha1.StoragePoolClaim
 
-	// CStorPoolCluster refers to a K8s CStorPoolCluster CRD object
-	// NOTE: This property is useful to mock
-	// during unit testing
-	CStorPoolCluster *api_oe_v1alpha1.CStorPoolCluster
-
 	// StoragePool refers to a K8s StoragePool CRD object
 	// NOTE: This property is useful to mock
 	// during unit testing
@@ -306,7 +302,7 @@ func (k *K8sClient) GetStorageV1SC(name string, opts mach_apis_meta_v1.GetOption
 	}
 
 	scops := k.storageV1SCOps()
-	return scops.Get(name, opts)
+	return scops.Get(context.TODO(), name, opts)
 }
 
 // GetStorageV1SCAsRaw returns a StorageClass instance
@@ -316,7 +312,7 @@ func (k *K8sClient) GetStorageV1SCAsRaw(name string) (result []byte, err error) 
 		Resource("storageclasses").
 		Name(name).
 		VersionedParams(&mach_apis_meta_v1.GetOptions{}, scheme.ParameterCodec).
-		DoRaw()
+		DoRaw(context.TODO())
 
 	return
 }
@@ -329,19 +325,13 @@ func (k *K8sClient) GetBatchV1JobAsRaw(name string) (result []byte, err error) {
 		Namespace(k.ns).
 		Name(name).
 		VersionedParams(&mach_apis_meta_v1.GetOptions{}, scheme.ParameterCodec).
-		DoRaw()
+		DoRaw(context.TODO())
 }
 
 // oeV1alpha1SPCOps is a utility function that provides a instance capable of
 // executing various OpenEBS StoragePoolClaim related operations
 func (k *K8sClient) oeV1alpha1SPCOps() typed_oe_v1alpha1.StoragePoolClaimInterface {
 	return k.oecs.OpenebsV1alpha1().StoragePoolClaims()
-}
-
-// oeV1alpha1CSPCOps is a utility function that provides a instance capable of
-// executing various OpenEBS CStorPoolCluster related operations
-func (k *K8sClient) oeV1alpha1CSPCOps() typed_oe_v1alpha1.CStorPoolClusterInterface {
-	return k.oecs.OpenebsV1alpha1().CStorPoolClusters(k.ns)
 }
 
 // oeV1alpha1SPOps is a utility function that provides a instance capable of
@@ -370,7 +360,7 @@ func (k *K8sClient) GetOEV1alpha1CSP(name string) (*api_oe_v1alpha1.CStorPool, e
 	}
 
 	cspOps := k.oeV1alpha1CSPOps()
-	return cspOps.Get(name, mach_apis_meta_v1.GetOptions{})
+	return cspOps.Get(context.TODO(), name, mach_apis_meta_v1.GetOptions{})
 }
 
 // GetOEV1alpha1BlockDevice fetches the disk specs based on
@@ -381,7 +371,7 @@ func (k *K8sClient) GetOEV1alpha1BlockDevice(name string) (*api_ndm_v1alpha1.Blo
 	}
 
 	diskOps := k.ndmV1alpha1BlockDeviceOps()
-	return diskOps.Get(name, mach_apis_meta_v1.GetOptions{})
+	return diskOps.Get(context.TODO(), name, mach_apis_meta_v1.GetOptions{})
 }
 
 // GetOEV1alpha1SPC fetches the OpenEBS StoragePoolClaim specs based on
@@ -392,18 +382,7 @@ func (k *K8sClient) GetOEV1alpha1SPC(name string) (*api_oe_v1alpha1.StoragePoolC
 	}
 
 	spcOps := k.oeV1alpha1SPCOps()
-	return spcOps.Get(name, mach_apis_meta_v1.GetOptions{})
-}
-
-// GetOEV1alpha1CSPC fetches the OpenEBS CStorPoolCluster specs based on
-// the provided name
-func (k *K8sClient) GetOEV1alpha1CSPC(name string) (*api_oe_v1alpha1.CStorPoolCluster, error) {
-	if k.CStorPoolCluster != nil {
-		return k.CStorPoolCluster, nil
-	}
-
-	cspcOps := k.oeV1alpha1CSPCOps()
-	return cspcOps.Get(name, mach_apis_meta_v1.GetOptions{})
+	return spcOps.Get(context.TODO(), name, mach_apis_meta_v1.GetOptions{})
 }
 
 // GetOEV1alpha1SP fetches the OpenEBS StoragePool specs based on
@@ -414,25 +393,25 @@ func (k *K8sClient) GetOEV1alpha1SP(name string) (*api_oe_v1alpha1.StoragePool, 
 	}
 
 	spOps := k.oeV1alpha1SPOps()
-	return spOps.Get(name, mach_apis_meta_v1.GetOptions{})
+	return spOps.Get(context.TODO(), name, mach_apis_meta_v1.GetOptions{})
 }
 
 // CreateOEV1alpha1CSP creates a CStorPool
 func (k *K8sClient) CreateOEV1alpha1CSP(csp *api_oe_v1alpha1.CStorPool) (*api_oe_v1alpha1.CStorPool, error) {
 	cspops := k.oeV1alpha1CSPOps()
-	return cspops.Create(csp)
+	return cspops.Create(context.TODO(), csp, mach_apis_meta_v1.CreateOptions{})
 }
 
 // CreateOEV1alpha1SP creates a StoragePool
 func (k *K8sClient) CreateOEV1alpha1SP(sp *api_oe_v1alpha1.StoragePool) (*api_oe_v1alpha1.StoragePool, error) {
 	spops := k.oeV1alpha1SPOps()
-	return spops.Create(sp)
+	return spops.Create(context.TODO(), sp, mach_apis_meta_v1.CreateOptions{})
 }
 
 // CreateOEV1alpha1CV creates a CStorVolume
 func (k *K8sClient) CreateOEV1alpha1CV(cv *api_oe_v1alpha1.CStorVolume) (*api_oe_v1alpha1.CStorVolume, error) {
 	cvops := k.oeV1alpha1CVOps()
-	return cvops.Create(cv)
+	return cvops.Create(context.TODO(), cv, mach_apis_meta_v1.CreateOptions{})
 }
 
 // oeV1alpha1CVOps is a utility function that provides a instance capable of
@@ -449,7 +428,7 @@ func (k *K8sClient) GetOEV1alpha1CV(name string) (*api_oe_v1alpha1.CStorVolume, 
 	}
 
 	cvOps := k.oeV1alpha1CVOps()
-	return cvOps.Get(name, mach_apis_meta_v1.GetOptions{})
+	return cvOps.Get(context.TODO(), name, mach_apis_meta_v1.GetOptions{})
 }
 
 // CreateOEV1alpha1CSPAsRaw creates a CStorVolume
@@ -483,7 +462,7 @@ func (k *K8sClient) CreateOEV1alpha1CVAsRaw(v *api_oe_v1alpha1.CStorVolume) (res
 // CreateOEV1alpha1CVR creates a CStorVolumeReplica
 func (k *K8sClient) CreateOEV1alpha1CVR(cvr *api_oe_v1alpha1.CStorVolumeReplica) (*api_oe_v1alpha1.CStorVolumeReplica, error) {
 	cvrops := k.oeV1alpha1CVROps()
-	return cvrops.Create(cvr)
+	return cvrops.Create(context.TODO(), cvr, mach_apis_meta_v1.CreateOptions{})
 }
 
 // oeV1alpha1CVROps is a utility function that provides a instance capable of
@@ -500,7 +479,7 @@ func (k *K8sClient) GetOEV1alpha1CVR(name string) (*api_oe_v1alpha1.CStorVolumeR
 	}
 
 	cvrOps := k.oeV1alpha1CVROps()
-	return cvrOps.Get(name, mach_apis_meta_v1.GetOptions{})
+	return cvrOps.Get(context.TODO(), name, mach_apis_meta_v1.GetOptions{})
 }
 
 // CreateOEV1alpha1CVRAsRaw creates a CStorVolumeReplica
@@ -527,7 +506,7 @@ func (k *K8sClient) GetOEV1alpha1CAST(name string, opts mach_apis_meta_v1.GetOpt
 	}
 
 	castOps := k.oeV1alpha1CASTOps()
-	return castOps.Get(name, opts)
+	return castOps.Get(context.TODO(), name, opts)
 }
 
 // oeV1alpha1RunTaskOps is a utility function that provides a instance capable
@@ -540,7 +519,7 @@ func (k *K8sClient) oeV1alpha1RunTaskOps() typed_oe_v1alpha1.RunTaskInterface {
 // the provided name
 func (k *K8sClient) GetOEV1alpha1RunTask(name string, opts mach_apis_meta_v1.GetOptions) (*api_oe_v1alpha1.RunTask, error) {
 	rtOps := k.oeV1alpha1RunTaskOps()
-	return rtOps.Get(name, opts)
+	return rtOps.Get(context.TODO(), name, opts)
 }
 
 // cmOps is a utility function that provides a instance capable of
@@ -556,7 +535,7 @@ func (k *K8sClient) GetConfigMap(name string, opts mach_apis_meta_v1.GetOptions)
 	}
 
 	cops := k.cmOps()
-	return cops.Get(name, opts)
+	return cops.Get(context.TODO(), name, opts)
 }
 
 // coreV1PVCOps is a utility function that provides a instance capable of
@@ -572,7 +551,7 @@ func (k *K8sClient) GetPVC(name string, opts mach_apis_meta_v1.GetOptions) (*api
 	}
 
 	pops := k.coreV1PVCOps()
-	return pops.Get(name, opts)
+	return pops.Get(context.TODO(), name, opts)
 }
 
 // coreV1PVOps is a utility function that provides an instance capable of
@@ -588,7 +567,7 @@ func (k *K8sClient) GetPV(name string, opts mach_apis_meta_v1.GetOptions) (*api_
 	}
 
 	pops := k.coreV1PVOps()
-	return pops.Get(name, opts)
+	return pops.Get(context.TODO(), name, opts)
 }
 
 // GetCoreV1PersistentVolumeAsRaw fetches the K8s PersistentVolume with the
@@ -599,7 +578,7 @@ func (k *K8sClient) GetCoreV1PersistentVolumeAsRaw(name string) (result []byte, 
 		Resource("persistentvolumes").
 		Name(name).
 		VersionedParams(&mach_apis_meta_v1.GetOptions{}, scheme.ParameterCodec).
-		DoRaw()
+		DoRaw(context.TODO())
 
 	return
 }
@@ -612,7 +591,7 @@ func (k *K8sClient) GetCoreV1PVCAsRaw(name string) (result []byte, err error) {
 		Resource("persistentvolumeclaims").
 		Name(name).
 		VersionedParams(&mach_apis_meta_v1.GetOptions{}, scheme.ParameterCodec).
-		DoRaw()
+		DoRaw(context.TODO())
 
 	return
 }
@@ -625,7 +604,7 @@ func (k *K8sClient) GetExtnV1B1DeploymentAsRaw(name string) (result []byte, err 
 		Resource("deployments").
 		Name(name).
 		VersionedParams(&mach_apis_meta_v1.GetOptions{}, scheme.ParameterCodec).
-		DoRaw()
+		DoRaw(context.TODO())
 
 	return
 }
@@ -638,7 +617,7 @@ func (k *K8sClient) GetAppsV1B1DeploymentAsRaw(name string) (result []byte, err 
 		Resource("deployments").
 		Name(name).
 		VersionedParams(&mach_apis_meta_v1.GetOptions{}, scheme.ParameterCodec).
-		DoRaw()
+		DoRaw(context.TODO())
 
 	return
 }
@@ -693,16 +672,6 @@ func (k *K8sClient) GetOEV1alpha1SPCAsRaw(name string) (result []byte, err error
 	//return
 }
 
-// GetOEV1alpha1CSPCAsRaw fetches the OpenEBS CSPC with the provided name
-func (k *K8sClient) GetOEV1alpha1CSPCAsRaw(name string) (result []byte, err error) {
-	cspc, err := k.GetOEV1alpha1CSPC(name)
-	if err != nil {
-		return
-	}
-
-	return json.Marshal(cspc)
-}
-
 // GetOEV1alpha1SPAsRaw fetches the OpenEBS SP with the provided name
 func (k *K8sClient) GetOEV1alpha1SPAsRaw(name string) (result []byte, err error) {
 	sp, err := k.GetOEV1alpha1SP(name)
@@ -751,12 +720,12 @@ func (k *K8sClient) GetPod(name string, opts mach_apis_meta_v1.GetOptions) (*api
 	}
 
 	pops := k.podOps()
-	return pops.Get(name, opts)
+	return pops.Get(context.TODO(), name, opts)
 }
 
 // GetPods fetches the K8s Pods
 func (k *K8sClient) GetPods() ([]api_core_v1.Pod, error) {
-	podLists, err := k.cs.CoreV1().Pods(k.ns).List(mach_apis_meta_v1.ListOptions{})
+	podLists, err := k.cs.CoreV1().Pods(k.ns).List(context.TODO(), mach_apis_meta_v1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -770,7 +739,7 @@ func (k *K8sClient) ListCoreV1PVCAsRaw(opts mach_apis_meta_v1.ListOptions) (resu
 		Namespace(k.ns).
 		Resource("persistentvolumeclaims").
 		VersionedParams(&opts, scheme.ParameterCodec).
-		DoRaw()
+		DoRaw(context.TODO())
 	err = errors.WithStack(err)
 	return
 }
@@ -781,7 +750,7 @@ func (k *K8sClient) ListCoreV1PVAsRaw(opts mach_apis_meta_v1.ListOptions) (resul
 		Namespace(k.ns).
 		Resource("persistentvolumes").
 		VersionedParams(&opts, scheme.ParameterCodec).
-		DoRaw()
+		DoRaw(context.TODO())
 	err = errors.WithStack(err)
 	return
 }
@@ -792,7 +761,7 @@ func (k *K8sClient) ListCoreV1PodAsRaw(opts mach_apis_meta_v1.ListOptions) (resu
 		Namespace(k.ns).
 		Resource("pods").
 		VersionedParams(&opts, scheme.ParameterCodec).
-		DoRaw()
+		DoRaw(context.TODO())
 	err = errors.WithStack(err)
 	return
 }
@@ -803,7 +772,7 @@ func (k *K8sClient) ListCoreV1ServiceAsRaw(opts mach_apis_meta_v1.ListOptions) (
 		Namespace(k.ns).
 		Resource("services").
 		VersionedParams(&opts, scheme.ParameterCodec).
-		DoRaw()
+		DoRaw(context.TODO())
 	err = errors.WithStack(err)
 	return
 }
@@ -815,7 +784,7 @@ func (k *K8sClient) ListExtnV1B1DeploymentAsRaw(opts mach_apis_meta_v1.ListOptio
 		Namespace(k.ns).
 		Resource("deployments").
 		VersionedParams(&opts, scheme.ParameterCodec).
-		DoRaw()
+		DoRaw(context.TODO())
 	err = errors.WithStack(err)
 	return
 }
@@ -827,7 +796,7 @@ func (k *K8sClient) ListAppsV1B1DeploymentAsRaw(opts mach_apis_meta_v1.ListOptio
 		Namespace(k.ns).
 		Resource("deployments").
 		VersionedParams(&opts, scheme.ParameterCodec).
-		DoRaw()
+		DoRaw(context.TODO())
 	err = errors.WithStack(err)
 	return
 }
@@ -839,7 +808,7 @@ func (k *K8sClient) ListAppsV1DeploymentAsRaw(opts mach_apis_meta_v1.ListOptions
 		Namespace(k.ns).
 		Resource("deployments").
 		VersionedParams(&opts, scheme.ParameterCodec).
-		DoRaw()
+		DoRaw(context.TODO())
 	err = errors.WithStack(err)
 	return
 }
@@ -848,7 +817,7 @@ func (k *K8sClient) ListAppsV1DeploymentAsRaw(opts mach_apis_meta_v1.ListOptions
 // provided options
 func (k *K8sClient) ListOEV1alpha1BlockDeviceRaw(opts mach_apis_meta_v1.ListOptions) (result []byte, err error) {
 	bdOps := k.ndmV1alpha1BlockDeviceOps()
-	bdList, err := bdOps.List(opts)
+	bdList, err := bdOps.List(context.TODO(), opts)
 	if err != nil {
 		err = errors.WithStack(err)
 		return
@@ -862,7 +831,7 @@ func (k *K8sClient) ListOEV1alpha1BlockDeviceRaw(opts mach_apis_meta_v1.ListOpti
 // provided options
 func (k *K8sClient) ListOEV1alpha1SPRaw(opts mach_apis_meta_v1.ListOptions) (result []byte, err error) {
 	spOps := k.oeV1alpha1SPOps()
-	spList, err := spOps.List(opts)
+	spList, err := spOps.List(context.TODO(), opts)
 	if err != nil {
 		err = errors.WithStack(err)
 		return
@@ -876,7 +845,7 @@ func (k *K8sClient) ListOEV1alpha1SPRaw(opts mach_apis_meta_v1.ListOptions) (res
 // provided options
 func (k *K8sClient) ListOEV1alpha1CSPRaw(opts mach_apis_meta_v1.ListOptions) (result []byte, err error) {
 	cspOps := k.oeV1alpha1CSPOps()
-	cspList, err := cspOps.List(opts)
+	cspList, err := cspOps.List(context.TODO(), opts)
 	if err != nil {
 		err = errors.WithStack(err)
 		return
@@ -890,7 +859,7 @@ func (k *K8sClient) ListOEV1alpha1CSPRaw(opts mach_apis_meta_v1.ListOptions) (re
 // provided options
 func (k *K8sClient) ListOEV1alpha1CVRRaw(opts mach_apis_meta_v1.ListOptions) (result []byte, err error) {
 	cvrOps := k.oeV1alpha1CVROps()
-	cvrList, err := cvrOps.List(opts)
+	cvrList, err := cvrOps.List(context.TODO(), opts)
 	if err != nil {
 		err = errors.WithStack(err)
 		return
@@ -904,7 +873,7 @@ func (k *K8sClient) ListOEV1alpha1CVRRaw(opts mach_apis_meta_v1.ListOptions) (re
 // provided options
 func (k *K8sClient) ListOEV1alpha1CVRaw(opts mach_apis_meta_v1.ListOptions) (result []byte, err error) {
 	cvOps := k.oeV1alpha1CVOps()
-	cvrList, err := cvOps.List(opts)
+	cvrList, err := cvOps.List(context.TODO(), opts)
 	if err != nil {
 		err = errors.WithStack(err)
 		return
@@ -927,7 +896,7 @@ func (k *K8sClient) GetService(name string, opts mach_apis_meta_v1.GetOptions) (
 	}
 
 	sops := k.serviceOps()
-	return sops.Get(name, opts)
+	return sops.Get(context.TODO(), name, opts)
 }
 
 // coreV1ServiceOps is a utility function that provides a instance capable of
@@ -939,14 +908,14 @@ func (k *K8sClient) coreV1ServiceOps() typed_core_v1.ServiceInterface {
 // CreateCoreV1Service creates a K8s Service
 func (k *K8sClient) CreateCoreV1Service(svc *api_core_v1.Service) (*api_core_v1.Service, error) {
 	sops := k.coreV1ServiceOps()
-	return sops.Create(svc)
+	return sops.Create(context.TODO(), svc, mach_apis_meta_v1.CreateOptions{})
 }
 
 // DeleteCoreV1Service deletes a K8s Service
 func (k *K8sClient) DeleteCoreV1Service(name string) error {
 	sops := k.coreV1ServiceOps()
 	deletePropagation := mach_apis_meta_v1.DeletePropagationForeground
-	return sops.Delete(name, &mach_apis_meta_v1.DeleteOptions{
+	return sops.Delete(context.TODO(), name, mach_apis_meta_v1.DeleteOptions{
 		PropagationPolicy: &deletePropagation,
 	})
 }
@@ -954,18 +923,18 @@ func (k *K8sClient) DeleteCoreV1Service(name string) error {
 // DeleteBatchV1Job deletes a K8s job
 func (k *K8sClient) DeleteBatchV1Job(name string) error {
 	deletePropagation := mach_apis_meta_v1.DeletePropagationForeground
-	return k.cs.BatchV1().Jobs(k.ns).Delete(
+	return k.cs.BatchV1().Jobs(k.ns).Delete(context.TODO(),
 		name,
-		&mach_apis_meta_v1.DeleteOptions{PropagationPolicy: &deletePropagation})
+		mach_apis_meta_v1.DeleteOptions{PropagationPolicy: &deletePropagation})
 }
 
 // DeleteAppsV1STS deletes a kubernetes StatefulSet
 // object
 func (k *K8sClient) DeleteAppsV1STS(name string) error {
 	deletePropagation := mach_apis_meta_v1.DeletePropagationForeground
-	return k.cs.AppsV1().StatefulSets(k.ns).Delete(
+	return k.cs.AppsV1().StatefulSets(k.ns).Delete(context.TODO(),
 		name,
-		&mach_apis_meta_v1.DeleteOptions{PropagationPolicy: &deletePropagation})
+		mach_apis_meta_v1.DeleteOptions{PropagationPolicy: &deletePropagation})
 }
 
 // TODO deprecate
@@ -995,13 +964,13 @@ func (k *K8sClient) GetDeployment(name string, opts mach_apis_meta_v1.GetOptions
 	}
 
 	dops := k.deploymentOps()
-	return dops.Get(name, opts)
+	return dops.Get(context.TODO(), name, opts)
 }
 
 // CreateExtnV1B1Deployment creates a K8s Deployment
 func (k *K8sClient) CreateExtnV1B1Deployment(d *api_extn_v1beta1.Deployment) (*api_extn_v1beta1.Deployment, error) {
 	dops := k.extnV1B1DeploymentOps()
-	return dops.Create(d)
+	return dops.Create(context.TODO(), d, mach_apis_meta_v1.CreateOptions{})
 }
 
 // CreateExtnV1B1DeploymentAsRaw creates a K8s Deployment
@@ -1090,30 +1059,25 @@ func (k *K8sClient) CreateCoreV1ServiceAsRaw(s *api_core_v1.Service) (result []b
 // PatchExtnV1B1Deployment patches the K8s Deployment with the provided patches
 func (k *K8sClient) PatchExtnV1B1Deployment(name string, patchType types.PatchType, patches []byte) (*api_extn_v1beta1.Deployment, error) {
 	dops := k.extnV1B1DeploymentOps()
-	return dops.Patch(name, patchType, patches)
+	return dops.Patch(context.TODO(), name, patchType, patches, mach_apis_meta_v1.PatchOptions{})
 }
 
 // PatchOEV1alpha1SPCAsRaw patches the SPC object with the provided patches
 func (k *K8sClient) PatchOEV1alpha1SPCAsRaw(name string, patchType types.PatchType, patches []byte) (result *api_oe_v1alpha1.StoragePoolClaim, err error) {
-	result, err = k.oecs.OpenebsV1alpha1().StoragePoolClaims().Patch(name, patchType, patches)
-	return
-}
-
-// PatchOEV1alpha1CSPCAsRaw patches the CSPC object with the provided patches
-func (k *K8sClient) PatchOEV1alpha1CSPCAsRaw(name string, patchType types.PatchType, patches []byte) (result *api_oe_v1alpha1.CStorPoolCluster, err error) {
-	result, err = k.oecs.OpenebsV1alpha1().CStorPoolClusters(k.ns).Patch(name, patchType, patches)
+	result, err = k.oecs.OpenebsV1alpha1().StoragePoolClaims().
+		Patch(context.TODO(), name, patchType, patches, mach_apis_meta_v1.PatchOptions{})
 	return
 }
 
 // PatchOEV1alpha1CSV patches the CSV object with the provided patches
 func (k *K8sClient) PatchOEV1alpha1CSV(name, namespace string, patchType types.PatchType, patches []byte) (result *api_oe_v1alpha1.CStorVolume, err error) {
-	result, err = k.oecs.OpenebsV1alpha1().CStorVolumes(namespace).Patch(name, patchType, patches)
+	result, err = k.oecs.OpenebsV1alpha1().CStorVolumes(namespace).Patch(context.TODO(), name, patchType, patches, mach_apis_meta_v1.PatchOptions{})
 	return
 }
 
 // PatchOEV1alpha1CVR patches the CVR object with the provided patches
 func (k *K8sClient) PatchOEV1alpha1CVR(name, namespace string, patchType types.PatchType, patches []byte) (result *api_oe_v1alpha1.CStorVolumeReplica, err error) {
-	result, err = k.oecs.OpenebsV1alpha1().CStorVolumeReplicas(namespace).Patch(name, patchType, patches)
+	result, err = k.oecs.OpenebsV1alpha1().CStorVolumeReplicas(namespace).Patch(context.TODO(), name, patchType, patches, mach_apis_meta_v1.PatchOptions{})
 	return
 }
 
@@ -1124,7 +1088,7 @@ func (k *K8sClient) PatchExtnV1B1DeploymentAsRaw(name string, patchType types.Pa
 		Resource("deployments").
 		Name(name).
 		Body(patches).
-		DoRaw()
+		DoRaw(context.TODO())
 
 	return
 }
@@ -1136,7 +1100,7 @@ func (k *K8sClient) PatchAppsV1DeploymentAsRaw(name string, patchType types.Patc
 		Resource("deployments").
 		Name(name).
 		Body(patches).
-		DoRaw()
+		DoRaw(context.TODO())
 
 	return
 }
@@ -1148,7 +1112,7 @@ func (k *K8sClient) PatchCoreV1ServiceAsRaw(name string, patchType types.PatchTy
 		Resource("services").
 		Name(name).
 		Body(patches).
-		DoRaw()
+		DoRaw(context.TODO())
 
 	return
 }
@@ -1158,14 +1122,14 @@ func (k *K8sClient) DeleteExtnV1B1Deployment(name string) error {
 	dops := k.extnV1B1DeploymentOps()
 	// ensure all the dependants are deleted
 	deletePropagation := mach_apis_meta_v1.DeletePropagationForeground
-	return dops.Delete(name, &mach_apis_meta_v1.DeleteOptions{
+	return dops.Delete(context.TODO(), name, mach_apis_meta_v1.DeleteOptions{
 		PropagationPolicy: &deletePropagation,
 	})
 }
 
 // CreateBatchV1JobAsRaw creates a kubernetes Job
 func (k *K8sClient) CreateBatchV1JobAsRaw(j *api_batch_v1.Job) ([]byte, error) {
-	job, err := k.cs.BatchV1().Jobs(k.ns).Create(j)
+	job, err := k.cs.BatchV1().Jobs(k.ns).Create(context.TODO(), j, mach_apis_meta_v1.CreateOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -1174,7 +1138,7 @@ func (k *K8sClient) CreateBatchV1JobAsRaw(j *api_batch_v1.Job) ([]byte, error) {
 
 // CreateAppsV1STSAsRaw creates a kubernetes StatefulSet
 func (k *K8sClient) CreateAppsV1STSAsRaw(sts *api_apps_v1.StatefulSet) ([]byte, error) {
-	s, err := k.cs.AppsV1().StatefulSets(k.ns).Create(sts)
+	s, err := k.cs.AppsV1().StatefulSets(k.ns).Create(context.TODO(), sts, mach_apis_meta_v1.CreateOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -1194,19 +1158,19 @@ func (k *K8sClient) appsV1DeploymentOps() typed_apps_v1.DeploymentInterface {
 // GetAppsV1B1Deployment fetches the K8s Deployment with the provided name
 func (k *K8sClient) GetAppsV1B1Deployment(name string, opts mach_apis_meta_v1.GetOptions) (*api_apps_v1beta1.Deployment, error) {
 	dops := k.appsV1B1DeploymentOps()
-	return dops.Get(name, opts)
+	return dops.Get(context.TODO(), name, opts)
 }
 
 // CreateAppsV1B1Deployment creates the K8s Deployment with the provided name
 func (k *K8sClient) CreateAppsV1B1Deployment(d *api_apps_v1beta1.Deployment) (*api_apps_v1beta1.Deployment, error) {
 	dops := k.appsV1B1DeploymentOps()
-	return dops.Create(d)
+	return dops.Create(context.TODO(), d, mach_apis_meta_v1.CreateOptions{})
 }
 
 // CreateAppsV1Deployment creates the K8s Deployment with the provided name
 func (k *K8sClient) CreateAppsV1Deployment(d *api_apps_v1.Deployment) (*api_apps_v1.Deployment, error) {
 	dops := k.appsV1DeploymentOps()
-	return dops.Create(d)
+	return dops.Create(context.TODO(), d, mach_apis_meta_v1.CreateOptions{})
 }
 
 // DeleteAppsV1B1Deployment deletes the K8s Deployment with the provided name
@@ -1214,7 +1178,7 @@ func (k *K8sClient) DeleteAppsV1B1Deployment(name string) error {
 	dops := k.appsV1B1DeploymentOps()
 	// ensure all the dependants are deleted
 	deletePropagation := mach_apis_meta_v1.DeletePropagationForeground
-	return dops.Delete(name, &mach_apis_meta_v1.DeleteOptions{
+	return dops.Delete(context.TODO(), name, mach_apis_meta_v1.DeleteOptions{
 		PropagationPolicy: &deletePropagation,
 	})
 }
@@ -1224,7 +1188,7 @@ func (k *K8sClient) DeleteAppsV1Deployment(name string) error {
 	dops := k.appsV1DeploymentOps()
 	// ensure all the dependants are deleted
 	deletePropagation := mach_apis_meta_v1.DeletePropagationForeground
-	return dops.Delete(name, &mach_apis_meta_v1.DeleteOptions{
+	return dops.Delete(context.TODO(), name, mach_apis_meta_v1.DeleteOptions{
 		PropagationPolicy: &deletePropagation,
 	})
 }
@@ -1234,7 +1198,7 @@ func (k *K8sClient) DeleteOEV1alpha1SP(name string) error {
 	spops := k.oeV1alpha1SPOps()
 	// ensure all the dependants are deleted
 	deletePropagation := mach_apis_meta_v1.DeletePropagationForeground
-	return spops.Delete(name, &mach_apis_meta_v1.DeleteOptions{
+	return spops.Delete(context.TODO(), name, mach_apis_meta_v1.DeleteOptions{
 		PropagationPolicy: &deletePropagation,
 	})
 }
@@ -1244,7 +1208,7 @@ func (k *K8sClient) DeleteOEV1alpha1CSP(name string) error {
 	cspops := k.oeV1alpha1CSPOps()
 	// ensure all the dependants are deleted
 	deletePropagation := mach_apis_meta_v1.DeletePropagationForeground
-	return cspops.Delete(name, &mach_apis_meta_v1.DeleteOptions{
+	return cspops.Delete(context.TODO(), name, mach_apis_meta_v1.DeleteOptions{
 		PropagationPolicy: &deletePropagation,
 	})
 }
@@ -1254,7 +1218,7 @@ func (k *K8sClient) DeleteOEV1alpha1CSV(name string) error {
 	cvops := k.oeV1alpha1CVOps()
 	// ensure all the dependants are deleted
 	deletePropagation := mach_apis_meta_v1.DeletePropagationForeground
-	return cvops.Delete(name, &mach_apis_meta_v1.DeleteOptions{
+	return cvops.Delete(context.TODO(), name, mach_apis_meta_v1.DeleteOptions{
 		PropagationPolicy: &deletePropagation,
 	})
 }
@@ -1264,7 +1228,7 @@ func (k *K8sClient) DeleteOEV1alpha1CVR(name string) error {
 	cvrops := k.oeV1alpha1CVROps()
 	// ensure all the dependants are deleted
 	deletePropagation := mach_apis_meta_v1.DeletePropagationForeground
-	return cvrops.Delete(name, &mach_apis_meta_v1.DeleteOptions{
+	return cvrops.Delete(context.TODO(), name, mach_apis_meta_v1.DeleteOptions{
 		PropagationPolicy: &deletePropagation,
 	})
 }

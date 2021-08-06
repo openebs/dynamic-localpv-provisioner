@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"context"
 	"encoding/json"
 	"strings"
 	"sync"
@@ -179,13 +180,15 @@ func (k *Kubeclient) withDefaults() {
 
 	if k.list == nil {
 		k.list = func(cs *clientset.Clientset, namespace string, opts metav1.ListOptions) (*apis.UpgradeResultList, error) {
-			return cs.OpenebsV1alpha1().UpgradeResults(namespace).List(opts)
+			return cs.OpenebsV1alpha1().UpgradeResults(namespace).
+				List(context.TODO(), opts)
 		}
 	}
 
 	if k.get == nil {
 		k.get = func(cs *clientset.Clientset, name, namespace string, opts metav1.GetOptions) (*apis.UpgradeResult, error) {
-			return cs.OpenebsV1alpha1().UpgradeResults(namespace).Get(name, opts)
+			return cs.OpenebsV1alpha1().UpgradeResults(namespace).
+				Get(context.TODO(), name, opts)
 		}
 	}
 
@@ -194,7 +197,7 @@ func (k *Kubeclient) withDefaults() {
 			namespace string) (*apis.UpgradeResult, error) {
 			return cs.OpenebsV1alpha1().
 				UpgradeResults(namespace).
-				Create(upgradeResultObj)
+				Create(context.TODO(), upgradeResultObj, metav1.CreateOptions{})
 		}
 	}
 
@@ -204,7 +207,7 @@ func (k *Kubeclient) withDefaults() {
 			namespace string) (*apis.UpgradeResult, error) {
 			return cs.OpenebsV1alpha1().
 				UpgradeResults(namespace).
-				Patch(name, pt, patchObj)
+				Patch(context.TODO(), name, pt, patchObj, metav1.PatchOptions{})
 		}
 	}
 
@@ -214,7 +217,7 @@ func (k *Kubeclient) withDefaults() {
 			namespace string) (*apis.UpgradeResult, error) {
 			return cs.OpenebsV1alpha1().
 				UpgradeResults(namespace).
-				Update(upgradeResultObj)
+				Update(context.TODO(), upgradeResultObj, metav1.UpdateOptions{})
 		}
 	}
 
