@@ -85,3 +85,19 @@ jobs:
           platforms: linux/amd64, linux/arm64, linux/arm/v7, linux/ppc64le
           tags: |
             openebs/provisioner-localpv:ci
+
+  localpv-e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Build the localpv-e2e image
+        uses: docker/build-push-action@v2
+        with:
+          file: ./e2e-tests/Dockerfile
+          push: false
+          load: false
+          platforms: linux/amd64
+          tags: |
+            openebs/localpv-e2e:ci

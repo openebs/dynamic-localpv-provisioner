@@ -19,7 +19,6 @@
         path: "{{ ci_device_operator }}"
         regexp: openebs/provisioner-localpv-ci:dev-120403
         replace: "openebs/provisioner-localpv:{{ release_tag }}"
-      when: lookup('env','LOCALPV_PROVISIONER_IMAGE') | length > 0
 
     - name: Change the OpenEBS component labels to desired version in Operator yaml
       replace:
@@ -27,11 +26,17 @@
         regexp: 'openebs.io/version: dev'
         replace: "openebs.io/version: {{ release_tag }}"
 
+    - name: Change the OpenEBS component labels to desired version in Operator yaml
+      replace:
+        path: "{{ ndm_operator_link }}"
+        regexp: 'openebs.io/version: dev'
+        replace: "openebs.io/version: {{ release_tag }}"
+
     - name: Change the Image tag to newer version in operator yaml
       replace:
         path: "{{ ndm_operator_link }}"
         regexp: ':ci'
-        replace: ":{{ release_tag }}"       
+        replace: ":{{ ndm_version }}"       
 
     - block:
         - name: Applying openebs operator
