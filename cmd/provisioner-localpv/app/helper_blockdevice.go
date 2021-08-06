@@ -48,12 +48,9 @@ const (
 	LocalPVFinalizer = "local.openebs.io/finalizer"
 )
 
-//TODO
-var (
-	//WaitForBDTimeoutCounts specifies the duration to wait for BDC to be associated with a BD
-	//The duration is the value specified here multiplied by 5
-	WaitForBDTimeoutCounts = 12
-)
+// WaitForBDTimeoutCounts specifies the duration to wait for BDC to be associated with a BD
+// The duration is the value specified here multiplied by 5
+var WaitForBDTimeoutCounts int
 
 // HelperBlockDeviceOptions contains the options that
 // will launch a BDC on a specific node (nodeHostname)
@@ -192,6 +189,17 @@ func (p *Provisioner) getBlockDevicePath(blkDevOpts *HelperBlockDeviceOptions) (
 			time.Sleep(5 * time.Second)
 		} else {
 			break
+		}
+	}
+
+	// if bdName not found should delete BDC and return err
+	if bdName == "" {
+		err := errors.Errorf("unable to find BD for BDC:%v associated with PV:%v and try to delete BDC", blkDevOpts.bdcName, blkDevOpts.name)
+		delErr := p.deleteBlockDeviceClaim(blkDevOpts)
+		if delErr != nil {
+			return "", "", delErr
+		} else {
+			return "", "", err
 		}
 	}
 
