@@ -87,6 +87,19 @@ func (p *Provisioner) ProvisionHostPath(ctx context.Context, opts pvController.P
 		return nil, pvController.ProvisioningFinished, iErr
 	}
 
+	bsoft := opts.StorageClass.Parameters["bsoft"]
+	bhard := opts.StorageClass.Parameters["bhard"]
+
+	if bsoft != "" ||
+		bhard != "" {
+
+		qErr := p.createInitQuotaPod(podOpts, bsoft, bhard)
+		if qErr != nil {
+			klog.Infof("Setting quota failed: %v", name, qErr)
+			return nil, qErr
+		}
+	}
+
 	// VolumeMode will always be specified as Filesystem for host path volume,
 	// and the value passed in from the PVC spec will be ignored.
 	fs := v1.PersistentVolumeFilesystem

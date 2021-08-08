@@ -39,6 +39,7 @@ import (
 type podConfig struct {
 	pOpts                         *HelperPodOptions
 	parentDir, volumeDir, podName string
+	bsoft, bhard                  string
 	taints                        []corev1.Taint
 }
 
