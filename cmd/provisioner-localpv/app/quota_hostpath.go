@@ -20,6 +20,7 @@ and modified to work with the configuration options used by OpenEBS
 package app
 
 import (
+	"context"
 	"path/filepath"
 	"time"
 
@@ -36,7 +37,7 @@ import (
 )
 
 // createInitPod launches a pod, to set quota on the hostpath.
-func (p *Provisioner) createInitQuotaPod(pOpts *HelperPodOptions, bsoft string, bhard string) error {
+func (p *Provisioner) createInitQuotaPod(ctx context.Context, pOpts *HelperPodOptions, bsoft string, bhard string) error {
 	var config podConfig
 	config.pOpts, config.podName = pOpts, "init-quota"
 
@@ -55,19 +56,19 @@ func (p *Provisioner) createInitQuotaPod(pOpts *HelperPodOptions, bsoft string, 
 	//Pass on the taints, to create tolerations.
 	config.taints = pOpts.selectedNodeTaints
 
-	iPod, err := p.launchQuotaPod(config)
+	iPod, err := p.launchQuotaPod(ctx, config)
 	if err != nil {
 		return err
 	}
 
-	if err := p.exitPod(iPod); err != nil {
+	if err := p.exitPod(ctx, iPod); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (p *Provisioner) launchQuotaPod(config podConfig) (*corev1.Pod, error) {
+func (p *Provisioner) launchQuotaPod(ctx context.Context, config podConfig) (*corev1.Pod, error) {
 	// the quota pod need to be launched in privileged mode. This is because in CoreOS
 	// nodes, pods without privileged access cannot write to the host directory.
 	// Quota pods need to setup projectID which requires to write the mapping of projectID and subdirectory.
@@ -119,13 +120,13 @@ func (p *Provisioner) launchQuotaPod(config podConfig) (*corev1.Pod, error) {
 	var qPod *corev1.Pod
 
 	//Launch the quota pod.
-	qPod, err = p.kubeClient.CoreV1().Pods(p.namespace).Create(quotaPod)
+	qPod, err = p.kubeClient.CoreV1().Pods(p.namespace).Create(ctx, quotaPod, metav1.CreateOptions{})
 	return qPod, err
 }
 
-func (p *Provisioner) exitQuotaPod(qPod *corev1.Pod) error {
+func (p *Provisioner) exitQuotaPod(ctx context.Context, qPod *corev1.Pod) error {
 	defer func() {
-		e := p.kubeClient.CoreV1().Pods(p.namespace).Delete(qPod.Name, &metav1.DeleteOptions{})
+		e := p.kubeClient.CoreV1().Pods(p.namespace).Delete(ctx, qPod.Name, metav1.DeleteOptions{})
 		if e != nil {
 			klog.Errorf("unable to delete the quota pod: %v", e)
 		}
@@ -134,7 +135,7 @@ func (p *Provisioner) exitQuotaPod(qPod *corev1.Pod) error {
 	//Wait for the quota pod to complete it job and exit
 	completed := false
 	for i := 0; i < CmdTimeoutCounts; i++ {
-		checkPod, err := p.kubeClient.CoreV1().Pods(p.namespace).Get(qPod.Name, metav1.GetOptions{})
+		checkPod, err := p.kubeClient.CoreV1().Pods(p.namespace).Get(ctx, qPod.Name, metav1.GetOptions{})
 		if err != nil {
 			return err
 		} else if checkPod.Status.Phase == corev1.PodSucceeded {

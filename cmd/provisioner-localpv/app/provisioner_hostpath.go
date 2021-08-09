@@ -93,10 +93,10 @@ func (p *Provisioner) ProvisionHostPath(ctx context.Context, opts pvController.P
 	if bsoft != "" ||
 		bhard != "" {
 
-		qErr := p.createInitQuotaPod(podOpts, bsoft, bhard)
+		qErr := p.createInitQuotaPod(ctx, podOpts, bsoft, bhard)
 		if qErr != nil {
 			klog.Infof("Setting quota failed: %v", name, qErr)
-			return nil, qErr
+			return nil, pvController.ProvisioningFinished, qErr
 		}
 	}
 
