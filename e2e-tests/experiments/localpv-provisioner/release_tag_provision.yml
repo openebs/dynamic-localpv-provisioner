@@ -28,13 +28,13 @@
 
     - name: Change the OpenEBS component labels to desired version in Operator yaml
       replace:
-        path: "{{ ndm_operator_link }}"
+        path: "{{ ndm_operator }}"
         regexp: 'openebs.io/version: dev'
         replace: "openebs.io/version: {{ release_tag }}"
 
     - name: Change the Image tag to newer version in operator yaml
       replace:
-        path: "{{ ndm_operator_link }}"
+        path: "{{ ndm_operator }}"
         regexp: ':ci'
         replace: ":{{ ndm_version }}"       
 
@@ -71,7 +71,7 @@
 
 - block:
 
-    - name: Downloading openebs operator yaml for rc tag
+    - name: Downloading openebs operator yaml for release tag
       get_url:
         url: "{{ release_operator_link }}"
         dest: "{{ playbook_dir }}/{{ hostpath_operator }}"
