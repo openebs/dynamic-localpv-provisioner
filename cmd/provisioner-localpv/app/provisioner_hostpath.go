@@ -31,6 +31,12 @@ import (
 	pvController "sigs.k8s.io/sig-storage-lib-external-provisioner/v7/controller"
 )
 
+const (
+	ScType string = "type"
+	Bsoft  string = "bsoft"
+	Bhard  string = "bhard"
+)
+
 // ProvisionHostPath is invoked by the Provisioner which expect HostPath PV
 //  to be provisioned and a valid PV spec returned.
 func (p *Provisioner) ProvisionHostPath(ctx context.Context, opts pvController.ProvisionOptions, volumeConfig *VolumeConfig) (*v1.PersistentVolume, pvController.ProvisioningState, error) {
@@ -87,17 +93,41 @@ func (p *Provisioner) ProvisionHostPath(ctx context.Context, opts pvController.P
 		return nil, pvController.ProvisioningFinished, iErr
 	}
 
-	bsoft := opts.StorageClass.Parameters["bsoft"]
-	bhard := opts.StorageClass.Parameters["bhard"]
+	scType := opts.StorageClass.Parameters[ScType]
 
-	if bsoft != "" ||
-		bhard != "" {
+	if scType == "enforceXfsQuota" {
+		bsoft := opts.StorageClass.Parameters[Bsoft]
+		bhard := opts.StorageClass.Parameters[Bhard]
 
-		qErr := p.createInitQuotaPod(ctx, podOpts, bsoft, bhard)
-		if qErr != nil {
-			klog.Infof("Setting quota failed: %v", name, qErr)
-			return nil, pvController.ProvisioningFinished, qErr
+		podOpts := &HelperPodOptions{
+			name:                   name,
+			path:                   path,
+			nodeAffinityLabelKey:   nodeAffinityKey,
+			nodeAffinityLabelValue: nodeAffinityValue,
+			serviceAccountName:     saName,
+			selectedNodeTaints:     taints,
+			imagePullSecrets:       imagePullSecrets,
+			bsoft:                  bsoft,
+			bhard:                  bhard,
 		}
+		iErr := p.createQuotaPod(ctx, podOpts)
+		if iErr != nil {
+			klog.Infof("Applying quota failed: %v", iErr)
+			alertlog.Logger.Errorw("",
+				"eventcode", "local.pv.provision.failure",
+				"msg", "Failed to provision Local PV",
+				"rname", opts.PVName,
+				"reason", "Quota enforcement failed",
+				"storagetype", stgType,
+			)
+			return nil, pvController.ProvisioningFinished, iErr
+		}
+		alertlog.Logger.Infow("",
+			"eventcode", "local.pv.quota.success",
+			"msg", "Successfully applied quota",
+			"rname", opts.PVName,
+			"storagetype", stgType,
+		)
 	}
 
 	// VolumeMode will always be specified as Filesystem for host path volume,

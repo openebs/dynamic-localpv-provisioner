@@ -21,7 +21,10 @@ package app
 
 import (
 	"context"
+	"math"
 	"path/filepath"
+	"regexp"
+	"strconv"
 	"time"
 
 	errors "github.com/pkg/errors"
@@ -39,7 +42,6 @@ import (
 type podConfig struct {
 	pOpts                         *HelperPodOptions
 	parentDir, volumeDir, podName string
-	bsoft, bhard                  string
 	taints                        []corev1.Taint
 }
 
@@ -47,6 +49,9 @@ var (
 	//CmdTimeoutCounts specifies the duration to wait for cleanup pod
 	//to be launched.
 	CmdTimeoutCounts = 120
+
+	//conversion stores the equivalent of 1kb stored as 1kb, 1mb, 1gb, 1tb
+	conversion = []float64{1, 1024, 1048576, 1073741824}
 )
 
 // HelperPodOptions contains the options that
@@ -70,12 +75,18 @@ type HelperPodOptions struct {
 	//path is the volume hostpath directory
 	path string
 
-	// serviceAccountName is the service account with which the pod should be launched
+	//serviceAccountName is the service account with which the pod should be launched
 	serviceAccountName string
 
 	selectedNodeTaints []corev1.Taint
 
 	imagePullSecrets []corev1.LocalObjectReference
+
+	//bsoft is the soft limit of quota on the project
+	bsoft string
+
+	//bhard is the hard limit of quota on the project
+	bhard string
 }
 
 // validate checks that the required fields to launch
@@ -91,6 +102,63 @@ func (pOpts *HelperPodOptions) validate() error {
 		return errors.Errorf("invalid empty name or hostpath or hostname or service account name")
 	}
 	return nil
+}
+
+//validateLimits check that the limits to setup qouta are valid
+func (pOpts *HelperPodOptions) validateLimits() error {
+	if pOpts.bsoft == "0k" &&
+		pOpts.bhard == "0k" {
+		return errors.Errorf("both limits cannot be 0")
+	}
+
+	if pOpts.bsoft == "0k" ||
+		pOpts.bhard == "0k" {
+		return nil
+	}
+
+	if len(pOpts.bsoft) > len(pOpts.bhard) ||
+		(len(pOpts.bsoft) == len(pOpts.bhard) &&
+			pOpts.bsoft > pOpts.bhard) {
+		return errors.Errorf("hard limit cannot be smaller than soft limit")
+	}
+
+	return nil
+}
+
+//converToK converts the limits to kilobytes
+func convertToK(limit string) (string, error) {
+
+	if len(limit) == 0 {
+		return "0k", nil
+	}
+
+	valueRegex := regexp.MustCompile(`[\d]*[\.]?[\d]*`)
+	valueString := valueRegex.FindString(limit)
+	value, err := strconv.ParseFloat(valueString, 64)
+	if err != nil {
+		return "", errors.Errorf("invalid limit, cannot parse")
+	}
+
+	unitPresent := make([]bool, 4)
+
+	//if any of the size unit is present in the limit, it will
+	//mark index belonging to that size unit as true
+	unitPresent[3], err = regexp.MatchString(`[Tt].*`, limit)
+	unitPresent[2], err = regexp.MatchString(`[Gg].*`, limit)
+	unitPresent[1], err = regexp.MatchString(`[Mm].*`, limit)
+	unitPresent[0], err = regexp.MatchString(`[Kk].*`, limit)
+
+	for i := range unitPresent {
+		if unitPresent[i] {
+			value *= conversion[i]
+			value = math.Trunc(value)
+			valueString := strconv.FormatFloat(value, 'f', -1, 64)
+			valueString += "k"
+			return valueString, err
+		}
+	}
+
+	return "", errors.Errorf("limit size should be in kilobytes, megabytes, gigabytes or terabytes")
 }
 
 // createInitPod launches a helper(busybox) pod, to create the host path.
@@ -118,6 +186,8 @@ func (p *Provisioner) createInitPod(ctx context.Context, pOpts *HelperPodOptions
 	//Pass on the taints, to create tolerations.
 	config.taints = pOpts.selectedNodeTaints
 
+	config.pOpts.cmdsForPath = append(config.pOpts.cmdsForPath, filepath.Join("/data/", config.volumeDir))
+
 	iPod, err := p.launchPod(ctx, config)
 	if err != nil {
 		return err
@@ -143,7 +213,6 @@ func (p *Provisioner) createCleanupPod(ctx context.Context, pOpts *HelperPodOpti
 		return err
 	}
 
-	config.taints = pOpts.selectedNodeTaints
 	// Initialize HostPath builder and validate that
 	// volume directory is not directly under root.
 	// Extract the base path and the volume unique path.
@@ -155,6 +224,10 @@ func (p *Provisioner) createCleanupPod(ctx context.Context, pOpts *HelperPodOpti
 		return vErr
 	}
 
+	config.taints = pOpts.selectedNodeTaints
+
+	config.pOpts.cmdsForPath = append(config.pOpts.cmdsForPath, filepath.Join("/data/", config.volumeDir))
+
 	cPod, err := p.launchPod(ctx, config)
 	if err != nil {
 		return err
@@ -163,6 +236,67 @@ func (p *Provisioner) createCleanupPod(ctx context.Context, pOpts *HelperPodOpti
 	if err := p.exitPod(ctx, cPod); err != nil {
 		return err
 	}
+	return nil
+}
+
+// createQuotaPod launches a helper(busybox) pod, to apply the quota.
+//  The local pv expect the hostpath to be already present before mounting
+//  into pod. Validate that the local pv host path is not created under root.
+func (p *Provisioner) createQuotaPod(ctx context.Context, pOpts *HelperPodOptions) error {
+	var config podConfig
+	config.pOpts, config.podName = pOpts, "quota"
+	//err := pOpts.validate()
+	if err := pOpts.validate(); err != nil {
+		return err
+	}
+
+	// Initialize HostPath builder and validate that
+	// volume directory is not directly under root.
+	// Extract the base path and the volume unique path.
+	var vErr error
+	config.parentDir, config.volumeDir, vErr = hostpath.NewBuilder().WithPath(pOpts.path).
+		WithCheckf(hostpath.IsNonRoot(), "volume directory {%v} should not be under root directory", pOpts.path).
+		ExtractSubPath()
+	if vErr != nil {
+		return vErr
+	}
+
+	//Pass on the taints, to create tolerations.
+	config.taints = pOpts.selectedNodeTaints
+
+	var lErr error
+	config.pOpts.bsoft, lErr = convertToK(config.pOpts.bsoft)
+	if lErr != nil {
+		return lErr
+	}
+	config.pOpts.bhard, lErr = convertToK(config.pOpts.bhard)
+	if lErr != nil {
+		return lErr
+	}
+
+	if err := pOpts.validateLimits(); err != nil {
+		return err
+	}
+
+	//lastPid finds last project Id in the directory
+	lastPid := "PID=`xfs_quota -x -c 'report -h' /data | tail -2 | awk 'NR==1{print substr ($1,2)}+0'` ;"
+	//newPid increments last project Id by 1
+	newPid := "PID=`expr $PID + 1` ;"
+	//initializeProject
+	initializeProject := "xfs_quota -x -c 'project -s -p " + filepath.Join("/data/", config.volumeDir) + " '$PID /data ;"
+	setQuota := "xfs_quota -x -c 'limit -p bsoft=" + config.pOpts.bsoft + " bhard=" + config.pOpts.bhard + " '$PID /data"
+
+	config.pOpts.cmdsForPath = []string{"sh", "-c", lastPid + newPid + initializeProject + setQuota}
+
+	qPod, err := p.launchPod(ctx, config)
+	if err != nil {
+		return err
+	}
+
+	if err := p.exitPod(ctx, qPod); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -183,7 +317,7 @@ func (p *Provisioner) launchPod(ctx context.Context, config podConfig) (*corev1.
 			container.NewBuilder().
 				WithName("local-path-" + config.podName).
 				WithImage(p.helperImage).
-				WithCommandNew(append(config.pOpts.cmdsForPath, filepath.Join("/data/", config.volumeDir))).
+				WithCommandNew(config.pOpts.cmdsForPath).
 				WithVolumeMountsNew([]corev1.VolumeMount{
 					{
 						Name:      "data",
