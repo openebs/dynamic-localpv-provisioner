@@ -45,7 +45,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Set up Go 1.16
-        uses: actions/setup-go@v1
+        uses: actions/setup-go@v2
         with:
           go-version: 1.16.6
 
@@ -65,9 +65,11 @@ jobs:
     runs-on: ubuntu-latest
     needs: ['lint', 'unit-test']
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-
+      - name: Set up Go 1.16
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.16.6
+          
       - name: Set Image Org
         # sets the default IMAGE_ORG to openebs
         run: |
@@ -105,12 +107,12 @@ jobs:
         run: |
           echo "${{ steps.docker_meta.outputs.tags }}"
 
-      - name: Setup QEMU
+      - name: Set up QEMU
         uses: docker/setup-qemu-action@v1
         with:
           platforms: all
 
-      - name: Setup Docker Buildx
+      - name: Set up Docker Buildx
         id: buildx
         uses: docker/setup-buildx-action@v1
         with:
@@ -129,12 +131,16 @@ jobs:
           username: ${{ secrets.QUAY_USERNAME }}
           password: ${{ secrets.QUAY_TOKEN }}
 
-      - name: Build and Push Image
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Build and Push multi-arch Image
         uses: docker/build-push-action@v2
         with:
           context: .
           file: ./buildscripts/provisioner-localpv/provisioner-localpv.Dockerfile
           push: true
+          load: false
           platforms: linux/amd64, linux/arm64, linux/arm/v7, linux/ppc64le
           tags: |
             ${{ steps.docker_meta.outputs.tags }}
@@ -142,6 +148,53 @@ jobs:
             DBUILD_DATE=${{ steps.date.outputs.DATE }}
             DBUILD_REPO_URL=https://github.com/openebs/dynamic-localpv-provisioner
             DBUILD_SITE_URL=https://openebs.io
+
+  integration-test:
+    runs-on: ubuntu-latest
+    needs: ['lint', 'unit-test']
+    steps:
+      - name: Set up Go 1.16
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.16.6
+
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v1
+        with:
+          version: v0.5.1
+
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Build Image
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: ./buildscripts/provisioner-localpv/provisioner-localpv.Dockerfile
+          push: false
+          load: true
+          platforms: linux/amd64
+          tags: |
+            openebs/provisioner-localpv:ci
+
+      - name: Set up Minikube
+        uses: manusa/actions-setup-minikube@v2.4.2
+        with:
+          minikube version: 'v1.22.0'
+          kubernetes version: 'v1.22.0'
+          driver: none
+
+      - name: Set up Ginkgo
+        run: |
+          go get github.com/onsi/ginkgo/ginkgo@v1.16.4
+          ginkgo version || exit 1
+
+      - name: Hostpath Integration Test
+        run: |
+          sed 's/imagePullPolicy: IfNotPresent/imagePullPolicy: Never/g' deploy/kubectl/hostpath-operator.yaml | kubectl apply -f -
+          kubectl apply -f deploy/kubectl/openebs-hostpath-sc.yaml
+          make hostpath-integration-test
 
   localpv-e2e:
     runs-on: ubuntu-latest
@@ -168,4 +221,4 @@ jobs:
           load: false
           platforms: linux/amd64
           tags: |
-            ${{ env.IMAGE_ORG }}/localpv-e2e:ci   
+            ${{ env.IMAGE_ORG }}/localpv-e2e:ci
