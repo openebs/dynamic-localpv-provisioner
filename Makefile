@@ -94,10 +94,17 @@ ifeq (${DBUILD_SITE_URL}, )
   export DBUILD_SITE_URL
 endif
 
+# Specify the kubeconfig path to a Kubernetes cluster 
+# to run Hostpath integration tests
+ifeq (${KUBECONFIG}, )
+  KUBECONFIG=${HOME}/.kube/config
+  export KUBECONFIG
+endif
+
 export DBUILD_ARGS=--build-arg DBUILD_DATE=${DBUILD_DATE} --build-arg DBUILD_REPO_URL=${DBUILD_REPO_URL} --build-arg DBUILD_SITE_URL=${DBUILD_SITE_URL} --build-arg BRANCH=${BRANCH} --build-arg RELEASE_TAG=${RELEASE_TAG}
 
 .PHONY: all
-all: test provisioner-localpv-image
+all: test provisioner-localpv-image hostpath-integration-test
 
 .PHONY: deps
 deps:
@@ -131,6 +138,11 @@ test: format vet
 testv: format
 	@echo "--> Running go test verbose" ;
 	@go test -v $(PACKAGES)
+
+# Requires KUBECONFIG env and 'ginkgo' binary
+.PHONY: hostpath-integration-test
+hostpath-integration-test:
+	@cd tests && ginkgo -v --focus="TEST HOSTPATH LOCAL PV"
 
 .PHONY: format
 format:

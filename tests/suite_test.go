@@ -62,14 +62,6 @@ var _ = BeforeSuite(func() {
 	)
 	Expect(provPodCount).To(Equal(1))
 
-	By("waiting for openebs-ndm-operator pod to come into running state")
-	ndmPodCount := ops.GetPodRunningCountEventually(
-		string(artifacts.OpenebsNamespace),
-		string(artifacts.OpenEBSNDMOperatorLabelSelector),
-		1,
-	)
-	Expect(ndmPodCount).To(Equal(1))
-
 	By("building a namespace")
 	namespaceObj, err = ns.NewBuilder().
 		WithGenerateName(namespace).
