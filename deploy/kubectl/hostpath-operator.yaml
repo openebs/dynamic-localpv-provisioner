@@ -104,7 +104,7 @@ spec:
         - name: OPENEBS_IO_INSTALLER_TYPE
           value: "openebs-operator-hostpath"
         - name: OPENEBS_IO_HELPER_IMAGE
-          value: "openebs/linux-utils:latest"
+          value: "openebs/linux-utils:ci"
         # LEADER_ELECTION_ENABLED is used to enable/disable leader election. By default
         # leader election is enabled.
         #- name: LEADER_ELECTION_ENABLED
