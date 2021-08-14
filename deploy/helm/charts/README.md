@@ -46,7 +46,7 @@ By default this chart installs additional, dependent charts:
 
 | Repository | Name | Version |
 |------------|------|---------|
-| https://openebs.github.io/node-disk-manager | openebs-ndm | 1.6.0 |
+| https://openebs.github.io/node-disk-manager | openebs-ndm | 1.6.1 |
 
 **Note:** Find detailed Node Disk Manager Helm chart configuration options [here](https://github.com/openebs/node-disk-manager/blob/master/deploy/helm/charts/README.md).
 
@@ -92,7 +92,7 @@ helm install openebs-localpv openebs-localpv/localpv-provisioner --namespace ope
 
 | Parameter                                   | Description                                   | Default                                   |
 | ------------------------------------------- | --------------------------------------------- | ----------------------------------------- |
-| `release.version`                           | LocalPV Provisioner release version               | `2.11.1`                        |
+| `release.version`                           | LocalPV Provisioner release version               | `2.12.0`                        |
 | `analytics.enabled`                         | Enable sending stats to Google Analytics          | `true`                          |
 | `analytics.pingInterval`                    | Duration(hours) between sending ping stat         | `24h`                           |
 | `deviceClass.blockDeviceTag`                | Value of `openebs.io/block-device-tag` BD label   | `""`                            |
@@ -103,7 +103,7 @@ helm install openebs-localpv openebs-localpv/localpv-provisioner --namespace ope
 | `helperPod.image.registry`                  | Registry for helper image                         | `""`                            |
 | `helperPod.image.repository`                | Image for helper pod                              | `"openebs/linux-utils"`         |
 | `helperPod.image.pullPolicy`                | Pull policy for helper pod                        | `"IfNotPresent"`                |
-| `helperPod.image.tag`                       | Image tag for helper image                        | `2.11.0`                        |
+| `helperPod.image.tag`                       | Image tag for helper image                        | `2.12.0`                        |
 | `hostpathClass.basePath`                    | BasePath for openebs-hostpath StorageClass        | `"/var/openebs/local"`          |
 | `hostpathClass.enabled`                     | Enables creation of default Hostpath StorageClass | `true`                          |
 | `hostpathClass.isDefaultClass`              | Make openebs-hostpath the default StorageClass    | `"false"`                       |
@@ -114,7 +114,7 @@ helm install openebs-localpv openebs-localpv/localpv-provisioner --namespace ope
 | `localpv.image.registry`                    | Registry for LocalPV Provisioner image            | `""`                            |
 | `localpv.image.repository`                  | Image repository for LocalPV Provisioner          | `openebs/localpv-provisioner`   |
 | `localpv.image.pullPolicy`                  | Image pull policy for LocalPV Provisioner         | `IfNotPresent`                  |
-| `localpv.image.tag`                         | Image tag for LocalPV Provisioner                 | `2.11.1`                        |
+| `localpv.image.tag`                         | Image tag for LocalPV Provisioner                 | `2.12.0`                        |
 | `localpv.updateStrategy.type`               | Update strategy for LocalPV Provisioner           | `RollingUpdate`                 |
 | `localpv.annotations`                       | Annotations for LocalPV Provisioner metadata      | `""`                            |
 | `localpv.podAnnotations`                    | Annotations for LocalPV Provisioner pods metadata | `""`                            |
@@ -129,6 +129,7 @@ helm install openebs-localpv openebs-localpv/localpv-provisioner --namespace ope
 | `localpv.replicas`                          | No. of LocalPV Provisioner replica                | `1`                             |
 | `localpv.enableLeaderElection`              | Enable leader election                            | `true`                          |
 | `localpv.affinity`                          | LocalPV Provisioner pod affinity                  | `{}`                            |
+| `localpv.waitForBDBindTimeoutRetryCount`    | This sets the number of times the provisioner should try with a polling interval of 5 seconds, to get the Blockdevice Name from a BlockDeviceClaim, before the BlockDeviceClaim is deleted. | "12" |
 | `openebsNDM.enabled`                        | Install openebs NDM dependency                    | `true`                          |
 | `rbac.create`                               | Enable RBAC Resources                             | `true`                          |
 | `rbac.pspEnabled`                           | Create pod security policy resources              | `false`                         |
