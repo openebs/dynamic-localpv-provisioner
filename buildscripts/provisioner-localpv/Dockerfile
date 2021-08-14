@@ -37,4 +37,4 @@ LABEL org.label-schema.build-date=$DBUILD_DATE
 LABEL org.label-schema.vcs-url=$DBUILD_REPO_URL
 LABEL org.label-schema.url=$DBUILD_SITE_URL
 
-CMD ["/provisioner-localpv"]
+ENTRYPOINT ["/provisioner-localpv"]
