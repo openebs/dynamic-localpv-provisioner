@@ -12,12 +12,6 @@
     force: yes
   register: rc_operator
 
-- name: Change the OpenEBS Snapshot Controller Image
-  replace:
-    path: "{{ ci_device_operator }}"
-    regexp: openebs/provisioner-localpv-ci:dev-120403
-    replace: openebs/provisioner-localpv:ci
-
 - block:
     - name: Applying openebs operator
       shell: kubectl apply -f "{{ ci_device_operator }}"

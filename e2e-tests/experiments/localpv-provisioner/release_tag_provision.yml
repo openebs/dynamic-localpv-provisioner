@@ -17,7 +17,7 @@
     - name: Change the OpenEBS Snapshot Controller Image
       replace:
         path: "{{ ci_device_operator }}"
-        regexp: openebs/provisioner-localpv-ci:dev-120403
+        regexp: openebs/provisioner-localpv:ci
         replace: "openebs/provisioner-localpv:{{ release_tag }}"
 
     - name: Change the OpenEBS component labels to desired version in Operator yaml
@@ -25,6 +25,13 @@
         path: "{{ ci_device_operator }}"
         regexp: 'openebs.io/version: dev'
         replace: "openebs.io/version: {{ release_tag }}"
+
+    - name: Change the OpenEBS CleanUP Job Image
+      replace:
+        path: "{{ ci_device_operator }}"
+        regexp: openebs/linux-utils:latest
+        after: '- name: OPENEBS_IO_HELPER_IMAGE'
+        replace: "openebs/linux-utils:{{ release_tag }}"        
 
     - name: Change the OpenEBS component labels to desired version in Operator yaml
       replace:
