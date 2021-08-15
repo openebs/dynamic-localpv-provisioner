@@ -75,7 +75,7 @@ spec:
         imagePullPolicy: IfNotPresent
         image: openebs/provisioner-localpv:ci
         args:
-          - "--bd-time-out=$(BDC_BD_BIND_TIMEOUT)"
+          - "--bd-time-out=$(BDC_BD_BIND_RETRIES)"
         env:
         # OPENEBS_IO_K8S_MASTER enables openebs provisioner to connect to K8s
         # based on this address. This is ignored if empty.
@@ -87,11 +87,12 @@ spec:
         # This is supported for openebs provisioner version 0.5.2 onwards
         #- name: OPENEBS_IO_KUBE_CONFIG
         #  value: "/home/ubuntu/.kube/config"
-        #  This sets the number of seconds the provisioner should wait for
-        #  a BlockDevice to get bound to a BlockDeviceClaim, before the
-        #  BlockDeviceClaim is deleted.
-        - name: BDC_BD_BIND_TIMEOUT
-          value: "60"
+        #  This sets the number of times the provisioner should try 
+        #  with a polling interval of 5 seconds, to get the Blockdevice
+        #  Name from a BlockDeviceClaim, before the BlockDeviceClaim
+        #  is deleted. E.g. 12 * 5 seconds = 60 seconds timeout
+        - name: BDC_BD_BIND_RETRIES
+          value: "12"
         - name: NODE_NAME
           valueFrom:
             fieldRef:
@@ -112,6 +113,8 @@ spec:
           value: "openebs-operator-hostpath"
         - name: OPENEBS_IO_HELPER_IMAGE
           value: "openebs/linux-utils:ci"
+        - name: OPENEBS_IO_BASE_PATH
+          value: "/var/openebs/local"
         # LEADER_ELECTION_ENABLED is used to enable/disable leader election. By default
         # leader election is enabled.
         #- name: LEADER_ELECTION_ENABLED
