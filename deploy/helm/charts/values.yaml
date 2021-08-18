@@ -40,7 +40,7 @@ localpv:
   replicas: 1
   enableLeaderElection: true
   basePath: "/var/openebs/local"
-# This sets the number of times the provisioner should try 
+# This sets the number of times the provisioner should try
 # with a polling interval of 5 seconds, to get the Blockdevice
 # Name from a BlockDeviceClaim, before the BlockDeviceClaim
 # is deleted. E.g. 12 * 5 seconds = 60 seconds timeout
