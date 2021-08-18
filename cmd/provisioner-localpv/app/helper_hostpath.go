@@ -50,8 +50,9 @@ var (
 	//to be launched.
 	CmdTimeoutCounts = 120
 
-	//conversion stores the equivalent of 1kb stored as 1kb, 1mb, 1gb, 1tb
-	conversion = []float64{1, 1024, 1048576, 1073741824}
+	//conversion stores the size as 1kb, 1mb, 1gb, 1tb
+	//respectively in kb
+	conversion = []float64{math.Pow(2, 0), math.Pow(2, 10), math.Pow(2, 20), math.Pow(2, 30)}
 )
 
 // HelperPodOptions contains the options that
@@ -82,11 +83,14 @@ type HelperPodOptions struct {
 
 	imagePullSecrets []corev1.LocalObjectReference
 
-	//bsoft is the soft limit of quota on the project
-	bsoft string
+	//softLimitGrace is the soft limit of quota on the project
+	softLimitGrace string
 
-	//bhard is the hard limit of quota on the project
-	bhard string
+	//hardLimitGrace is the hard limit of quota on the project
+	hardLimitGrace string
+
+	//pvcStorage is the storage requested for pv
+	pvcStorage int64
 }
 
 // validate checks that the required fields to launch
@@ -106,19 +110,19 @@ func (pOpts *HelperPodOptions) validate() error {
 
 //validateLimits check that the limits to setup qouta are valid
 func (pOpts *HelperPodOptions) validateLimits() error {
-	if pOpts.bsoft == "0k" &&
-		pOpts.bhard == "0k" {
+	if pOpts.softLimitGrace == "0k" &&
+		pOpts.hardLimitGrace == "0k" {
 		return errors.Errorf("both limits cannot be 0")
 	}
 
-	if pOpts.bsoft == "0k" ||
-		pOpts.bhard == "0k" {
+	if pOpts.softLimitGrace == "0k" ||
+		pOpts.hardLimitGrace == "0k" {
 		return nil
 	}
 
-	if len(pOpts.bsoft) > len(pOpts.bhard) ||
-		(len(pOpts.bsoft) == len(pOpts.bhard) &&
-			pOpts.bsoft > pOpts.bhard) {
+	if len(pOpts.softLimitGrace) > len(pOpts.hardLimitGrace) ||
+		(len(pOpts.softLimitGrace) == len(pOpts.hardLimitGrace) &&
+			pOpts.softLimitGrace > pOpts.hardLimitGrace) {
 		return errors.Errorf("hard limit cannot be smaller than soft limit")
 	}
 
@@ -126,7 +130,7 @@ func (pOpts *HelperPodOptions) validateLimits() error {
 }
 
 //converToK converts the limits to kilobytes
-func convertToK(limit string) (string, error) {
+func convertToK(limit string, pvcStorage int64) (string, error) {
 
 	if len(limit) == 0 {
 		return "0k", nil
@@ -134,31 +138,28 @@ func convertToK(limit string) (string, error) {
 
 	valueRegex := regexp.MustCompile(`[\d]*[\.]?[\d]*`)
 	valueString := valueRegex.FindString(limit)
+
+	if limit != valueString+"%" {
+		return "", errors.Errorf("invalid format for limit grace")
+	}
+
 	value, err := strconv.ParseFloat(valueString, 64)
+
 	if err != nil {
-		return "", errors.Errorf("invalid limit, cannot parse")
+		return "", errors.Errorf("invalid format, cannot parse")
+	}
+	if value > 100 {
+		value = 100
 	}
 
-	unitPresent := make([]bool, 4)
-
-	//if any of the size unit is present in the limit, it will
-	//mark index belonging to that size unit as true
-	unitPresent[3], err = regexp.MatchString(`[Tt].*`, limit)
-	unitPresent[2], err = regexp.MatchString(`[Gg].*`, limit)
-	unitPresent[1], err = regexp.MatchString(`[Mm].*`, limit)
-	unitPresent[0], err = regexp.MatchString(`[Kk].*`, limit)
-
-	for i := range unitPresent {
-		if unitPresent[i] {
-			value *= conversion[i]
-			value = math.Trunc(value)
-			valueString := strconv.FormatFloat(value, 'f', -1, 64)
-			valueString += "k"
-			return valueString, err
-		}
-	}
-
-	return "", errors.Errorf("limit size should be in kilobytes, megabytes, gigabytes or terabytes")
+	value *= float64(pvcStorage)
+	value /= 100
+	value += float64(pvcStorage)
+	value /= 1000
+	value = math.Trunc(value)
+	valueString = strconv.FormatFloat(value, 'f', -1, 64)
+	valueString += "k"
+	return valueString, nil
 }
 
 // createInitPod launches a helper(busybox) pod, to create the host path.
@@ -265,11 +266,11 @@ func (p *Provisioner) createQuotaPod(ctx context.Context, pOpts *HelperPodOption
 	config.taints = pOpts.selectedNodeTaints
 
 	var lErr error
-	config.pOpts.bsoft, lErr = convertToK(config.pOpts.bsoft)
+	config.pOpts.softLimitGrace, lErr = convertToK(config.pOpts.softLimitGrace, config.pOpts.pvcStorage)
 	if lErr != nil {
 		return lErr
 	}
-	config.pOpts.bhard, lErr = convertToK(config.pOpts.bhard)
+	config.pOpts.hardLimitGrace, lErr = convertToK(config.pOpts.hardLimitGrace, config.pOpts.pvcStorage)
 	if lErr != nil {
 		return lErr
 	}
@@ -278,15 +279,20 @@ func (p *Provisioner) createQuotaPod(ctx context.Context, pOpts *HelperPodOption
 		return err
 	}
 
+	//fs stores the file system of mount
+	fs := "FS=`stat -f -c %T /data` ; "
+	//check if fs is xfs
+	checkXfs := "if [[ \"$FS\" != \"xfs\" ]]; then rm -rf " + filepath.Join("/data/", config.volumeDir) + " ;exit 1 ; else "
 	//lastPid finds last project Id in the directory
 	lastPid := "PID=`xfs_quota -x -c 'report -h' /data | tail -2 | awk 'NR==1{print substr ($1,2)}+0'` ;"
 	//newPid increments last project Id by 1
 	newPid := "PID=`expr $PID + 1` ;"
-	//initializeProject
+	//initializeProject initializes project with newpid
 	initializeProject := "xfs_quota -x -c 'project -s -p " + filepath.Join("/data/", config.volumeDir) + " '$PID /data ;"
-	setQuota := "xfs_quota -x -c 'limit -p bsoft=" + config.pOpts.bsoft + " bhard=" + config.pOpts.bhard + " '$PID /data"
+	//setQuota sets the quota according to limits defined
+	setQuota := "xfs_quota -x -c 'limit -p bsoft=" + config.pOpts.softLimitGrace + " bhard=" + config.pOpts.hardLimitGrace + " '$PID /data ; fi"
 
-	config.pOpts.cmdsForPath = []string{"sh", "-c", lastPid + newPid + initializeProject + setQuota}
+	config.pOpts.cmdsForPath = []string{"sh", "-c", fs + checkXfs + lastPid + newPid + initializeProject + setQuota}
 
 	qPod, err := p.launchPod(ctx, config)
 	if err != nil {

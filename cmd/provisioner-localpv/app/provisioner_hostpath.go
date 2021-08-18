@@ -32,9 +32,9 @@ import (
 )
 
 const (
-	ScType string = "type"
-	Bsoft  string = "bsoft"
-	Bhard  string = "bhard"
+	EnableXfsQuota string = "enableXfsQuota"
+	SoftLimitGrace string = "softLimitGrace"
+	HardLimitGrace string = "hardLimitGrace"
 )
 
 // ProvisionHostPath is invoked by the Provisioner which expect HostPath PV
@@ -93,11 +93,12 @@ func (p *Provisioner) ProvisionHostPath(ctx context.Context, opts pvController.P
 		return nil, pvController.ProvisioningFinished, iErr
 	}
 
-	scType := opts.StorageClass.Parameters[ScType]
+	enableXfsQuota := opts.StorageClass.Parameters[EnableXfsQuota]
 
-	if scType == "enforceXfsQuota" {
-		bsoft := opts.StorageClass.Parameters[Bsoft]
-		bhard := opts.StorageClass.Parameters[Bhard]
+	if enableXfsQuota == "true" {
+		softLimitGrace := opts.StorageClass.Parameters[SoftLimitGrace]
+		hardLimitGrace := opts.StorageClass.Parameters[HardLimitGrace]
+		pvcStorage := opts.PVC.Spec.Resources.Requests.Storage().Value()
 
 		podOpts := &HelperPodOptions{
 			name:                   name,
@@ -107,8 +108,9 @@ func (p *Provisioner) ProvisionHostPath(ctx context.Context, opts pvController.P
 			serviceAccountName:     saName,
 			selectedNodeTaints:     taints,
 			imagePullSecrets:       imagePullSecrets,
-			bsoft:                  bsoft,
-			bhard:                  bhard,
+			softLimitGrace:         softLimitGrace,
+			hardLimitGrace:         hardLimitGrace,
+			pvcStorage:             pvcStorage,
 		}
 		iErr := p.createQuotaPod(ctx, podOpts)
 		if iErr != nil {
