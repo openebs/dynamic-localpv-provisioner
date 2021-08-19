@@ -49,10 +49,6 @@ var (
 	//CmdTimeoutCounts specifies the duration to wait for cleanup pod
 	//to be launched.
 	CmdTimeoutCounts = 120
-
-	//conversion stores the size as 1kb, 1mb, 1gb, 1tb
-	//respectively in kb
-	conversion = []float64{math.Pow(2, 0), math.Pow(2, 10), math.Pow(2, 20), math.Pow(2, 30)}
 )
 
 // HelperPodOptions contains the options that
@@ -156,6 +152,10 @@ func convertToK(limit string, pvcStorage int64) (string, error) {
 	value /= 100
 	value += float64(pvcStorage)
 	value /= 1000
+
+	if value != math.Trunc(value) {
+		value++
+	}
 	value = math.Trunc(value)
 	valueString = strconv.FormatFloat(value, 'f', -1, 64)
 	valueString += "k"
