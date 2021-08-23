@@ -27,20 +27,25 @@ import (
 	pvc "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/persistentvolumeclaim"
 	pts "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/podtemplatespec"
 	volume "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/volume"
-	"github.com/openebs/dynamic-localpv-provisioner/tests/artifacts"
+	sc "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/storage/v1/storageclass"
 	blockdeviceclaim "github.com/openebs/maya/pkg/blockdeviceclaim/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	storagev1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var _ = Describe("TEST HOSTDEVICE LOCAL PV", func() {
 	var (
+		scObj         *storagev1.StorageClass
 		pvcObj        *corev1.PersistentVolumeClaim
 		accessModes   = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
 		capacity      = "2Gi"
 		deployName    = "busybox-device"
 		label         = "demo=hostdevice-deployment"
+		scNamePrefix  = "sc-hd"
+		scName        string
+		bdcName       string
 		pvcName       = "pvc-hd"
 		deployObj     *appsv1.Deployment
 		labelselector = map[string]string{
@@ -48,13 +53,39 @@ var _ = Describe("TEST HOSTDEVICE LOCAL PV", func() {
 		}
 	)
 
-	When("pvc with storageclass openebs-device is created", func() {
-		It("should create a pvc ", func() {
-			var (
-				scName = "openebs-device"
+	When("a StorageClass is created", func() {
+		It("should create a StorageClass", func() {
+			By("building a StorageClass")
+			scObj, err = sc.NewStorageClass(
+				sc.WithGenerateName(scNamePrefix),
+				sc.WithLabels(map[string]string{
+					"openebs.io/test-sc": "true",
+				}),
+				sc.WithLocalPV(),
+				sc.WithDevice(),
+				sc.WithVolumeBindingMode("WaitForFirstConsumer"),
+				sc.WithReclaimPolicy("Delete"),
+			)
+			Expect(err).To(
+				BeNil(),
+				"while building StorageClass with name prefix {%s}",
+				scNamePrefix,
 			)
 
-			By("building a pvc")
+			By("creating StorageClass API resource")
+			scObj, err = ops.SCClient.Create(context.TODO(), scObj)
+			Expect(err).To(
+				BeNil(),
+				"while creating StorageClass with name prefix {%s}",
+				scNamePrefix,
+			)
+			scName = scObj.ObjectMeta.Name
+		})
+	})
+
+	When("PVC with StorageClass "+scName+" is created", func() {
+		It("should create a PVC ", func() {
+			By("building a PVC")
 			pvcObj, err = pvc.NewBuilder().
 				WithName(pvcName).
 				WithNamespace(namespaceObj.Name).
@@ -68,11 +99,11 @@ var _ = Describe("TEST HOSTDEVICE LOCAL PV", func() {
 				namespaceObj.Name,
 			)
 
-			By("creating above pvc")
+			By("creating above PVC")
 			pvcObj, err = ops.PVCClient.WithNamespace(namespaceObj.Name).Create(context.TODO(), pvcObj)
 			Expect(err).To(
 				BeNil(),
-				"while creating pvc {%s} in namespace {%s}",
+				"while creating PVC {%s} in namespace {%s}",
 				pvcName,
 				namespaceObj.Name,
 			)
@@ -142,8 +173,8 @@ var _ = Describe("TEST HOSTDEVICE LOCAL PV", func() {
 	})
 	When("remove finalizer", func() {
 		It("finalizer should come back after provisioner restart", func() {
-			bdcName := "bdc-pvc-" + string(pvcObj.GetUID())
-			bdcObj, err := ops.BDCClient.WithNamespace(string(artifacts.OpenebsNamespace)).Get(context.TODO(), bdcName,
+			bdcName = "bdc-pvc-" + string(pvcObj.GetUID())
+			bdcObj, err := ops.BDCClient.WithNamespace(openebsNamespace).Get(context.TODO(), bdcName,
 				metav1.GetOptions{})
 			Expect(err).To(BeNil())
 
@@ -152,10 +183,10 @@ var _ = Describe("TEST HOSTDEVICE LOCAL PV", func() {
 			Expect(err).To(BeNil())
 
 			podList, err := ops.PodClient.
-				WithNamespace(string(artifacts.OpenebsNamespace)).
+				WithNamespace(openebsNamespace).
 				List(context.TODO(), metav1.ListOptions{LabelSelector: LocalPVProvisionerLabelSelector})
 			Expect(err).To(BeNil())
-			err = ops.PodClient.Delete(context.TODO(), podList.Items[0].Name, &metav1.DeleteOptions{})
+			err = ops.PodClient.WithNamespace(openebsNamespace).Delete(context.TODO(), podList.Items[0].Name, &metav1.DeleteOptions{})
 			Expect(err).To(BeNil())
 
 			Expect(ops.IsFinalizerExistsOnBDC(bdcName, localpv_app.LocalPVFinalizer)).To(BeTrue())
@@ -180,30 +211,57 @@ var _ = Describe("TEST HOSTDEVICE LOCAL PV", func() {
 		})
 	})
 
-	When("pvc with storageclass openebs-device is deleted ", func() {
+	When("PVC with StorageClass "+scName+" is deleted ", func() {
 		It("should delete the pvc", func() {
+			By("getting the PV name")
+			pvName := ops.GetPVNameFromPVCName(pvcName)
 
 			By("deleting above pvc")
 			err = ops.PVCClient.Delete(context.TODO(), pvcName, &metav1.DeleteOptions{})
 			Expect(err).To(
 				BeNil(),
-				"while deleting pvc {%s} in namespace {%s}",
+				"while deleting PVC {%s} in namespace {%s}",
 				pvcName,
 				namespaceObj.Name,
 			)
 
+			By("having the Provisioner delete the PV")
+			status := ops.IsPVDeletedEventually(pvName)
+			Expect(status).To(
+				BeTrue(),
+				"while waiting for the Provisioner to delete PV {%s}",
+				pvName,
+			)
+
+			By("verifying PVC is deleted")
+			status = ops.IsPVCDeletedEventually(pvcName, namespaceObj.Name)
+			Expect(status).To(
+				BeTrue(),
+				"when checking status of deleted PVC {%s}",
+				pvcName,
+			)
+
+			By("verifying BDC is deleted")
+			status = ops.IsBDCDeletedEventually(bdcName, openebsNamespace)
+			Expect(status).To(
+				BeTrue(),
+				"when checking status of BDC {%s}, which should have been deleted",
+				bdcName,
+			)
 		})
 	})
-
 })
 
 var _ = Describe("TEST HOSTDEVICE LOCAL PV WITH VOLUMEMODE AS BLOCK", func() {
 	var (
+		scObj         *storagev1.StorageClass
 		pvcObj        *corev1.PersistentVolumeClaim
 		accessModes   = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
 		capacity      = "2Gi"
 		deployName    = "busybox-device"
 		label         = "demo=hostdevice-deployment"
+		scNamePrefix  = "sc-hd-block"
+		scName        string
 		pvcName       = "pvc-hd-block"
 		deployObj     *appsv1.Deployment
 		labelselector = map[string]string{
@@ -211,14 +269,43 @@ var _ = Describe("TEST HOSTDEVICE LOCAL PV WITH VOLUMEMODE AS BLOCK", func() {
 		}
 	)
 
-	When("pvc with storageclass openebs-device, and volumeMode as Block, is created", func() {
-		It("should create a pvc ", func() {
+	When("a StorageClass is created", func() {
+		It("should create a StorageClass", func() {
+			By("building a StorageClass")
+			scObj, err = sc.NewStorageClass(
+				sc.WithGenerateName(scNamePrefix),
+				sc.WithLabels(map[string]string{
+					"openebs.io/test-sc": "true",
+				}),
+				sc.WithLocalPV(),
+				sc.WithDevice(),
+				sc.WithVolumeBindingMode("WaitForFirstConsumer"),
+				sc.WithReclaimPolicy("Delete"),
+			)
+			Expect(err).To(
+				BeNil(),
+				"while building StorageClass with name prefix {%s}",
+				scNamePrefix,
+			)
+
+			By("creating StorageClass API resource")
+			scObj, err = ops.SCClient.Create(context.TODO(), scObj)
+			Expect(err).To(
+				BeNil(),
+				"while creating StorageClass with name prefix {%s}",
+				scNamePrefix,
+			)
+			scName = scObj.ObjectMeta.Name
+		})
+	})
+
+	When("PVC with StorageClass "+scName+", and volumeMode as Block, is created", func() {
+		It("should create a PVC ", func() {
 			var (
-				scName          = "openebs-device"
 				blockVolumeMode = corev1.PersistentVolumeBlock
 			)
 
-			By("building a pvc")
+			By("building a PVC")
 			pvcObj, err = pvc.NewBuilder().
 				WithName(pvcName).
 				WithNamespace(namespaceObj.Name).
@@ -228,16 +315,16 @@ var _ = Describe("TEST HOSTDEVICE LOCAL PV WITH VOLUMEMODE AS BLOCK", func() {
 				WithCapacity(capacity).Build()
 			Expect(err).ShouldNot(
 				HaveOccurred(),
-				"while building pvc {%s} in namespace {%s}",
+				"while building PVC {%s} in namespace {%s}",
 				pvcName,
 				namespaceObj.Name,
 			)
 
-			By("creating above pvc")
+			By("creating above PVC")
 			pvcObj, err = ops.PVCClient.WithNamespace(namespaceObj.Name).Create(context.TODO(), pvcObj)
 			Expect(err).To(
 				BeNil(),
-				"while creating pvc {%s} in namespace {%s}",
+				"while creating PVC {%s} in namespace {%s}",
 				pvcName,
 				namespaceObj.Name,
 			)
@@ -309,7 +396,7 @@ var _ = Describe("TEST HOSTDEVICE LOCAL PV WITH VOLUMEMODE AS BLOCK", func() {
 	When("remove finalizer", func() {
 		It("finalizer should come back after provisioner restart", func() {
 			bdcName := "bdc-pvc-" + string(pvcObj.GetUID())
-			bdcObj, err := ops.BDCClient.WithNamespace(string(artifacts.OpenebsNamespace)).Get(context.TODO(), bdcName,
+			bdcObj, err := ops.BDCClient.WithNamespace(openebsNamespace).Get(context.TODO(), bdcName,
 				metav1.GetOptions{})
 			Expect(err).To(BeNil())
 
@@ -318,10 +405,10 @@ var _ = Describe("TEST HOSTDEVICE LOCAL PV WITH VOLUMEMODE AS BLOCK", func() {
 			Expect(err).To(BeNil())
 
 			podList, err := ops.PodClient.
-				WithNamespace(string(artifacts.OpenebsNamespace)).
+				WithNamespace(openebsNamespace).
 				List(context.TODO(), metav1.ListOptions{LabelSelector: LocalPVProvisionerLabelSelector})
 			Expect(err).To(BeNil())
-			err = ops.PodClient.Delete(context.TODO(), podList.Items[0].Name, &metav1.DeleteOptions{})
+			err = ops.PodClient.WithNamespace(openebsNamespace).Delete(context.TODO(), podList.Items[0].Name, &metav1.DeleteOptions{})
 			Expect(err).To(BeNil())
 
 			Expect(ops.IsFinalizerExistsOnBDC(bdcName, localpv_app.LocalPVFinalizer)).To(BeTrue())
@@ -346,16 +433,43 @@ var _ = Describe("TEST HOSTDEVICE LOCAL PV WITH VOLUMEMODE AS BLOCK", func() {
 		})
 	})
 
-	When("pvc with storageclass openebs-device is deleted ", func() {
-		It("should delete the pvc", func() {
+	When("PVC with StorageClass "+scName+" is deleted ", func() {
+		It("should delete the PVC", func() {
+			By("getting the PV name and the BDC name")
+			bdcName := "bdc-pvc-" + string(pvcObj.GetUID())
+			pvName := ops.GetPVNameFromPVCName(pvcName)
 
 			By("deleting above pvc")
 			err = ops.PVCClient.Delete(context.TODO(), pvcName, &metav1.DeleteOptions{})
 			Expect(err).To(
 				BeNil(),
-				"while deleting pvc {%s} in namespace {%s}",
+				"while deleting PVC {%s} in namespace {%s}",
 				pvcName,
 				namespaceObj.Name,
+			)
+
+			By("having the Provisioner delete the PV")
+			status := ops.IsPVDeletedEventually(pvName)
+			Expect(status).To(
+				BeTrue(),
+				"while waiting for the Provisioner to delete PV {%s}",
+				pvName,
+			)
+
+			By("verifying PVC is deleted")
+			status = ops.IsPVCDeletedEventually(pvcName, namespaceObj.Name)
+			Expect(status).To(
+				BeTrue(),
+				"when checking status of deleted PVC {%s}",
+				pvcName,
+			)
+
+			By("verifying BDC is deleted")
+			status = ops.IsBDCDeletedEventually(bdcName, openebsNamespace)
+			Expect(status).To(
+				BeTrue(),
+				"when checking status of BDC {%s}, which should have been deleted",
+				bdcName,
 			)
 
 		})
@@ -364,17 +478,20 @@ var _ = Describe("TEST HOSTDEVICE LOCAL PV WITH VOLUMEMODE AS BLOCK", func() {
 })
 var _ = Describe("[-ve] TEST HOSTDEVICE LOCAL PV", func() {
 	var (
+		scObj         *storagev1.StorageClass
 		pvcObj        *corev1.PersistentVolumeClaim
 		accessModes   = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
 		capacity      = "2Gi"
 		deployName    = "busybox-device"
 		label         = "demo=hostdevice-deployment"
+		scNamePrefix  = "sc-hd"
+		scName        string
 		pvcName       = "pvc-hd"
 		deployObj     *appsv1.Deployment
 		labelselector = map[string]string{
 			"demo": "hostdevice-deployment",
 		}
-		scName                = "openebs-device"
+		//bdcTimeoutDuration    = 60
 		existingPVCObj        *corev1.PersistentVolumeClaim
 		existingDeployName    = "existing-busybox-device"
 		existinglabel         = "demo=existing-hostdevice-deployment"
@@ -384,8 +501,39 @@ var _ = Describe("[-ve] TEST HOSTDEVICE LOCAL PV", func() {
 			"demo": "existing-hostdevice-deployment",
 		}
 	)
-	When("existing pvc with storageclass openebs-device is created", func() {
-		It("should create a pvc", func() {
+
+	When("a StorageClass is created", func() {
+		It("should create a StorageClass", func() {
+			By("building a StorageClass")
+			scObj, err = sc.NewStorageClass(
+				sc.WithGenerateName(scNamePrefix),
+				sc.WithLabels(map[string]string{
+					"openebs.io/test-sc": "true",
+				}),
+				sc.WithLocalPV(),
+				sc.WithDevice(),
+				sc.WithVolumeBindingMode("WaitForFirstConsumer"),
+				sc.WithReclaimPolicy("Delete"),
+			)
+			Expect(err).To(
+				BeNil(),
+				"while building StorageClass with name prefix {%s}",
+				scNamePrefix,
+			)
+
+			By("creating StorageClass API resource")
+			scObj, err = ops.SCClient.Create(context.TODO(), scObj)
+			Expect(err).To(
+				BeNil(),
+				"while creating StorageClass with name prefix {%s}",
+				scNamePrefix,
+			)
+			scName = scObj.ObjectMeta.Name
+		})
+	})
+
+	When("existing PVC with StorageClass "+scName+" is created", func() {
+		It("should create a PVC", func() {
 
 			By("building a pvc")
 			existingPVCObj, err = pvc.NewBuilder().
@@ -396,16 +544,16 @@ var _ = Describe("[-ve] TEST HOSTDEVICE LOCAL PV", func() {
 				WithCapacity(capacity).Build()
 			Expect(err).ShouldNot(
 				HaveOccurred(),
-				"while building pvc {%s} in namespace {%s}",
+				"while building PVC {%s} in namespace {%s}",
 				existingPVCName,
 				namespaceObj.Name,
 			)
 
-			By("creating above pvc")
-			_, err = ops.PVCClient.WithNamespace(namespaceObj.Name).Create(context.TODO(), existingPVCObj)
+			By("creating above PVC")
+			existingPVCObj, err = ops.PVCClient.WithNamespace(namespaceObj.Name).Create(context.TODO(), existingPVCObj)
 			Expect(err).To(
 				BeNil(),
-				"while creating pvc {%s} in namespace {%s}",
+				"while creating PVC {%s} in namespace {%s}",
 				existingPVCName,
 				namespaceObj.Name,
 			)
@@ -474,10 +622,10 @@ var _ = Describe("[-ve] TEST HOSTDEVICE LOCAL PV", func() {
 		})
 	})
 
-	When("another pvc with storageclass openebs-device is created", func() {
-		It("should create a pvc ", func() {
+	When("another PVC with StorageClass "+scName+" is created", func() {
+		It("should create a PVC ", func() {
 
-			By("building a pvc")
+			By("building a PVC")
 			pvcObj, err = pvc.NewBuilder().
 				WithName(pvcName).
 				WithNamespace(namespaceObj.Name).
@@ -486,23 +634,23 @@ var _ = Describe("[-ve] TEST HOSTDEVICE LOCAL PV", func() {
 				WithCapacity(capacity).Build()
 			Expect(err).ShouldNot(
 				HaveOccurred(),
-				"while building pvc {%s} in namespace {%s}",
+				"while building PVC {%s} in namespace {%s}",
 				pvcName,
 				namespaceObj.Name,
 			)
 
 			By("creating above pvc")
-			_, err = ops.PVCClient.WithNamespace(namespaceObj.Name).Create(context.TODO(), pvcObj)
+			pvcObj, err = ops.PVCClient.WithNamespace(namespaceObj.Name).Create(context.TODO(), pvcObj)
 			Expect(err).To(
 				BeNil(),
-				"while creating pvc {%s} in namespace {%s}",
+				"while creating PVC {%s} in namespace {%s}",
 				pvcName,
 				namespaceObj.Name,
 			)
 		})
 	})
 
-	When("another deployment with busybox image and above pvc is created", func() {
+	When("another deployment with busybox image and above PVC is created", func() {
 		It("should not create a deployment and a running pod", func() {
 
 			By("building a deployment")
@@ -557,10 +705,20 @@ var _ = Describe("[-ve] TEST HOSTDEVICE LOCAL PV", func() {
 				namespaceObj.Name,
 			)
 
+			/*
+				By("checking if BDC gets deleted")
+				staleBDCName := "bdc-pvc-" + string(pvcObj.GetUID())
+				exitStatus := ops.GetBDCStatusAfterAge(staleBDCName, openebsNamespace, time.Duration(bdcTimeoutDuration+1)*time.Second)
+				Expect(exitStatus).To(
+					Equal(deleted),
+					"while checking if the stale BDC {%s} got deleted",
+					staleBDCName,
+				)
+			*/
+
 			By("verifying pod count as 0")
 			podCount := ops.GetPodRunningCountEventually(namespaceObj.Name, label, 0)
 			Expect(podCount).To(Equal(0), "while verifying pod count")
-
 		})
 	})
 
@@ -583,18 +741,25 @@ var _ = Describe("[-ve] TEST HOSTDEVICE LOCAL PV", func() {
 		})
 	})
 
-	When("above pvc with storageclass openebs-device is deleted ", func() {
-		It("should delete the pvc", func() {
+	When("above PVC with StorageClass "+scName+" is deleted ", func() {
+		It("should delete the PVC", func() {
 
-			By("deleting above pvc")
+			By("deleting above PVC")
 			err = ops.PVCClient.Delete(context.TODO(), pvcName, &metav1.DeleteOptions{})
 			Expect(err).To(
 				BeNil(),
-				"while deleting pvc {%s} in namespace {%s}",
+				"while deleting PVC {%s} in namespace {%s}",
 				pvcName,
 				namespaceObj.Name,
 			)
 
+			By("verifying PVC is deleted")
+			status := ops.IsPVCDeletedEventually(pvcName, namespaceObj.Name)
+			Expect(status).To(
+				BeTrue(),
+				"when checking status of deleted PVC {%s}",
+				pvcName,
+			)
 		})
 	})
 
@@ -618,16 +783,43 @@ var _ = Describe("[-ve] TEST HOSTDEVICE LOCAL PV", func() {
 		})
 	})
 
-	When("existing pvc with storageclass openebs-device is deleted ", func() {
-		It("should delete the pvc", func() {
+	When("existing PVC with storageclass "+scName+" is deleted ", func() {
+		It("should delete the PVC", func() {
+			By("getting the PV name and the BDC name")
+			bdcName := "bdc-pvc-" + string(existingPVCObj.GetUID())
+			pvName := ops.GetPVNameFromPVCName(existingPVCName)
 
-			By("deleting above pvc")
+			By("deleting above PVC")
 			err = ops.PVCClient.Delete(context.TODO(), existingPVCName, &metav1.DeleteOptions{})
 			Expect(err).To(
 				BeNil(),
-				"while deleting pvc {%s} in namespace {%s}",
+				"while deleting PVC {%s} in namespace {%s}",
 				existingPVCName,
 				namespaceObj.Name,
+			)
+
+			By("having the Provisioner delete the PV")
+			status := ops.IsPVDeletedEventually(pvName)
+			Expect(status).To(
+				BeTrue(),
+				"while waiting for the Provisioner to delete PV {%s}",
+				pvName,
+			)
+
+			By("verifying PVC is deleted")
+			status = ops.IsPVCDeletedEventually(existingPVCName, namespaceObj.Name)
+			Expect(status).To(
+				BeTrue(),
+				"when checking status of deleted PVC {%s}",
+				existingPVCName,
+			)
+
+			By("verifying BDC is deleted")
+			status = ops.IsBDCDeletedEventually(bdcName, openebsNamespace)
+			Expect(status).To(
+				BeTrue(),
+				"when checking status of BDC {%s}, which should have been deleted",
+				bdcName,
 			)
 
 		})
@@ -636,6 +828,7 @@ var _ = Describe("[-ve] TEST HOSTDEVICE LOCAL PV", func() {
 
 var _ = Describe("[-ve] TEST HOSTDEVICE LOCAL PV WITH VOLUMEMODE AS BLOCK ", func() {
 	var (
+		scObj *storagev1.StorageClass
 		//pvcObj          *corev1.PersistentVolumeClaim
 		accessModes = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
 		capacity    = "2Gi"
@@ -647,7 +840,8 @@ var _ = Describe("[-ve] TEST HOSTDEVICE LOCAL PV WITH VOLUMEMODE AS BLOCK ", fun
 		//labelselector   = map[string]string{
 		//	"demo": "hostdevice-deployment",
 		//}
-		scName                = "openebs-device"
+		scNamePrefix          = "sc-hd-block"
+		scName                string
 		existingPVCObj        *corev1.PersistentVolumeClaim
 		existingDeployName    = "existing-busybox-device"
 		existinglabel         = "demo=existing-hostdevice-deployment"
@@ -657,10 +851,41 @@ var _ = Describe("[-ve] TEST HOSTDEVICE LOCAL PV WITH VOLUMEMODE AS BLOCK ", fun
 			"demo": "existing-hostdevice-deployment",
 		}
 	)
-	When("existing pvc with storageclass openebs-device is created", func() {
-		It("should create a pvc", func() {
 
-			By("building a pvc")
+	When("a StorageClass is created", func() {
+		It("should create a StorageClass", func() {
+			By("building a StorageClass")
+			scObj, err = sc.NewStorageClass(
+				sc.WithGenerateName(scNamePrefix),
+				sc.WithLabels(map[string]string{
+					"openebs.io/test-sc": "true",
+				}),
+				sc.WithLocalPV(),
+				sc.WithDevice(),
+				sc.WithVolumeBindingMode("WaitForFirstConsumer"),
+				sc.WithReclaimPolicy("Delete"),
+			)
+			Expect(err).To(
+				BeNil(),
+				"while building StorageClass with name prefix {%s}",
+				scNamePrefix,
+			)
+
+			By("creating StorageClass API resource")
+			scObj, err = ops.SCClient.Create(context.TODO(), scObj)
+			Expect(err).To(
+				BeNil(),
+				"while creating StorageClass with name prefix {%s}",
+				scNamePrefix,
+			)
+			scName = scObj.ObjectMeta.Name
+		})
+	})
+
+	When("existing PVC with StorageClass "+scName+" is created", func() {
+		It("should create a PVC", func() {
+
+			By("building a PVC")
 			existingPVCObj, err = pvc.NewBuilder().
 				WithName(existingPVCName).
 				WithNamespace(namespaceObj.Name).
@@ -675,11 +900,11 @@ var _ = Describe("[-ve] TEST HOSTDEVICE LOCAL PV WITH VOLUMEMODE AS BLOCK ", fun
 				namespaceObj.Name,
 			)
 
-			By("creating above pvc")
-			_, err = ops.PVCClient.WithNamespace(namespaceObj.Name).Create(context.TODO(), existingPVCObj)
+			By("creating above PVC")
+			existingPVCObj, err = ops.PVCClient.WithNamespace(namespaceObj.Name).Create(context.TODO(), existingPVCObj)
 			Expect(err).To(
 				BeNil(),
-				"while creating pvc {%s} in namespace {%s}",
+				"while creating PVC {%s} in namespace {%s}",
 				existingPVCName,
 				namespaceObj.Name,
 			)
@@ -740,7 +965,7 @@ var _ = Describe("[-ve] TEST HOSTDEVICE LOCAL PV WITH VOLUMEMODE AS BLOCK ", fun
 				namespaceObj.Name,
 			)
 
-			By("verifying pvc status as bound")
+			By("verifying PVC status as bound")
 			status := ops.IsPVCBoundEventually(existingPVCName)
 			Expect(status).To(Equal(true), "while checking status equal to bound")
 
@@ -769,16 +994,24 @@ var _ = Describe("[-ve] TEST HOSTDEVICE LOCAL PV WITH VOLUMEMODE AS BLOCK ", fun
 		})
 	})
 
-	When("existing pvc with storageclass openebs-device is deleted ", func() {
-		It("should delete the pvc", func() {
+	When("existing PVC with storageclass "+scName+" is deleted ", func() {
+		It("should delete the PVC", func() {
 
-			By("deleting above pvc")
+			By("deleting above PVC")
 			err = ops.PVCClient.Delete(context.TODO(), existingPVCName, &metav1.DeleteOptions{})
 			Expect(err).To(
 				BeNil(),
-				"while deleting pvc {%s} in namespace {%s}",
+				"while deleting PVC {%s} in namespace {%s}",
 				existingPVCName,
 				namespaceObj.Name,
+			)
+
+			By("verifying PVC is deleted")
+			status := ops.IsPVCDeletedEventually(existingPVCName, namespaceObj.Name)
+			Expect(status).To(
+				BeTrue(),
+				"when checking status of deleted PVC {%s}",
+				existingPVCName,
 			)
 
 		})

@@ -20,6 +20,8 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+
+	//"sort"
 	"strconv"
 	"time"
 
@@ -32,7 +34,7 @@ import (
 	pod "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/pod"
 	pts "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/podtemplatespec"
 	k8svolume "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/volume"
-	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	sc "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/storage/v1/storageclass"
 	bd "github.com/openebs/maya/pkg/blockdevice/v1alpha2"
 	bdc "github.com/openebs/maya/pkg/blockdeviceclaim/v1alpha1"
 	kubeclient "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
@@ -42,11 +44,9 @@ import (
 	templatefuncs "github.com/openebs/maya/pkg/templatefuncs/v1alpha1"
 	unstruct "github.com/openebs/maya/pkg/unstruct/v1alpha2"
 	result "github.com/openebs/maya/pkg/upgrade/result/v1alpha1"
-	"github.com/openebs/maya/tests/artifacts"
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	storagev1 "k8s.io/api/storage/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -55,9 +55,35 @@ import (
 )
 
 const (
-	maxRetry         = 30
-	openebsNamespace = "openebs"
+	maxRetry = 30
 )
+
+type bdcExitStatus string
+
+const (
+	deleted bdcExitStatus = "deleted"
+	pending bdcExitStatus = "pending"
+	bound   bdcExitStatus = "bound"
+	invalid bdcExitStatus = "invalid"
+)
+
+/*
+type SortBDC struct {
+	bdcList *apis.BlockDeviceClaimList
+}
+
+func (s SortBDC) Len() int {
+	return len(s.bdcList.Items)
+}
+
+func (s SortBDC) Swap(i, j int) {
+	s.bdcList.Items[i], s.bdcList.Items[j] = s.bdcList.Items[j], s.bdcList.Items[i]
+}
+
+func (s SortBDC) Less(i, j int) bool {
+	return s.bdcList.Items[i].ObjectMeta.CreationTimestamp.Time.Before(s.bdcList.Items[j].ObjectMeta.CreationTimestamp.Time)
+}
+*/
 
 // Options holds the args used for exec'ing into the pod
 type Options struct {
@@ -74,6 +100,7 @@ type Operations struct {
 	PodClient      *pod.KubeClient
 	PVCClient      *pvc.Kubeclient
 	PVClient       *pv.Kubeclient
+	SCClient       *sc.Kubeclient
 	NSClient       *ns.Kubeclient
 	SVCClient      *svc.Kubeclient
 	URClient       *result.Kubeclient
@@ -98,14 +125,6 @@ type SPCConfig struct {
 	IsThickProvisioning bool
 }
 
-// SCConfig provides config to create storage class
-type SCConfig struct {
-	Name              string
-	Annotations       map[string]string
-	Provisioner       string
-	VolumeBindingMode storagev1.VolumeBindingMode
-}
-
 // PVCConfig provides config to create PersistentVolumeClaim
 type PVCConfig struct {
 	Name        string
@@ -113,25 +132,6 @@ type PVCConfig struct {
 	SCName      string
 	Capacity    string
 	AccessModes []corev1.PersistentVolumeAccessMode
-}
-
-// CVRConfig provides config to create CStorVolumeReplica
-type CVRConfig struct {
-	PoolObj    *apis.CStorPool
-	VolumeName string
-	Namespace  string
-	Capacity   string
-	Phase      string
-	TargetIP   string
-	ReplicaID  string
-}
-
-// ServiceConfig provides config to create Service
-type ServiceConfig struct {
-	Name        string
-	Namespace   string
-	Selectors   map[string]string
-	ServicePort []corev1.ServicePort
 }
 
 // OperationsOptions abstracts creating an
@@ -204,6 +204,9 @@ func (ops *Operations) withDefaults() {
 	if ops.PVClient == nil {
 		ops.PVClient = pv.NewKubeClient(pv.WithKubeConfigPath(ops.KubeConfigPath))
 	}
+	if ops.SCClient == nil {
+		ops.SCClient = sc.NewKubeClient(sc.WithKubeConfigPath(ops.KubeConfigPath))
+	}
 	if ops.URClient == nil {
 		ops.URClient = result.NewKubeClient(result.WithKubeConfigPath(ops.KubeConfigPath))
 	}
@@ -225,35 +228,6 @@ func (ops *Operations) withDefaults() {
 	if ops.SVCClient == nil {
 		ops.SVCClient = svc.NewKubeClient(svc.WithKubeConfigPath(ops.KubeConfigPath))
 	}
-}
-
-// VerifyOpenebs verify running state of required openebs control plane components
-func (ops *Operations) VerifyOpenebs(expectedPodCount int) *Operations {
-	By("waiting for maya-apiserver pod to come into running state")
-	podCount := ops.GetPodRunningCountEventually(
-		string(artifacts.OpenebsNamespace),
-		string(artifacts.MayaAPIServerLabelSelector),
-		expectedPodCount,
-	)
-	Expect(podCount).To(Equal(expectedPodCount))
-
-	By("waiting for openebs-provisioner pod to come into running state")
-	podCount = ops.GetPodRunningCountEventually(
-		string(artifacts.OpenebsNamespace),
-		string(artifacts.OpenEBSProvisionerLabelSelector),
-		expectedPodCount,
-	)
-	Expect(podCount).To(Equal(expectedPodCount))
-
-	By("Verifying 'admission-server' pod status as running")
-	_ = ops.GetPodRunningCountEventually(string(artifacts.OpenebsNamespace),
-		string(artifacts.OpenEBSAdmissionServerLabelSelector),
-		expectedPodCount,
-	)
-
-	Expect(podCount).To(Equal(expectedPodCount))
-
-	return ops
 }
 
 // GetPodRunningCountEventually gives the number of pods running eventually
@@ -453,8 +427,8 @@ func (ops *Operations) RestartPodEventually(podObj *corev1.Pod) error {
 // IsPVCDeleted tries to get the deleted pvc
 // and returns true if pvc is not found
 // else returns false
-func (ops *Operations) IsPVCDeleted(pvcName string) bool {
-	_, err := ops.PVCClient.
+func (ops *Operations) IsPVCDeleted(pvcName, namespace string) bool {
+	_, err := ops.PVCClient.WithNamespace(namespace).
 		Get(context.TODO(), pvcName, metav1.GetOptions{})
 	return isNotFound(err)
 }
@@ -462,13 +436,35 @@ func (ops *Operations) IsPVCDeleted(pvcName string) bool {
 // IsPVCDeletedEventually tries to get the deleted pvc
 // and returns true if pvc is not found
 // else returns false
-func (ops *Operations) IsPVCDeletedEventually(pvcName string) bool {
+func (ops *Operations) IsPVCDeletedEventually(pvcName, namespace string) bool {
 	return Eventually(func() bool {
-		_, err := ops.PVCClient.
+		_, err := ops.PVCClient.WithNamespace(namespace).
 			Get(context.TODO(), pvcName, metav1.GetOptions{})
 		return isNotFound(err)
 	},
-		120, 10).
+		120, 2).
+		Should(BeTrue())
+}
+
+// IsPVDeleted tries to get the deleted pvc
+// and returns true if PV is not found
+// else returns false
+func (ops *Operations) IsPVDeleted(pvName string) bool {
+	_, err := ops.PVClient.
+		Get(context.TODO(), pvName, metav1.GetOptions{})
+	return isNotFound(err)
+}
+
+// IsPVDeletedEventually tries to get the deleted pvc
+// and returns true if PV is not found
+// else returns false
+func (ops *Operations) IsPVDeletedEventually(pvName string) bool {
+	return Eventually(func() bool {
+		_, err := ops.PVClient.
+			Get(context.TODO(), pvName, metav1.GetOptions{})
+		return isNotFound(err)
+	},
+		120, 2).
 		Should(BeTrue())
 }
 
@@ -505,6 +501,54 @@ func isNotFound(err error) bool {
 	}
 }
 
+// IsBDCDeletedEventually tries to get the deleted BDC
+// and returns true if BDC is not found
+// else returns false
+func (ops *Operations) IsBDCDeletedEventually(bdcName, namespace string) bool {
+	return Eventually(func() bool {
+		_, err := ops.BDCClient.WithNamespace(namespace).
+			Get(context.TODO(), bdcName, metav1.GetOptions{})
+		return isNotFound(err)
+	},
+		120, 2).
+		Should(BeTrue())
+}
+
+// Sorts BDC in the descending order of their creation timestamp and
+// returns the name of the BDC created at the latest timestamp
+/*
+func (ops *Operations) GetLatestCreatedBDCName(namespace string) string {
+	bdcList, err := ops.BDCClient.WithNamespace(namespace).List(context.TODO(), metav1.ListOptions{})
+	Expect(err).To(
+		BeNil(),
+		"when GET-ing BDC in namespace {%s}",
+		ops.NameSpace,
+	)
+
+	sortableBDCList := SortBDC{
+		bdcList: bdcList,
+	}
+	sort.Sort(sort.Reverse(sortableBDCList))
+	return sortableBDCList.bdcList.Items[0].ObjectMeta.Name
+}
+*/
+/*
+func (ops *Operations) GetBDNameFromBDCName(bdcName, namespace string) string {
+	bdcObj, err := ops.BDCClient.WithNamespace(namespace).
+		Get(context.TODO(), bdcName, metav1.GetOptions{})
+	Expect(err).To(
+		BeNil(),
+		"when trying to get BDC {%s}",
+		bdcName,
+	)
+	Expect(bdcObj.Status.Phase).To(
+		Equal(apis.BlockDeviceClaimStatusDone),
+		"when trying to check if a BD is bound to BDC {%s}",
+		bdcName,
+	)
+	return bdcObj.Spec.BlockDeviceName
+}
+*/
 // GetBDCCountEventually gets BDC resource count based on provided list option.
 func (ops *Operations) GetBDCCountEventually(listOptions metav1.ListOptions, expectedBDCCount int, namespace string) int {
 	var bdcCount int
@@ -533,6 +577,31 @@ func (ops *Operations) IsFinalizerExistsOnBDC(bdcName, finalizer string) bool {
 		time.Sleep(5 * time.Second)
 	}
 	return false
+}
+
+func (ops *Operations) GetBDCStatusAfterAge(bdcName string, namespace string, untilAge time.Duration) bdcExitStatus {
+	bdcObj, err := ops.BDCClient.WithNamespace(namespace).Get(context.TODO(), bdcName, metav1.GetOptions{})
+	Expect(err).To(
+		BeNil(),
+		"when geting BDC {%s} initally to calculate Age",
+		bdcName,
+	)
+	initialCreationTimestamp := bdcObj.CreationTimestamp.Time
+	untilTimestamp := initialCreationTimestamp.Add(untilAge)
+
+	time.Sleep(time.Until(untilTimestamp))
+
+	bdcObj, err = ops.BDCClient.WithNamespace(namespace).Get(context.TODO(), bdcName, metav1.GetOptions{})
+	finalCreationTimestamp := bdcObj.CreationTimestamp.Time
+	if isNotFound(err) || finalCreationTimestamp.After(initialCreationTimestamp) {
+		return deleted
+	} else if bdcObj.Status.Phase == "Pending" {
+		return pending
+	} else if bdcObj.Status.Phase == "Bound" {
+		return bound
+	} else {
+		return invalid
+	}
 }
 
 // ExecPod executes arbitrary command inside the pod
@@ -685,24 +754,6 @@ func (ops *Operations) BuildAndCreatePVC() *corev1.PersistentVolumeClaim {
 	return pvcObj
 }
 
-// BuildAndCreateService builds and creates Service in cluster
-func (ops *Operations) BuildAndCreateService() *corev1.Service {
-	svcConfig := ops.Config.(*ServiceConfig)
-	buildSVCObj, err := svc.NewBuilder().
-		WithGenerateName(svcConfig.Name).
-		WithNamespace(svcConfig.Namespace).
-		WithSelectorsNew(svcConfig.Selectors).
-		WithPorts(svcConfig.ServicePort).
-		WithType(corev1.ServiceTypeNodePort).
-		Build()
-	Expect(err).To(BeNil())
-	svcObj, err := ops.SVCClient.
-		WithNamespace(svcConfig.Namespace).
-		Create(buildSVCObj)
-	Expect(err).To(BeNil())
-	return svcObj
-}
-
 // DeletePersistentVolumeClaim deletes PVC from cluster based on provided
 // argument
 func (ops *Operations) DeletePersistentVolumeClaim(name, namespace string) {
@@ -725,7 +776,7 @@ func (ops *Operations) GetSVCClusterIP(ns, lselector string) ([]string, error) {
 	}
 
 	if len(svclist.Items) == 0 {
-		return addr, errors.Errorf("no service with label=%s in ns=%s", lselector, openebsNamespace)
+		return addr, errors.Errorf("no service with label=%s in ns=%s", lselector, ns)
 	}
 
 	for _, s := range svclist.Items {
