@@ -1,4 +1,0 @@
-apiVersion: openebs.io/v1alpha1
-kind: CStorVolume
-metadata:
-  namespace: openebs

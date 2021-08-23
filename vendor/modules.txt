@@ -126,7 +126,6 @@ github.com/openebs/maya/pkg/apis/openebs.io/snapshot/v1
 github.com/openebs/maya/pkg/apis/openebs.io/upgrade/v1alpha1
 github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1
 github.com/openebs/maya/pkg/apis/stringer/v1alpha1
-github.com/openebs/maya/pkg/artifact/v1alpha1
 github.com/openebs/maya/pkg/blockdevice/v1alpha2
 github.com/openebs/maya/pkg/blockdeviceclaim/v1alpha1
 github.com/openebs/maya/pkg/castemplate/v1alpha1
@@ -188,7 +187,6 @@ github.com/openebs/maya/pkg/util
 github.com/openebs/maya/pkg/util/http/v1alpha1
 github.com/openebs/maya/pkg/version
 github.com/openebs/maya/pkg/version/kubernetes
-github.com/openebs/maya/tests/artifacts
 # github.com/pkg/errors v0.9.1
 ## explicit
 github.com/pkg/errors
@@ -380,7 +378,6 @@ gopkg.in/inf.v0
 # gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7
 gopkg.in/tomb.v1
 # gopkg.in/yaml.v2 v2.4.0
-## explicit
 gopkg.in/yaml.v2
 # gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 gopkg.in/yaml.v3
