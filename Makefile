@@ -139,10 +139,20 @@ testv: format
 	@echo "--> Running go test verbose" ;
 	@go test -v $(PACKAGES)
 
-# Requires KUBECONFIG env and 'ginkgo' binary
+# Requires KUBECONFIG env
+.PHONY: integration-test
+integration-test:
+	@cd tests && go test -ginkgo.v
+
+# Requires KUBECONFIG env
+.PHONY: device-integration-test
+device-integration-test:
+	@cd tests && go test -ginkgo.v -ginkgo.skip="TEST HOSTPATH LOCAL PV"
+
+# Requires KUBECONFIG env
 .PHONY: hostpath-integration-test
 hostpath-integration-test:
-	@cd tests && ginkgo -v --focus="TEST HOSTPATH LOCAL PV"
+	@cd tests && go test -ginkgo.v -ginkgo.focus="TEST HOSTPATH LOCAL PV"
 
 .PHONY: format
 format:
