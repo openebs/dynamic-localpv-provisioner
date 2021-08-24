@@ -185,16 +185,14 @@ jobs:
           kubernetes version: 'v1.22.0'
           driver: none
 
-      - name: Set up Ginkgo
+      - name: Set up infra for integration test
         run: |
-          go get github.com/onsi/ginkgo/ginkgo@v1.16.4
-          ginkgo version || exit 1
+          sudo fallocate -l 2.1GiB /mnt/disk.img
+          sed -e "/path-filter/{N;N;N;s|\"\"|\"$(sudo losetup -fP /mnt/disk.img --show)\"|}" -e '/path-filter/{N;N;N;N;s|/dev/loop,||}' -e '/openebs-provisioner-hostpath/{N;s/IfNotPresent/Never/}' deploy/kubectl/openebs-operator-lite.yaml | kubectl apply -f -
 
-      - name: Hostpath Integration Test
+      - name: Integration test
         run: |
-          sed 's/imagePullPolicy: IfNotPresent/imagePullPolicy: Never/g' deploy/kubectl/hostpath-operator.yaml | kubectl apply -f -
-          kubectl apply -f deploy/kubectl/openebs-hostpath-sc.yaml
-          make hostpath-integration-test
+          make integration-test
 
   localpv-e2e:
     runs-on: ubuntu-latest

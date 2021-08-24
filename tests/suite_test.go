@@ -14,6 +14,7 @@ limitations under the License.
 package tests
 
 import (
+	"context"
 	"flag"
 
 	"os"
@@ -22,7 +23,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/openebs/dynamic-localpv-provisioner/tests/artifacts"
 	ns "github.com/openebs/maya/pkg/kubernetes/namespace/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -33,8 +33,10 @@ import (
 
 var (
 	kubeConfigPath                  string
+	openebsNamespace                string
 	namespace                       = "localpv-ns"
 	namespaceObj                    *corev1.Namespace
+	storageClassLabelSelector       = "openebs.io/test-sc=true"
 	err                             error
 	LocalPVProvisionerLabelSelector = "openebs.io/component-name=openebs-localpv-provisioner"
 )
@@ -46,6 +48,7 @@ func TestSource(t *testing.T) {
 
 func init() {
 	flag.StringVar(&kubeConfigPath, "kubeconfig", os.Getenv("KUBECONFIG"), "path to kubeconfig to invoke kubernetes API calls")
+	flag.StringVar(&openebsNamespace, "openebs-namespace", "openebs", "kubernetes namespace where the OpenEBS components are present")
 }
 
 var ops *Operations
@@ -56,8 +59,8 @@ var _ = BeforeSuite(func() {
 
 	By("waiting for openebs-localpv-provisioner pod to come into running state")
 	provPodCount := ops.GetPodRunningCountEventually(
-		string(artifacts.OpenebsNamespace),
-		string(artifacts.OpenEBSLocalPVProvisionerLabelSelector),
+		openebsNamespace,
+		LocalPVProvisionerLabelSelector,
 		1,
 	)
 	Expect(provPodCount).To(Equal(1))
@@ -80,4 +83,12 @@ var _ = AfterSuite(func() {
 	err = ops.NSClient.Delete(namespaceObj.Name, &metav1.DeleteOptions{})
 	Expect(err).To(BeNil(), "while deleting namespace {%s}", namespaceObj.Name)
 
+	By("deleting test StorageClasses")
+	err = ops.SCClient.DeleteCollection(
+		context.TODO(),
+		metav1.ListOptions{
+			LabelSelector: storageClassLabelSelector,
+		},
+		&metav1.DeleteOptions{},
+	)
 })

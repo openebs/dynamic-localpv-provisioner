@@ -26,32 +26,62 @@ import (
 	pvc "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/persistentvolumeclaim"
 	pts "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/podtemplatespec"
 	volume "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/volume"
+	sc "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/storage/v1/storageclass"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	storagev1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var _ = Describe("TEST HOSTPATH LOCAL PV", func() {
 	var (
 		pvcObj        *corev1.PersistentVolumeClaim
+		scObj         *storagev1.StorageClass
 		accessModes   = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
 		capacity      = "2Gi"
 		deployName    = "busybox-hostpath"
 		label         = "demo=hostpath-deployment"
 		pvcName       = "pvc-hp"
+		scNamePrefix  = "sc-hp"
+		scName        string
 		deployObj     *appsv1.Deployment
 		labelselector = map[string]string{
 			"demo": "hostpath-deployment",
 		}
 	)
-
-	When("pvc with storageclass openebs-hostpath is created", func() {
-		It("should create a pvc ", func() {
-			var (
-				scName = "openebs-hostpath"
+	When("a StorageClass is created", func() {
+		It("should create a StorageClass", func() {
+			By("building a StorageClass")
+			scObj, err = sc.NewStorageClass(
+				sc.WithGenerateName(scNamePrefix),
+				sc.WithLabels(map[string]string{
+					"openebs.io/test-sc": "true",
+				}),
+				sc.WithLocalPV(),
+				sc.WithHostpath("/var/openebs/integration-test"),
+				sc.WithVolumeBindingMode("WaitForFirstConsumer"),
+				sc.WithReclaimPolicy("Delete"),
+			)
+			Expect(err).To(
+				BeNil(),
+				"while building StorageClass with name prefix {%s}",
+				scNamePrefix,
 			)
 
-			By("building a pvc")
+			By("creating StorageClass API resource")
+			scObj, err = ops.SCClient.Create(context.TODO(), scObj)
+			Expect(err).To(
+				BeNil(),
+				"while creating StorageClass with name prefix {%s}",
+				scNamePrefix,
+			)
+			scName = scObj.ObjectMeta.Name
+		})
+	})
+
+	When("PVC with StorageClass "+scName+" is created", func() {
+		It("should create a PVC ", func() {
+			By("building a PVC")
 			pvcObj, err = pvc.NewBuilder().
 				WithName(pvcName).
 				WithNamespace(namespaceObj.Name).
@@ -60,16 +90,16 @@ var _ = Describe("TEST HOSTPATH LOCAL PV", func() {
 				WithCapacity(capacity).Build()
 			Expect(err).ShouldNot(
 				HaveOccurred(),
-				"while building pvc {%s} in namespace {%s}",
+				"while building PVC {%s} in namespace {%s}",
 				pvcName,
 				namespaceObj.Name,
 			)
 
-			By("creating above pvc")
+			By("creating above PVC")
 			_, err = ops.PVCClient.WithNamespace(namespaceObj.Name).Create(context.TODO(), pvcObj)
 			Expect(err).To(
 				BeNil(),
-				"while creating pvc {%s} in namespace {%s}",
+				"while creating PVC {%s} in namespace {%s}",
 				pvcName,
 				namespaceObj.Name,
 			)
@@ -157,10 +187,19 @@ var _ = Describe("TEST HOSTPATH LOCAL PV", func() {
 		})
 	})
 
-	When("pvc with storageclass openebs-hostpath is deleted ", func() {
-		It("should delete the pvc", func() {
+	When("PVC with StorageClass "+scName+" is deleted ", func() {
+		It("should delete the PVC", func() {
+			By("getting the PV name from Bound PVC object spec")
+			pvName := ops.GetPVNameFromPVCName(pvcName)
+			Expect(pvName).ToNot(
+				BeEmpty(),
+				"while getting Spec.VolumeName from "+
+					"PVC {%s} in namespace {%s}",
+				pvcName,
+				namespaceObj.Name,
+			)
 
-			By("deleting above pvc")
+			By("deleting above PVC")
 			err = ops.PVCClient.Delete(context.TODO(), pvcName, &metav1.DeleteOptions{})
 			Expect(err).To(
 				BeNil(),
@@ -169,7 +208,21 @@ var _ = Describe("TEST HOSTPATH LOCAL PV", func() {
 				namespaceObj.Name,
 			)
 
+			By("having the Provisioner delete the PV")
+			status := ops.IsPVDeletedEventually(pvName)
+			Expect(status).To(
+				BeTrue(),
+				"while waiting for the Provisioner to delete PV {%s}",
+				pvName,
+			)
+
+			By("verifying PVC is deleted")
+			status = ops.IsPVCDeletedEventually(pvcName, namespaceObj.Name)
+			Expect(status).To(
+				BeTrue(),
+				"when checking status of deleted PVC {%s}",
+				pvcName,
+			)
 		})
 	})
-
 })
