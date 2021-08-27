@@ -75,7 +75,7 @@ reclaimPolicy: Delete
 
 ![Hostpath LocalPV Provisioner Deployment](./images/hostpath_localpv_provisioner-deployment.jpg)
 
-The 'controller' package from the github.com/kubernetes-sigs/sig-storage-lib-external-provisioner will be run as a listwatching controller. The controller will deploy SharedInformers for the v1 and storage.k8s.io/v1 API objects. It will sync workqueues for PersistentVolumeClaim and PersistentVolume jobs.
+The 'controller' package from the [github.com/kubernetes-sigs/sig-storage-lib-external-provisioner](https://github.com/kubernetes-sigs/sig-storage-lib-external-provisioner) will be run as a listwatching controller. The controller will deploy SharedInformers for the v1 and storage.k8s.io/v1 API objects. It will sync workqueues for PersistentVolumeClaim and PersistentVolume jobs.
 
 PersistentVolumeClaims created with the provisioner name set to 'openebs.io/local' will be picked up for provisioning. The provisioner will require delayed binding (volumeBindingMode: WaitForFirstConsumer) to provision the local hostpath volume on the Kubernetes Node where the Pod has been scheduled to run. The provisioner will perform the following operations while provisioning a hostpath volume:
 - Receive provisioning job for PersistentVolumeClaim
