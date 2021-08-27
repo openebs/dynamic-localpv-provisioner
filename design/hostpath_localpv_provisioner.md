@@ -49,10 +49,8 @@ If you follow the above approach, you will require the administrator to manually
 This component will be a Kubernetes StorageClass object (storage.k8s.io/v1) which has its `spec.provisioner` set to 'openebs.io/local'. This provisioner name must be unique, so that the correct storage plugin may process the provisioning request.
 
 The above StorageClass will also allow for storage configuration via the unique `metadata.annotations` key 'cas.openebs.io/config'. The following configuration options will be available:
-- BasePath
-You may use this to set the directory path for the hostpath directory.
-- NodeAffinityLabel
-You may use this to identify Kubernetes Nodes based on differences in the label value of the key specified in this paramter.
+- BasePath -- You may use this to set the directory path for the hostpath directory.
+- NodeAffinityLabel -- You may use this to identify Kubernetes Nodes based on differences in the label value of the key specified in this paramter.
 
 A sample StorageClass instance YAML spec will look like this:
 
