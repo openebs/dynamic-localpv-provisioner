@@ -25,7 +25,7 @@ last-updated: 2021-08-28
 
 ## Summary
 
-This is a design proposal to implement a dynamic local hostpath volume provisioner for Kubernetes. This doc describes how the provisioner can help you create (provision) and delete (deprovision) Kubernetes PersistentVolumes for Kubernetes Pods using the storage capacity available to the Kubernetes Pod's host node's local filesystem. This storage unit should then be made available via a path embedded into a Kubernetes PersistentVolume. This design document requires you to define the storage configuration in Kubernetes StorageClass objects with its spec.provisioner set to 'openebs.io/local'. This dynamic provisioner's provisioning and deprovisioning functionality should be made available when a Kubernetes PersistentVolumeClaim object, with spec.storageClassName set to any such StorageClass's Name, is created and deleted respectively.
+This is a design proposal to implement a dynamic local hostpath volume provisioner for Kubernetes. This doc describes how the provisioner can help you create (provision) and delete (deprovision) Kubernetes PersistentVolumes for Kubernetes Pods using the storage capacity available to the Kubernetes Pod's host node's local filesystem. This storage unit should then be made available via a path embedded into a Kubernetes PersistentVolume. This design document requires you to define the storage configuration in Kubernetes StorageClass objects with its `spec.provisioner` set to 'openebs.io/local'. This dynamic provisioner's provisioning and deprovisioning functionality should be made available when a Kubernetes PersistentVolumeClaim object, with `spec.storageClassName` set to any such StorageClass's Name, is created and deleted respectively.
 
 ## Problem
 
