@@ -50,7 +50,7 @@ This component will be a Kubernetes StorageClass object (storage.k8s.io/v1) whic
 
 The above StorageClass will also allow for storage configuration via the unique `metadata.annotations` key 'cas.openebs.io/config'. The following configuration options will be available:
 - BasePath -- You may use this to set the directory path for the hostpath directory.
-- NodeAffinityLabel -- You may use this to identify Kubernetes Nodes based on differences in the label value of the key specified in this paramter.
+- NodeAffinityLabel -- You may use this to identify Kubernetes Nodes based on differences in the label value of the key specified in this parameter.
 
 A sample StorageClass instance YAML spec will look like this:
 
