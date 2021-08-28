@@ -15,7 +15,6 @@
 <strong>OpenEBS Dynamic Local PV provisioner</strong> can be used to dynamically provision 
 Kubernetes Local Volumes using different kinds of storage available on the Kubernetes nodes. 
 <br>
-<br>
 </p>
 
 ## Project Status: Beta
