@@ -4,6 +4,7 @@
 [![GitHub go.mod Go version (develop)](https://img.shields.io/github/go-mod/go-version/openebs/dynamic-localpv-provisioner/develop?style=flat)](https://github.com/openebs/dynamic-localpv-provisioner/blob/develop/go.mod)
 [![codecov](https://codecov.io/gh/openebs/dynamic-localpv-provisioner/branch/develop/graph/badge.svg)](https://codecov.io/gh/openebs/dynamic-localpv-provisioner)
 [![Go Report Card](https://goreportcard.com/badge/github.com/openebs/maya)](https://goreportcard.com/report/github.com/openebs/maya)
+![stability-beta](https://img.shields.io/badge/stability-beta-33bbff.svg)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/openebs/dynamic-localpv-provisioner/blob/develop/LICENSE)
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fopenebs%2Fdynamic-localpv-provisioner.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fopenebs%2Fdynamic-localpv-provisioner?ref=badge_shield)
 
@@ -16,6 +17,8 @@ Kubernetes Local Volumes using different kinds of storage available on the Kuber
 <br>
 <br>
 </p>
+
+## Project Status: Beta
 
 Local Persistent Volumes are great for distributed cloud native data services that can handle resiliency and availability and expect low-latency access to the storage. Local Persistent Volumes can be provisioned using the hostpath, NVMe or PCIe based SSDs, Hard Disks or on top of other filesystems like ZFS, LVM. 
 
