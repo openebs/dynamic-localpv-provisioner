@@ -50,6 +50,16 @@ differences include:
   attached to the node and hostpath based Local PVs offer efficient management
   of the storage available on the node.
 
+## Kubernetes Compatibity Matrix
+
+|                               | Kubernetes <= 1.15 | Kubernetes 1.16 | Kubernetes 1.17 | Kubernetes 1.18 | Kubernetes 1.19 | Kubernetes 1.20 | Kubernetes 1.21 | Kubernetes 1.22 |
+|-------------------------------|-----------------|-----------------|-----------------|-----------------|-----------------|-----------------|-----------------|-----------------|
+| `localpv-provisioner-2.10.1`/`v2.10.1` | ✕              | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               |
+| `localpv-provisioner-2.11.1`/`v2.11.1` | ✕              | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               |
+| `localpv-provisioner-2.12.0`/`v2.12.0` | ✕              | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               |
+| `HEAD`                                 | ✕              | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               |
+
+
 ## Install
 
 Please refer to our [Quickstart](https://github.com/openebs/dynamic-localpv-provisioner/blob/develop/docs/quickstart.md) and the [OpenEBS Documentation](http://docs.openebs.io/).
