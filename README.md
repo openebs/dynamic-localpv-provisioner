@@ -58,6 +58,10 @@ Please refer to our [Quickstart](https://github.com/openebs/dynamic-localpv-prov
 
 Head over to the [CONTRIBUTING.md](./CONTRIBUTING.md).
 
+## Roadmap
+
+Find the Dynamic Local PV roadmap items at the [OpenEBS Roadmap page](https://github.com/openebs/openebs/blob/master/ROADMAP.md#dynamic-local-pvs).
+
 ## OpenEBS Adopters
 
 Check out the list of organizations and users who have chosen OpenEBS to run their stateful workloads, over at the [OpenEBS Adopters page](https://github.com/openebs/openebs/blob/master/ADOPTERS.md).
