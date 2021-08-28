@@ -1,4 +1,10 @@
 # Dynamic Kubernetes Local Persistent Volumes
+[![GitHub release (latest by date)](https://img.shields.io/github/v/release/openebs/dynamic-localpv-provisioner?color=orange&style=for-the-badge)](https://github.com/openebs/dynamic-localpv-provisioner/blob/develop/docs/quickstart.md)<br>
+[![GitHub build (develop)](https://github.com/openebs/dynamic-localpv-provisioner/actions/workflows/build.yml/badge.svg?branch=develop)](https://github.com/openebs/dynamic-localpv-provisioner/actions/workflows/build.yml)
+[![GitHub go.mod Go version (develop)](https://img.shields.io/github/go-mod/go-version/openebs/dynamic-localpv-provisioner/develop?style=flat)](https://github.com/openebs/dynamic-localpv-provisioner/blob/develop/go.mod)
+[![codecov](https://codecov.io/gh/openebs/dynamic-localpv-provisioner/branch/develop/graph/badge.svg)](https://codecov.io/gh/openebs/dynamic-localpv-provisioner)
+[![Go Report Card](https://goreportcard.com/badge/github.com/openebs/maya)](https://goreportcard.com/report/github.com/openebs/maya)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/openebs/dynamic-localpv-provisioner/blob/develop/LICENSE)
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fopenebs%2Fdynamic-localpv-provisioner.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fopenebs%2Fdynamic-localpv-provisioner?ref=badge_shield)
 
 
@@ -49,6 +55,10 @@ Please refer to our [Quickstart](https://github.com/openebs/dynamic-localpv-prov
 ## Contributing
 
 Head over to the [CONTRIBUTING.md](./CONTRIBUTING.md).
+
+## OpenEBS Adopters
+
+Check out the list of organizations and users who have chosen OpenEBS to run their stateful workloads, over at the [OpenEBS Adopters page](https://github.com/openebs/openebs/blob/master/ADOPTERS.md).
 
 ## Community, discussion, and support
 
