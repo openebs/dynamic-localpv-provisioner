@@ -83,9 +83,9 @@ parameters:
   hardLimitGrace: 40%
 ```
 `softLimitGrace` and `hardLimitGrace` with PV Storage Request will decide the soft limit and hard limit to be set.
-The size of a limit will be => size of PV Storage request ( 1 + LimitGrace% )
+The size of a limit will be => size of PV Storage request * ( 1 + LimitGrace% )
 Anyone of hard limit or soft limit can also be used
-[Click here](https://man7.org/linux/man-pages/man8/xfs_quota.8.html) and see Quota Overview section for detailed instructions about soft and hard limits.
+[Click here](https://man7.org/linux/man-pages/man8/xfs_quota.8.html#QUOTA_OVERVIEW) for detailed instructions about soft and hard limits.
 
 #### 2. Create a PVC with storage class
 ```yaml
