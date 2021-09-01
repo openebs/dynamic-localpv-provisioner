@@ -307,8 +307,12 @@ github.com/onsi/gomega v1.9.0/go.mod h1:Ho0h+IUsWyvy1OpqCwxlQ/21gkhVunqlU8fDGcoT
 github.com/onsi/gomega v1.10.1/go.mod h1:iN09h71vgCQne3DLsj+A5owkum+a2tYe+TOCB1ybHNo=
 github.com/onsi/gomega v1.13.0 h1:7lLHu94wT9Ij0o6EWWclhu0aOh32VxhkwEJvzuWPeak=
 github.com/onsi/gomega v1.13.0/go.mod h1:lRk9szgn8TxENtWd0Tp4c3wjlRfMTMH27I+3Je41yGY=
+github.com/openebs/maya v0.0.0-20210831085728-5b0fb1f7450d h1:Hmlqt9frVvYRncsyE6pUfWh5woXIMRanFS1mJiX7UR0=
+github.com/openebs/maya v0.0.0-20210831085728-5b0fb1f7450d/go.mod h1:J3DC3bzJ346KPhstfae02FfIpe8ikpk/4xV1iSqKLXQ=
 github.com/openebs/maya v1.12.1-0.20210804061224-4363acfbf185 h1:zLkz1Dogvj/78Js0u5vZGLzEAnX8pZ3Jg4aAHmkn64s=
 github.com/openebs/maya v1.12.1-0.20210804061224-4363acfbf185/go.mod h1:J3DC3bzJ346KPhstfae02FfIpe8ikpk/4xV1iSqKLXQ=
+github.com/openebs/maya v1.12.1-0.20210831085728-5b0fb1f7450d h1:InI8CUSMyiltR0QRxS89/HmRRcmdyq6tGDpooQEHMa8=
+github.com/openebs/maya v1.12.1-0.20210831085728-5b0fb1f7450d/go.mod h1:J3DC3bzJ346KPhstfae02FfIpe8ikpk/4xV1iSqKLXQ=
 github.com/pascaldekloe/goe v0.0.0-20180627143212-57f6aae5913c/go.mod h1:lzWF7FIEvWOWxwDKqyGYQf6ZUaNfKdP144TG7ZOy1lc=
 github.com/pelletier/go-toml v1.2.0/go.mod h1:5z9KED0ma1S8pY6P1sdut58dfprrGBbd/94hg7ilaic=
 github.com/peterbourgon/diskv v2.0.1+incompatible/go.mod h1:uqqh8zWWbv1HBMNONnaR/tNboyR3/BZd58JJSHlUSCU=

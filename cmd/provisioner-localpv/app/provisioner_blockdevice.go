@@ -26,8 +26,9 @@ import (
 	pvController "sigs.k8s.io/sig-storage-lib-external-provisioner/v7/controller"
 	//pvController "github.com/kubernetes-sigs/sig-storage-lib-external-provisioner/controller"
 	mconfig "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	mPV "github.com/openebs/maya/pkg/kubernetes/persistentvolume/v1alpha1"
 	v1 "k8s.io/api/core/v1"
+
+	mPV "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/persistentvolume"
 	//metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -41,10 +42,18 @@ func (p *Provisioner) ProvisionBlockDevice(ctx context.Context, opts pvControlle
 	stgType := volumeConfig.GetStorageType()
 	fsType := volumeConfig.GetFSType()
 
+	nodeAffinityKey := volumeConfig.GetNodeAffinityLabelKey()
+	if len(nodeAffinityKey) == 0 {
+		nodeAffinityKey = k8sNodeLabelKeyHostname
+	}
+	nodeAffinityValue := GetNodeLabelValue(opts.SelectedNode, nodeAffinityKey)
+
 	//Extract the details to create a Block Device Claim
 	blkDevOpts := &HelperBlockDeviceOptions{
 		nodeHostname: nodeHostname,
 		name:         name,
+		nodeAffinityLabelKey:   nodeAffinityKey,
+		nodeAffinityLabelValue: nodeAffinityValue,
 		capacity:     capacity.String(),
 		volumeMode:   *opts.PVC.Spec.VolumeMode,
 		bdTagValue:   volumeConfig.GetBDTagValue(),
@@ -93,7 +102,7 @@ func (p *Provisioner) ProvisionBlockDevice(ctx context.Context, opts pvControlle
 		WithAccessModes(pvc.Spec.AccessModes).
 		WithCapacityQty(pvc.Spec.Resources.Requests[v1.ResourceName(v1.ResourceStorage)]).
 		WithLocalHostPathFormat(path, fsType).
-		WithNodeAffinity(nodeHostname)
+		WithNodeAffinity(nodeAffinityKey, nodeAffinityValue)
 
 	// If volumeMode set to "Block", then provide the appropriate volumeMode, to pvObj
 	if *opts.PVC.Spec.VolumeMode == v1.PersistentVolumeBlock {
