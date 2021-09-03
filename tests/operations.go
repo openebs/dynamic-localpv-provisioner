@@ -230,6 +230,16 @@ func (ops *Operations) withDefaults() {
 	}
 }
 
+// GetPodStatusEventually gives the phase of the pod eventually
+func (ops *Operations) GetPodStatusEventually(pod *corev1.Pod) corev1.PodPhase {
+	var podStatus corev1.PodPhase
+	for i := 0; i < maxRetry; i++ {
+		podStatus = pod.Status.Phase
+		time.Sleep(5 * time.Second)
+	}
+	return podStatus
+}
+
 // GetPodRunningCountEventually gives the number of pods running eventually
 func (ops *Operations) GetPodRunningCountEventually(namespace, lselector string, expectedPodCount int) int {
 	var podCount int
@@ -252,6 +262,18 @@ func (ops *Operations) GetPodRunningCount(namespace, lselector string) int {
 	return pod.
 		ListBuilderForAPIList(pods).
 		WithFilter(pod.IsRunning()).
+		List().
+		Len()
+}
+
+// GetPodCount gives number of current pods
+func (ops *Operations) GetPodCount(namespace, lselector string) int {
+	pods, err := ops.PodClient.
+		WithNamespace(namespace).
+		List(context.TODO(), metav1.ListOptions{LabelSelector: lselector})
+	Expect(err).ShouldNot(HaveOccurred())
+	return pod.
+		ListBuilderForAPIList(pods).
 		List().
 		Len()
 }
