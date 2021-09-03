@@ -106,7 +106,7 @@ func (disk *Disk) createLoopDevice() error {
 	deviceName := getLoopDevName()
 	devicePath := "/dev/" + deviceName
 	// create the loop device using losetup
-	createLoopDeviceCommand := "losetup " + devicePath + " " + disk.imageName
+	createLoopDeviceCommand := "losetup " + devicePath + " " + disk.imageName + " --show"
 	err = RunCommandWithSudo(createLoopDeviceCommand)
 	if err != nil {
 		return fmt.Errorf("error creating loop device. Error : %v", err)
@@ -136,7 +136,8 @@ func RunCommand(cmd string) error {
 	substring := strings.Fields(cmd)
 	name := substring[0]
 	args := substring[1:]
-	err := exec.Command(name, args...).Run() // #nosec G204
+	stdout, err := exec.Command(name, args...).CombinedOutput() // #nosec G204
+	fmt.Printf("%+v \n", string(stdout))
 	if err != nil {
 		return fmt.Errorf("run failed %s %v", cmd, err)
 	}

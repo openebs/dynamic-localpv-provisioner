@@ -18,6 +18,7 @@ package tests
 
 import (
 	"context"
+	"fmt"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -55,37 +56,13 @@ var _ = Describe("TEST HOSTPATH LOCAL PV", func() {
 			"demo": "hostpath-pod",
 		}
 	)
+	physicalDisk := disk.Disk{}
 
-	physicalDisk := disk.NewDisk(DiskImageSize)
-	err := physicalDisk.AttachDisk()
-	Expect(err).To(
-		BeNil(),
-		"while creating loopback device with disk {%+v}",
-		physicalDisk,
-	)
-
-	// Make xfs fs on the created loopback device
-	err = physicalDisk.CreateFileSystem("xfs")
-	Expect(err).To(
-		BeNil(),
-		"while formatting the disk {%+v} with xfs fs",
-		physicalDisk,
-	)
-
-	err = disk.MkdirAll(xfsHostpathDir)
-	Expect(err).To(
-		BeNil(),
-		"while making a new directory {%s}",
-		xfsHostpathDir,
-	)
-
-	// Mount the xfs formatted loopback device
-	err = physicalDisk.Mount(xfsHostpathDir)
-	Expect(err).To(
-		BeNil(),
-		"while mounting the disk with pquota option {%+v}",
-		physicalDisk,
-	)
+	When("preparing the loopback device with xfs fs", func() {
+		It("should create and mount the disk", func() {
+			physicalDisk = PrepareDisk("xfs", xfsHostpathDir)
+		})
+	})
 
 	When("hostpath is not having xfs filesystem", func() {
 		When("pod consuming pvc with a valid quota storageclass is created", func() {
@@ -350,21 +327,11 @@ var _ = Describe("TEST HOSTPATH LOCAL PV", func() {
 		})
 	})
 
-	// Unmount the disk
-	err = physicalDisk.Unmount()
-	Expect(err).To(
-		BeNil(),
-		"while unmounting the disk {%+v}",
-		physicalDisk,
-	)
-
-	// Detach and delete the disk
-	err = physicalDisk.DetachAndDeleteDisk()
-	Expect(err).To(
-		BeNil(),
-		"while detaching and deleting the disk {%+v}",
-		physicalDisk,
-	)
+	When("Destroying the disk", func() {
+		It("should dettach the loopback device and delete the backing image", func() {
+			DestroyDisk(physicalDisk)
+		})
+	})
 })
 
 // BuildPersistentVolumeClaim builds the PVC object
@@ -408,4 +375,64 @@ func BuildPod(podName, pvcName string, labelselector map[string]string) (*corev1
 				WithPVCSource(pvcName),
 		).
 		Build()
+}
+
+// PrepareDisk prepares the setup necessary for testing xfs hostpath quota
+func PrepareDisk(fsType, hostPath string) disk.Disk {
+	xfsHostpathDir := "/var/openebs/integration-test/xfs/"
+	physicalDisk := disk.NewDisk(DiskImageSize)
+
+	fmt.Println("Calling attach function")
+	err := physicalDisk.AttachDisk()
+	Expect(err).To(
+		BeNil(),
+		"while creating loopback device with disk {%+v}",
+		physicalDisk,
+	)
+
+	fmt.Println("Calling fs function")
+	// Make xfs fs on the created loopback device
+	err = physicalDisk.CreateFileSystem(fsType)
+	Expect(err).To(
+		BeNil(),
+		"while formatting the disk {%+v} with xfs fs",
+		physicalDisk,
+	)
+
+	fmt.Println("Calling mkdir function")
+	err = disk.MkdirAll(hostPath)
+	Expect(err).To(
+		BeNil(),
+		"while making a new directory {%s}",
+		xfsHostpathDir,
+	)
+
+	fmt.Println("Calling mount function")
+	// Mount the xfs formatted loopback device
+	err = physicalDisk.Mount(hostPath)
+	Expect(err).To(
+		BeNil(),
+		"while mounting the disk with pquota option {%+v}",
+		physicalDisk,
+	)
+	return physicalDisk
+}
+
+// DestroyDisk performs performs the clean-up task after testing the features
+func DestroyDisk(physicalDisk disk.Disk) {
+	// Unmount the disk
+	err = physicalDisk.Unmount()
+	Expect(err).To(
+		BeNil(),
+		"while unmounting the disk {%+v}",
+		physicalDisk,
+	)
+
+	// Detach and delete the disk
+	err = physicalDisk.DetachAndDeleteDisk()
+	Expect(err).To(
+		BeNil(),
+		"while detaching and deleting the disk {%+v}",
+		physicalDisk,
+	)
 }
