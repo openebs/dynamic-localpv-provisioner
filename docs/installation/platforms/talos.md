@@ -14,7 +14,7 @@ kubelet:
           type: bind
           source: /var/openebs/local
           options:
-	    - rbind
+            - rbind
             - rshared
             - rw
 ```

@@ -4,7 +4,7 @@
 
 A Kubernetes cluster with Kubernetes v1.16 or above is required. 
 
-For more platform-specific installation instructions, [click here](./installation/).
+For more platform-specific installation instructions, [click here](./installation/platforms/).
 
 ## Install using Helm chart
 Install OpenEBS Dynamic LocalPV Provisioner using the localpv-provisioner helm chart. Sample command:
