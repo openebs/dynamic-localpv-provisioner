@@ -89,6 +89,7 @@ PersistentVolumeClaims created with the provisioner name set to 'openebs.io/loca
 	- Set name as generated above
 	- Set directory path
 	- Set node selector label key (optional)
+
 The provisioned volume may be consumed as a mountpoint from inside the application Pod.
 
 PersistentVolumes with the label `pv.kubernetes.io/provisioned-by: openebs.io/local` set, when deleted, will trigger the deprovisioning process. The operations involved will be as follows:
@@ -137,7 +138,7 @@ kubectl delete pvc <pvc-name> -n <namespace>
 - Verify if the provisioning and the mount succeeds.
 - Delete the BusyBox Pod
 - Delete the PersistentVolumeClaim.
-- Verify if the Persistent Volume is Deleted.
+- Verify if the PersistentVolume is Deleted.
 
 ## GA Criteria
 

@@ -10,7 +10,7 @@
 
 ## Prerequisites
 
-* You have Go 1.14.7+ installed on your local host/development machine.
+* You have Go 1.16.6 (or higher) installed on your local host/development machine.
 * You have Docker installed on your local host/development machine. Docker is required for building dynamic-localpv-provisioner container images and to push them into a Kubernetes cluster for testing.
 
 ## Initial Setup
@@ -31,11 +31,11 @@ mkdir path/to/directory/openebs
 cd openebs
 
 # Note: Here $user is your GitHub profile name
-git clone https://github.com/$user/dynamic-localpv-provisioner.git
+git clone https://github.com/$user/dynamic-localpv-provisioner
 
 # Configure remote upstream
-cd path/to/directory/openebs/dynamic-localpv-provisioner
-git remote add upstream https://github.com/openebs/dynamic-localpv-provisioner.git
+cd path/to/directory/dynamic-localpv-provisioner_fork
+git remote add upstream https://github.com/openebs/dynamic-localpv-provisioner
 
 # Never push to upstream develop
 git remote set-url --push upstream no_push
@@ -52,7 +52,7 @@ Open a terminal on your local host. Change directory to the dynamic-localpv-prov
 
 ```sh
 
-$ cd path/to/directory/openebs/dynamic-localpv-provisioner.git
+$ cd path/to/directory/dynamic-localpv-provisioner_fork
 ```
 
  Checkout the develop branch.
@@ -68,16 +68,16 @@ $ cd path/to/directory/openebs/dynamic-localpv-provisioner.git
 
  ```sh
  $ git remote -v
- origin   https://github.com/$user/dynamic-localpv-provisioner.git (fetch)
- origin   https://github.com/$user/dynamic-localpv-provisioner.git (push)
- upstream https://github.com/openebs/dynamic-localpv-provisioner.git (fetch)
+ origin   https://github.com/$user/dynamic-localpv-provisioner (fetch)
+ origin   https://github.com/$user/dynamic-localpv-provisioner (push)
+ upstream https://github.com/openebs/dynamic-localpv-provisioner (fetch)
  upstream no_push (push)
  ```
 
  If the upstream is missing, add it by using below command.
 
  ```sh
- $ git remote add upstream https://github.com/openebs/dynamic-localpv-provisioner.git
+ $ git remote add upstream https://github.com/openebs/dynamic-localpv-provisioner
  ```
 
  Fetch all the changes from the upstream develop branch.
@@ -144,7 +144,7 @@ To build the provisioner for development:
 
  ```sh
 
- cd path/to/directory/openebs/dynamic-localpv-provisioner
+ cd path/to/directory/dynamic-localpv-provisioner_fork
  make provisioner-localpv
  ```
 
@@ -153,7 +153,7 @@ and to build and test image:
 ```sh
 
 cd path/to/directory/openebs/dynamic-localpv-provisioner
-make provisioner-localpv-image
+make docker.buildx.provisioner-localpv
  ```
 
 ### Test your changes
@@ -162,7 +162,11 @@ make provisioner-localpv-image
  cd path/to/directory/openebs/dynamic-localpv-provisioner
 
  # Run every unit test
- make test
+ make testv
+
+ # Run integration tests (This requires a Kubernetes cluster)
+ # Read more at https://github.com/openebs/dynamic-localpv-provisioner/blob/develop/tests/README.md
+ make integration-test
  ```
 
 ### Keep your branch in sync

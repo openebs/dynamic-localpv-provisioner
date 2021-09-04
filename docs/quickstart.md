@@ -89,27 +89,41 @@ You can provision LocalPV Hostpath volumes dynamically using the default `openeb
   <summary>Click here if you want to configure your own custom StorageClass.</summary>
 
   ```yaml
-  # This is a custom StorageClass template
+  #This is a custom StorageClass template
   # Uncomment config options as desired
   apiVersion: storage.k8s.io/v1
   kind: StorageClass
   metadata:
     name: custom-hostpath
     annotations:
-      ## Use this annotation to set this StorageClass by default
+      #Use this annotation to set this StorageClass by default
       # storageclass.kubernetes.io/is-default-class: true
       openebs.io/cas-type: local
       cas.openebs.io/config: |
         - name: StorageType
-          value: hostpath
-      # - name: BasePath     # Use this to set a custom 
-      #   value: /mnt/data   # hostpath directory
-      # - name: NodeAffinityLabel                   # Use this to set a custom 
-      #   value: "openebs.io/custom-node-unique-id" # label for node selection
+          value: "hostpath"
+       #Use this to set a custom
+       # hostpath directory
+       #- name: BasePath
+       #  value: "/mnt/data"
+       #Use this to set a custom
+       # label for node selection
+       # This label will be used to
+       # uniquely identify a node instead
+       # of 'kubernetes.io/hostname'
+       #- name: NodeAffinityLabel
+       #  value: "openebs.io/custom-node-unique-id"
   provisioner: openebs.io/local
   reclaimPolicy: Delete
-  ## It is necessary to have volumeBindingMode as WaitForFirstConsumer
+  #It is necessary to have volumeBindingMode as WaitForFirstConsumer
   volumeBindingMode: WaitForFirstConsumer
+  #Match labels in allowedTopologies to select nodes for volume provisioning
+  # allowedTopologies:
+  # - matchLabelExpressions:
+  #   - key: kubernetes.io/hostname
+  #     values:
+  #     - worker-1
+  #     - worker-2
   ```
 </details>
 
@@ -120,12 +134,12 @@ apiVersion: v1
 metadata:
   name: localpv-vol
 spec:
-  ## Change this name if you are using a custom StorageClass
+  #Change this name if you are using a custom StorageClass
   storageClassName: openebs-hostpath
   accessModes: ["ReadWriteOnce"]
   resources:
     requests:
-      ## Set capacity here
+      #Set capacity here
       storage: 5Gi
 ```
 The PVC will be in 'Pending' state until the volume is mounted.
@@ -135,7 +149,7 @@ $ kubectl get pvc
 NAME          STATUS    VOLUME   CAPACITY   ACCESS MODES   STORAGECLASS       AGE
 localpv-vol   Pending                                      openebs-hostpath   21s
 ```
-
+**Note**: The NodeAffinityLabel parameter does not influence the application Pod's scheduling behavior. The NodeAffinityLabel parameter is to be used in cases where the value of the 'kubernetes.io/hostname' node label may change due to auto-scaling or similar behavior for the same node. In such cases, the administrator may choose to set a unique label which persists across node reboots and replacements.
 
 ## Provisioning LocalPV Device Persistent Volume
 
@@ -156,28 +170,33 @@ You can provision LocalPV Hostpath volumes dynamically using the default `openeb
   <summary>Click here if you want to configure your own custom StorageClass.</summary>
 
   ```yaml
-  # This is a custom StorageClass template
+  #This is a custom StorageClass template
   # Uncomment config options as desired
   apiVersion: storage.k8s.io/v1
   kind: StorageClass
   metadata:
     name: custom-device
     annotations:
-      ## Use this annotation to set this StorageClass by default
+      #Use this annotation to set this StorageClass by default
       # storageclass.kubernetes.io/is-default-class: true
       openebs.io/cas-type: local
       cas.openebs.io/config: |
         - name: StorageType
-          value: device
-      # - name: FSType  # Use this to set the filesystem
-      #   value: xfs    # type. Default is ext4.
-      # - name: BlockDeviceTag  # Only blockdevices with the label 
-      #   value: "mongo"        # openebs.io/block-device-tag=mongo will be used
+          value: "device"
+       #Use this to set the filesystem
+       # type. Default is 'ext4'.
+       #- name: FSType
+       #  value: "xfs"
+       #Only blockdevices with the label
+       # openebs.io/block-device-tag=mongo
+       # will be used
+       #- name: BlockDeviceTag
+       #  value: "mongo"
   provisioner: openebs.io/local
   reclaimPolicy: Delete
-  ## It is necessary to have volumeBindingMode as WaitForFirstConsumer
+  #It is necessary to have volumeBindingMode as WaitForFirstConsumer
   volumeBindingMode: WaitForFirstConsumer
-  ## Match labels in allowedTopologies to select nodes for volume provisioning
+  #Match labels in allowedTopologies to select nodes for volume provisioning
   # allowedTopologies:
   # - matchLabelExpressions:
   #   - key: kubernetes.io/hostname
@@ -194,15 +213,15 @@ apiVersion: v1
 metadata:
   name: localpv-vol
 spec:
-  ## Change this name if you are using a custom StorageClass
+  #Change this name if you are using a custom StorageClass
   storageClassName: openebs-device
   accessModes: ["ReadWriteOnce"]
-  ## You can also provision a raw block volume
+  #You can also provision a raw block volume
   # volumeMode: Block
   volumeMode: Filesystem
   resources:
     requests:
-      ## Set capacity here
+      #Set capacity here
       storage: 5Gi
 ```
 The PVC will be in 'Pending' state until the volume is mounted/attached.

@@ -12,11 +12,11 @@ Local PV Provisioner BDD tests are developed using ginkgo & gomega libraries.
 - Get your Kubernetes Cluster ready and make sure you can run 
   kubectl from your development machine. 
   Note down the path to the `kubeconfig` file used by kubectl 
-  to access your cluster.  Example: /home/<user>/.kube/config
+  to access your cluster.  Example: /home/\<user\>/.kube/config
 
 - (Optional) Set the KUBECONFIG environment variable on your 
   development machine to point to the kubeconfig file. 
-  Example: `export KUBECONFIG=/home/<user>/.kube/config`
+  Example: `export KUBECONFIG=$HOME/.kube/config`
 
   If you do not set this ENV, you will have to pass the file 
   to the go test (or ginkgo) CLI
@@ -29,7 +29,7 @@ Local PV Provisioner BDD tests are developed using ginkgo & gomega libraries.
 
 ### Run tests
 
-- Run the tests by being in the localpv tests folder. 
+Run the tests by being in the localpv tests folder. 
   ```bash
   $ cd <repo-directory>/tests
   $ go test -ginkgo.v
@@ -49,4 +49,3 @@ Local PV Provisioner BDD tests are developed using ginkgo & gomega libraries.
   $ #Alternatively, you can run the test suite using the 'ginkgo' binary
   $ #ginkgo -v -- -openebs-namespace=<your-namespace>
  ```
-
