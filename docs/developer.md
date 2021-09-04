@@ -153,7 +153,7 @@ and to build and test image:
 ```sh
 
 cd path/to/directory/openebs/dynamic-localpv-provisioner
-make docker.buildx.provisioner-localpv
+make provisioner-localpv-image
  ```
 
 ### Test your changes
