@@ -135,7 +135,7 @@ $ kubectl get pvc
 NAME          STATUS    VOLUME   CAPACITY   ACCESS MODES   STORAGECLASS       AGE
 localpv-vol   Pending                                      openebs-hostpath   21s
 ```
-**Note**: The NodeAffinityLabel parameter does not influence the application Pod's scheduling behavior. The NodeAffinityLabel parameter is to be used in cases where the value of the 'kubernetes.io/hostname' node label may change due to auto-scaling or similar behavior for the same node. In such cases, the administrator may choose to set a unique label which persists across node reboots and replacements.
+**Note**: The NodeAffinityLabel parameter does not influence where the application Pod will be scheduled. The NodeAffinityLabel parameter is to be used in cases where the value of the 'kubernetes.io/hostname' node label may change due to auto-scaling or similar behavior for the same node. In such cases, the administrator may choose to set a unique label which persists across node reboots and replacements.
 
 ## Provisioning LocalPV Device Persistent Volume
 
