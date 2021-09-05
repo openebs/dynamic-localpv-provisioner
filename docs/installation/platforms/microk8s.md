@@ -16,27 +16,26 @@ $ microk8s kubectl get storageclass
 ```
 
 
-## Using the LocalPV-Provisioner Helm Chart
+## Using the OpenEBS Helm Chart
 
-Using the helm chart directly let's you cuztomize your Dynamic-LocalPV-Provisioner deployment ([Helm chart README](https://github.com/openebs/dynamic-localpv-provisioner/blob/develop/deploy/helm/charts/README.md)). You will need to use the Helm3 MicroK8s Addon for this.
+Using the helm chart directly let's you cuztomize your Dynamic-LocalPV-Provisioner deployment ([Helm chart README](https://github.com/openebs/charts/blob/develop/charts/openebs/README.md)). You will need to use the Helm3 MicroK8s Addon for this.
 
 ```console
 $ microk8s enable helm3
 ```
-Add the openebs-localpv helm chart repo
+Add the openebs helm chart repo
 ```console
-$ microk8s helm3 repo add openebs-localpv https://openebs.github.io/dynamic-localpv-provisioner
+$ microk8s helm3 repo add openebs https://openebs.github.io/charts
 $ microk8s helm3 repo update
 ```
 
 Install the helm chart.
 ```console
 $ #Default installation command. This sets the default directories under '/var/snap/microk8s/common'
-$ microk8s helm3 install openebs-localpv openebs-localpv/localpv-provisioner -n openebs --create-namespace \
-	--set localpv.basePath="/var/snap/microk8s/common/var/openebs/local"
-	--set hostpathClass.basePath="/var/snap/microk8s/common/var/openebs/local"
-	--set openebs-ndm.ndm.sparse.path="/var/snap/microk8s/common/var/openebs/sparse"
-	--set openebs-ndm.varDirectoryPath.baseDir="/var/snap/microk8s/common/var/openebs"
+$ microk8s helm3 install openebs openebs/openebs -n openebs --create-namespace \
+	--set localprovisioner.basePath="/var/snap/microk8s/common/var/openebs/local"
+	--set ndm.sparse.path="/var/snap/microk8s/common/var/openebs/sparse"
+	--set varDirectoryPath.baseDir="/var/snap/microk8s/common/var/openebs"
 ```
 
 Once installation succeeds, you may verify the creation of the Dynamic-LocalPV-Provisioner components using the following commands:

@@ -2,16 +2,17 @@
 
 ## Prerequisites
 
-A Kubernetes cluster with Kubernetes v1.16 or above is required. 
+A Kubernetes cluster with Kubernetes v1.16 or above. 
 
-For more platform-specific installation instructions, [click here](./installation/platforms/).
+For more platform-specific installation instructions, [click here](https://github.com/openebs/dynamic-localpv-provisioner/tree/develop/docs/installation/platforms/).
 
 ## Install using Helm chart
-Install OpenEBS Dynamic LocalPV Provisioner using the localpv-provisioner helm chart. Sample command:
+Install OpenEBS Dynamic LocalPV Provisioner using the openebs helm chart. Sample command:
 ```console
-# helm repo add openebs-localpv https://openebs.github.io/dynamic-localpv-provisioner
-# helm repo update
-helm install openebs-localpv openebs-localpv/localpv-provisioner -n openebs --create-namespace
+#helm repo add openebs https://openebs.github.io/charts
+#helm repo update
+helm install openebs openebs/openebs -n openebs --create-namespace \
+	--set legacy.enabled=false
 ```
 	
 <details>
@@ -24,20 +25,25 @@ helm install openebs-localpv openebs-localpv/localpv-provisioner -n openebs --cr
      - you already have NDM installed. Check if NDM pods exist with the command `kubectl get pods -n openebs -l 'openebs.io/component-name in (ndm, ndm-operator)'`
 
 ```console
-helm install openebs-localpv openebs-localpv/localpv-provisioner -n openebs --create-namespace \
-	--set openebsNDM.enabled=false
+helm install openebs openebs/openebs -n openebs --create-namespace \
+	--set legacy.enabled=false \
+	--set ndm.enabled=false \
+	--set ndmOperator.enabled=false
 ```
   2. Install OpenEBS Dynamic LocalPV Provisioner for Hostpath volumes only
 ```console
-helm install openebs-localpv openebs-localpv/localpv-provisioner -n openebs --create-namespace \
-	--set openebsNDM.enabled=false \
-	--set deviceClass.enabled=false
+helm install openebs openebs/openebs -n openebs --create-namespace \
+	--set legacy.enabled=false \
+	--set ndm.enabled=false \
+	--set ndmOperator.enabled=false \
+	--set localprovisioner.deviceClassEnabled=false
 ```
   3. Install OpenEBS Dynamic LocalPV Provisioner with a custom hostpath directory. 
      This will change the `BasePath` value for the 'openebs-hostpath' StorageClass.
 ```console
-helm install openebs-localpv openebs-localpv/localpv-provisioner -n openebs --create-namespace \
-	--set hostpathClass.basePath=<custom-hostpath>
+helm install openebs openebs/openebs -n openebs --create-namespace \
+	--set legacy.enabled=false \
+	--set localprovisioner.basePath=<custom-hostpath>
 ```
 </details>
 
