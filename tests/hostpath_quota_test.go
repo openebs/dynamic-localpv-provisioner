@@ -327,7 +327,7 @@ var _ = Describe("TEST HOSTPATH LOCAL PV", func() {
 		})
 
 		When("pod consuming pvc with quota applied created", func() {
-			It("should be up and running and should be able to write more than the quota limit", func() {
+			It("should be up and running and should not be able to write more than the quota limit", func() {
 				By("building a StorageClass")
 				scObj, err = sc.NewStorageClass(
 					sc.WithGenerateName(scNamePrefix),
