@@ -325,6 +325,174 @@ var _ = Describe("TEST HOSTPATH LOCAL PV", func() {
 				)
 			})
 		})
+
+		When("pod consuming pvc with quota applied created", func() {
+			It("should be up and running and should be able to write more than the quota limit", func() {
+				By("building a StorageClass")
+				scObj, err = sc.NewStorageClass(
+					sc.WithGenerateName(scNamePrefix),
+					sc.WithLabels(map[string]string{
+						"openebs.io/test-sc": "true",
+					}),
+					sc.WithLocalPV(),
+					sc.WithHostpath(xfsHostpathDir),
+					sc.WithVolumeBindingMode("WaitForFirstConsumer"),
+					sc.WithReclaimPolicy("Delete"),
+					sc.WithParameters(map[string]string{
+						"enableXfsQuota": "true",
+						"softLimitGrace": "20%",
+						"hardLimitGrace": "50%",
+					}),
+				)
+				Expect(err).To(
+					BeNil(),
+					"while building StorageClass with name prefix {%s}",
+					scNamePrefix,
+				)
+
+				By("creating StorageClass API resource")
+				scObj, err = ops.SCClient.Create(context.TODO(), scObj)
+				Expect(err).To(
+					BeNil(),
+					"while creating StorageClass with name prefix {%s}",
+					scNamePrefix,
+				)
+				scName = scObj.ObjectMeta.Name
+
+				By("building a PVC with StorageClass " + scName)
+				pvcObj, err = BuildPersistentVolumeClaim(pvcName, scName, capacity, accessModes)
+				Expect(err).ShouldNot(
+					HaveOccurred(),
+					"while building PVC {%s} in namespace {%s}",
+					pvcName,
+					namespaceObj.Name,
+				)
+
+				By("creating above PVC with StorageClass " + scName)
+				newPvc, err := ops.PVCClient.WithNamespace(namespaceObj.Name).Create(context.TODO(), pvcObj)
+				Expect(err).To(
+					BeNil(),
+					"while creating PVC {%s} in namespace {%s}",
+					pvcName,
+					namespaceObj.Name,
+				)
+
+				By("building a pod with busybox image")
+				// NOTE: this pod has commands to check the correctness of applied quota
+				// which depends on the capacity of the volume used in above PVC.
+				// The command currently can validate quota which is under 7M capacity.
+				// If the PVC capacity is changed, the command needs to be changed accordingly.
+				podObj, err = pod.NewBuilder().
+					WithName(podName).
+					WithNamespace(namespaceObj.Name).
+					WithLabels(labelselector).
+					WithContainerBuilder(
+						container.NewBuilder().
+							WithName("busybox").
+							WithImage("busybox").
+							WithCommandNew(
+								[]string{
+									"/bin/sh",
+									"-c",
+								},
+							).
+							WithArgumentsNew([]string{
+								"sleep 160000;",
+								"for i in $(seq 1 7); do sudo dd if=/dev/zero of=" + "pvc-" + string(newPvc.UID) + "/test.txt bs=1M count=$i 2>/dev/null; if [ $? -ne 0 ]; then echo \"filesize of $i Mb failed, quota reached!\"; exit 1; else echo \"filesize of $i Mb was ok\"; fi; done",
+							}).
+							WithVolumeMountsNew(
+								[]corev1.VolumeMount{
+									{
+										Name:      "demo-vol1",
+										MountPath: "/mnt/store1",
+									},
+								},
+							),
+					).
+					WithVolumeBuilder(
+						volume.NewBuilder().
+							WithName("demo-vol1").
+							WithPVCSource(pvcName),
+					).
+					Build()
+				Expect(err).ShouldNot(
+					HaveOccurred(),
+					"while building pod {%s} in namespace {%s}",
+					podName,
+					namespaceObj.Name,
+				)
+
+				By("creating above pod with busybox image")
+				createdPod, err := ops.PodClient.WithNamespace(namespaceObj.Name).
+					Create(context.TODO(), podObj)
+				Expect(err).To(
+					BeNil(),
+					"while creating pod {%s} in namespace {%s}",
+					podName,
+					namespaceObj.Name,
+				)
+
+				By("verifying pod count as 1")
+				podCount := ops.GetPodRunningCountEventually(namespaceObj.Name, label, 1)
+				Expect(podCount).To(Equal(1), "while verifying pod count")
+
+				By("Verifying the quota applied on the volume works")
+				podPhase := ops.GetPodStatusEventually(createdPod)
+				Expect(podPhase).ToNot(Equal(corev1.PodRunning), "while verifying pod running status")
+			})
+		})
+
+		When("pod consuming pvc with with quota applied is deleted along with pvc and storageclass", func() {
+			It("should delete pod, pvc and storageclass", func() {
+				By("deleting above pod")
+				err = ops.PodClient.WithNamespace(namespaceObj.Name).Delete(context.TODO(), podName, &metav1.DeleteOptions{})
+				Expect(err).To(
+					BeNil(),
+					"while deleting pod {%s} in namespace {%s}",
+					podName,
+					namespaceObj.Name,
+				)
+
+				By("verifying pod count as 0")
+				podCount := ops.GetPodRunningCountEventually(namespaceObj.Name, label, 0)
+				Expect(podCount).To(Equal(0), "while verifying pod count")
+
+				By("deleting the PVC with StorageClass " + scName)
+				pvName := ops.GetPVNameFromPVCName(pvcName)
+				Expect(pvName).ToNot(
+					BeEmpty(),
+					"while getting Spec.VolumeName from "+
+						"PVC {%s} in namespace {%s}",
+					pvcName,
+					namespaceObj.Name,
+				)
+
+				By("deleting above PVC")
+				err = ops.PVCClient.Delete(context.TODO(), pvcName, &metav1.DeleteOptions{})
+				Expect(err).To(
+					BeNil(),
+					"while deleting pvc {%s} in namespace {%s}",
+					pvcName,
+					namespaceObj.Name,
+				)
+
+				By("verifying PVC is deleted")
+				status := ops.IsPVCDeletedEventually(pvcName, namespaceObj.Name)
+				Expect(status).To(
+					BeTrue(),
+					"when checking status of deleted PVC {%s}",
+					pvcName,
+				)
+
+				By("deleting the storageClass " + scName)
+				err = ops.SCClient.Delete(context.TODO(), scName, &metav1.DeleteOptions{})
+				Expect(err).To(
+					BeNil(),
+					"while deleting storageclass {%s}",
+					scName,
+				)
+			})
+		})
 	})
 
 	When("Destroying the disk", func() {
