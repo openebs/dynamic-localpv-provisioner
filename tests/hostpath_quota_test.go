@@ -380,7 +380,7 @@ var _ = Describe("TEST HOSTPATH LOCAL PV", func() {
 				By("building a pod with busybox image")
 				// NOTE: this pod has commands to check the correctness of applied quota
 				// which depends on the capacity of the volume used in above PVC.
-				// The command currently can validate quota which is under 7M capacity.
+				// The command currently can validate quota which is under 3M capacity.
 				// If the PVC capacity is changed, the command needs to be changed accordingly.
 				podObj, err = pod.NewBuilder().
 					WithName(podName).
@@ -397,8 +397,8 @@ var _ = Describe("TEST HOSTPATH LOCAL PV", func() {
 								},
 							).
 							WithArgumentsNew([]string{
-								"sleep 160000;",
-								"for i in $(seq 1 7); do sudo dd if=/dev/zero of=" + "pvc-" + string(newPvc.UID) + "/test.txt bs=1M count=$i 2>/dev/null; if [ $? -ne 0 ]; then echo \"filesize of $i Mb failed, quota reached!\"; exit 1; else echo \"filesize of $i Mb was ok\"; fi; done",
+								"sleep 150000;",
+								"for i in $(seq 1 3); do sudo dd if=/dev/zero of=" + "pvc-" + string(newPvc.UID) + "/test.txt bs=1M count=$i 2>/dev/null; if [ $? -ne 0 ]; then echo \"filesize of $i Mb failed, quota reached!\"; exit 1; else echo \"filesize of $i Mb was ok\"; fi; done",
 							}).
 							WithVolumeMountsNew(
 								[]corev1.VolumeMount{
@@ -438,7 +438,7 @@ var _ = Describe("TEST HOSTPATH LOCAL PV", func() {
 
 				By("Verifying the quota applied on the volume works")
 				podPhase := ops.GetPodStatusEventually(createdPod)
-				Expect(podPhase).ToNot(Equal(corev1.PodRunning), "while verifying pod running status")
+				Expect(podPhase).ToNot(Equal(corev1.PodRunning), "while verifying pod pending status")
 			})
 		})
 

@@ -142,7 +142,7 @@ testv: format
 # Requires KUBECONFIG env
 .PHONY: integration-test
 integration-test:
-	@cd tests && go test -ginkgo.v
+	@cd tests && go test -ginkgo.v -timeout 1200s
 
 # Requires KUBECONFIG env
 .PHONY: device-integration-test
