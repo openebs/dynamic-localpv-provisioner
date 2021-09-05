@@ -340,8 +340,8 @@ var _ = Describe("TEST HOSTPATH LOCAL PV", func() {
 					sc.WithReclaimPolicy("Delete"),
 					sc.WithParameters(map[string]string{
 						"enableXfsQuota": "true",
-						"softLimitGrace": "20%",
-						"hardLimitGrace": "50%",
+						"softLimitGrace": "0%",
+						"hardLimitGrace": "0%",
 					}),
 				)
 				Expect(err).To(
