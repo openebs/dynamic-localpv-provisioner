@@ -142,17 +142,17 @@ testv: format
 # Requires KUBECONFIG env
 .PHONY: integration-test
 integration-test:
-	@cd tests && go test -ginkgo.v -timeout 1200s
+	@cd tests && go test -ginkgo.v
 
 # Requires KUBECONFIG env
 .PHONY: device-integration-test
 device-integration-test:
-	@cd tests && go test -ginkgo.v -ginkgo.skip="TEST HOSTPATH LOCAL PV"
+	@cd tests && go test -ginkgo.v -ginkgo.skip="TEST HOSTPATH.*"
 
 # Requires KUBECONFIG env
 .PHONY: hostpath-integration-test
 hostpath-integration-test:
-	@cd tests && go test -ginkgo.v -ginkgo.focus="TEST HOSTPATH LOCAL PV"
+	@cd tests && go test -ginkgo.v -ginkgo.focus="TEST HOSTPATH.*"
 
 .PHONY: format
 format:

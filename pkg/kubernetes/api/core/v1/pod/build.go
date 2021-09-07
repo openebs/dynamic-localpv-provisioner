@@ -107,6 +107,13 @@ func (b *Builder) WithLabels(matchlabels map[string]string) *Builder {
 		newmatchlabels[key] = value
 	}
 
+	/*if b.pod.object.Labels == nil {
+		b.pod.object.Labels = make(map[string]string)
+	}
+
+	for k, v := range newmatchlabels {
+		b.pod.object.Labels[k] = v
+	}*/
 	// override
 	b.pod.object.Labels = newmatchlabels
 	return b
