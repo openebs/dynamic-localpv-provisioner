@@ -24,7 +24,6 @@ import (
 	"strconv"
 	"time"
 
-	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	bd "github.com/openebs/maya/pkg/blockdevice/v1alpha2"
 	bdc "github.com/openebs/maya/pkg/blockdeviceclaim/v1alpha1"
@@ -230,14 +229,16 @@ func (ops *Operations) withDefaults() {
 	}
 }
 
-// GetPodStatusEventually gives the phase of the pod eventually
-func (ops *Operations) GetPodStatusEventually(pod *corev1.Pod) corev1.PodPhase {
-	var podStatus corev1.PodPhase
+// CheckPodStatusEventually gives the phase of the pod eventually
+func (ops *Operations) CheckPodStatusEventually(pod *corev1.Pod, expectedPodPhase corev1.PodPhase) bool {
+	//var podStatus corev1.PodPhase
 	for i := 0; i < maxRetry; i++ {
-		podStatus = pod.Status.Phase
+		if pod.Status.Phase == expectedPodPhase {
+			return true
+		}
 		time.Sleep(5 * time.Second)
 	}
-	return podStatus
+	return false
 }
 
 // GetPodRunningCountEventually gives the number of pods running eventually
@@ -627,18 +628,21 @@ func (ops *Operations) GetBDCStatusAfterAge(bdcName string, namespace string, un
 }
 
 // ExecPod executes arbitrary command inside the pod
-func (ops *Operations) ExecPod(opts *Options) ([]byte, error) {
+func (ops *Operations) ExecPod(opts *Options) (string, string, error) {
 	var (
 		execOut bytes.Buffer
 		execErr bytes.Buffer
 		err     error
 	)
-	By("getting rest config")
 	config, err := ops.KubeClient.GetConfigForPathOrDirect()
-	Expect(err).To(BeNil(), "while getting config for exec'ing into pod")
-	By("getting clientset")
+	if err != nil {
+		return "", "", errors.Errorf("error while getting config for exec'ing into pod: %v", err)
+	}
+
 	cset, err := ops.KubeClient.Clientset()
-	Expect(err).To(BeNil(), "while getting clientset for exec'ing into pod")
+	if err != nil {
+		return "", "", errors.Errorf("while getting clientset for exec'ing into pod: %v", err)
+	}
 	req := cset.
 		CoreV1().
 		RESTClient().
@@ -657,19 +661,24 @@ func (ops *Operations) ExecPod(opts *Options) ([]byte, error) {
 			TTY:       false,
 		}, scheme.ParameterCodec)
 
-	By("creating a POST request for executing command")
 	exec, err := remotecommand.NewSPDYExecutor(config, "POST", req.URL())
-	Expect(err).To(BeNil(), "while exec'ing command in pod ", opts.podName)
+	if err != nil {
+		return "", "", fmt.Errorf("error while creating Executor: %v", err)
+	}
 
-	By("processing request")
 	err = exec.Stream(remotecommand.StreamOptions{
 		Stdout: &execOut,
 		Stderr: &execErr,
 		Tty:    false,
 	})
-	Expect(err).To(BeNil(), "while streaming the command in pod ", opts.podName, execOut.String(), execErr.String())
+	/*Expect(err).To(BeNil(), "while streaming the command in pod ", opts.podName, execOut.String(), execErr.String())
 	Expect(execOut.Len()).Should(BeNumerically(">=", 0), "while streaming the command in pod ", opts.podName, execErr.String(), execOut.String())
-	return execOut.Bytes(), nil
+	return execOut.Bytes(), nil*/
+	if err != nil {
+		return execOut.String(), execErr.String(), errors.Errorf("error in Stream: %v", err)
+	}
+
+	return execOut.String(), execErr.String(), nil
 }
 
 // GetPodCompletedCountEventually gives the number of pods running eventually

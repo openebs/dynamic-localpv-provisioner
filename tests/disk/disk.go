@@ -1,5 +1,5 @@
 /*
-Copyright 2019 The OpenEBS Authors
+Copyright 2021 The OpenEBS Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -26,10 +26,6 @@ import (
 	"time"
 )
 
-const (
-	imageDirectory = "/tmp"
-)
-
 // Disk has the attributes of a virtual disk which is emulated for integration
 // testing.
 type Disk struct {
@@ -40,7 +36,7 @@ type Disk struct {
 	imageName string
 	// the disk name
 	// eg: /dev/loop9002
-	Name string
+	DiskPath string
 	// mount point if any
 	MountPoints []string
 }
@@ -52,7 +48,7 @@ func NewDisk(size int64) Disk {
 	disk := Disk{
 		Size:      size,
 		imageName: generateDiskImageName(),
-		Name:      "",
+		DiskPath:  "",
 	}
 	return disk
 }
@@ -63,25 +59,10 @@ func generateDiskImageName() string {
 	rand.Seed(time.Now().UTC().UnixNano())
 	randomNumber := 100 + rand.Intn(899)
 	imageName := "fake" + strconv.Itoa(randomNumber)
-	return imageDirectory + "/" + imageName
-}
-
-// AttachDisk triggers a udev add event for the disk. If the disk is not present, the loop
-// device is created and event is triggered
-func (disk *Disk) AttachDisk() error {
-	if disk.Name == "" {
-		if err := disk.createLoopDevice(); err != nil {
-			return err
-		}
-	}
-	return nil
+	return os.TempDir() + "/" + imageName
 }
 
 func (disk *Disk) createDiskImage() error {
-	// no of blocks
-	/*count := disk.Size / blockSize
-	createImageCommand := "dd if=/dev/zero of=" + disk.imageName + " bs=" + strconv.Itoa(blockSize) + " count=" + strconv.Itoa(int(count))
-	err := utils.RunCommand(createImageCommand)*/
 	f, err := os.Create(disk.imageName)
 	if err != nil {
 		return fmt.Errorf("error creating disk image. Error : %v", err)
@@ -94,24 +75,27 @@ func (disk *Disk) createDiskImage() error {
 	return nil
 }
 
-func (disk *Disk) createLoopDevice() error {
-	var err error
-	if _, err = os.Stat(disk.imageName); err != nil {
-		err = disk.createDiskImage()
-		if err != nil {
-			return err
+// CreateLoopDevice creates a loopback device if the disk is not present
+func (disk *Disk) CreateLoopDevice() error {
+	if disk.DiskPath == "" {
+		var err error
+		if _, err = os.Stat(disk.imageName); err != nil && os.IsNotExist(err) {
+			err = disk.createDiskImage()
+			if err != nil {
+				return err
+			}
 		}
-	}
 
-	deviceName := getLoopDevName()
-	devicePath := "/dev/" + deviceName
-	// create the loop device using losetup
-	createLoopDeviceCommand := "losetup " + devicePath + " " + disk.imageName + " --show"
-	err = RunCommandWithSudo(createLoopDeviceCommand)
-	if err != nil {
-		return fmt.Errorf("error creating loop device. Error : %v", err)
+		deviceName := getLoopDevName()
+		devicePath := "/dev/" + deviceName
+		// create the loop device using losetup
+		createLoopDeviceCommand := "losetup " + devicePath + " " + disk.imageName + " --show"
+		err = RunCommandWithSudo(createLoopDeviceCommand)
+		if err != nil {
+			return fmt.Errorf("error creating loop device. Error : %v", err)
+		}
+		disk.DiskPath = devicePath
 	}
-	disk.Name = devicePath
 	return nil
 }
 
@@ -136,16 +120,15 @@ func RunCommand(cmd string) error {
 	substring := strings.Fields(cmd)
 	name := substring[0]
 	args := substring[1:]
-	stdout, err := exec.Command(name, args...).CombinedOutput() // #nosec G204
-	fmt.Printf("%+v \n", string(stdout))
+	stdout, err := exec.Command(name, args...).CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("run failed %s %v", cmd, err)
+		return fmt.Errorf("run failed %s %v %v", cmd, err, stdout)
 	}
 	return err
 }
 
 func (disk *Disk) CreateFileSystem(fstype string) error {
-	createMkfsCommand := "mkfs -t " + fstype + " " + disk.Name
+	createMkfsCommand := "mkfs -t " + fstype + " " + disk.DiskPath
 	err := RunCommandWithSudo(createMkfsCommand)
 	if err != nil {
 		return fmt.Errorf("error creating fileystem on loop device. Error : %v", err)
@@ -163,7 +146,7 @@ func MkdirAll(path string) error {
 }
 
 func (disk *Disk) Mount(path string) error {
-	createMountCommand := "mount -o rw,pquota " + disk.Name + " " + path
+	createMountCommand := "mount -o rw,pquota " + disk.DiskPath + " " + path
 	err := RunCommandWithSudo(createMountCommand)
 	if err != nil {
 		return fmt.Errorf("error mounting loop device. Error : %v", err)
@@ -174,10 +157,13 @@ func (disk *Disk) Mount(path string) error {
 
 func (disk *Disk) Unmount() error {
 	var lastErr error = nil
-	for _, mp := range disk.MountPoints {
-		err := RunCommandWithSudo("umount " + mp)
+	for i := 0; i < len(disk.MountPoints); i++ {
+		err := RunCommandWithSudo("umount " + disk.MountPoints[i])
 		if err != nil {
 			lastErr = err
+		} else {
+			disk.MountPoints = append(disk.MountPoints[:i], disk.MountPoints[i+1:]...)
+			i-- // -1 as the slice just got shorter
 		}
 	}
 	return lastErr
@@ -186,20 +172,22 @@ func (disk *Disk) Unmount() error {
 // DetachAndDeleteDisk detaches the loop device from the backing
 // image. Also deletes the backing image and block device file in /dev
 func (disk *Disk) DetachAndDeleteDisk() error {
-	if disk.Name == "" {
+	if disk.DiskPath == "" {
 		return fmt.Errorf("no such disk present for deletion")
 	}
-	detachLoopCommand := "losetup -d " + disk.Name
+	if len(disk.MountPoints) > 0 {
+		return fmt.Errorf("the disk is still mounted at mountpoint(s): %+v", disk.MountPoints)
+	}
+	detachLoopCommand := "losetup -d " + disk.DiskPath
 	err := RunCommandWithSudo(detachLoopCommand)
 	if err != nil {
 		return fmt.Errorf("cannot detach loop device. Error : %v", err)
 	}
-	deleteBackingImageCommand := "rm " + disk.imageName
-	err = RunCommandWithSudo(deleteBackingImageCommand)
+	err = os.Remove(disk.imageName)
 	if err != nil {
 		return fmt.Errorf("could not delete backing disk image. Error : %v", err)
 	}
-	deleteLoopDeviceCommand := "rm " + disk.Name
+	deleteLoopDeviceCommand := "rm " + disk.DiskPath
 	err = RunCommandWithSudo(deleteLoopDeviceCommand)
 	if err != nil {
 		return fmt.Errorf("could not delete loop device. Error : %v", err)
