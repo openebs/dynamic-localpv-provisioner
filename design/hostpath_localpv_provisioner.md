@@ -33,7 +33,7 @@ Containerized stateful applications require persistent storage. To meet this req
 
 ## Current Solution
 
-Presently, to create a Kubernetes PersistentVolume using the path to a local directory, the administration has to perform the following operations:
+Presently, to create a Kubernetes PersistentVolume using the path to a local directory, the administrator has to perform the following operations:
 - Log in to the host node
 - Create the directory whose path will be used in the PersistentVolume
 - Log out of the host node, and back into the cluster-administration interface
