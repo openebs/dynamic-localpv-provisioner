@@ -36,7 +36,7 @@ helm install openebs openebs/openebs -n openebs --create-namespace \
 	--set legacy.enabled=false \
 	--set ndm.enabled=false \
 	--set ndmOperator.enabled=false \
-	--set localprovisioner.enabledDeviceClass=false
+	--set localprovisioner.enableDeviceClass=false
 ```
   3. Install OpenEBS Dynamic LocalPV Provisioner with a custom hostpath directory. 
      This will change the `BasePath` value for the 'openebs-hostpath' StorageClass.
