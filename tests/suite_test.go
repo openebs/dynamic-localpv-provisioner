@@ -78,7 +78,7 @@ var _ = BeforeSuite(func() {
 	Expect(err).To(BeNil(), "while creating namespace {%s}", namespaceObj.GenerateName)
 
 	By("preparing the loopback device with xfs fs")
-	physicalDisk, err = PrepareDisk("xfs", xfsHostpathDir)
+	physicalDisk, err = disk.PrepareDisk("xfs", xfsHostpathDir)
 	Expect(err).To(BeNil(), "while preparing disk {%+v}", physicalDisk)
 })
 
@@ -98,6 +98,6 @@ var _ = AfterSuite(func() {
 	)
 
 	By("destroying the created disk")
-	err = DestroyDisk(physicalDisk, xfsHostpathDir)
+	err = disk.DestroyDisk(physicalDisk, xfsHostpathDir)
 	Expect(err).To(BeNil(), "while destroying the disk {%+v}", physicalDisk)
 })

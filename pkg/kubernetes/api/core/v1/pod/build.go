@@ -101,17 +101,14 @@ func (b *Builder) WithLabels(matchlabels map[string]string) *Builder {
 		return b
 	}
 
-	// copy of original map
-	newmatchlabels := map[string]string{}
+	if b.pod.object.Labels == nil {
+		b.pod.object.Labels = make(map[string]string)
+	}
+
 	for key, value := range matchlabels {
-		newmatchlabels[key] = value
+		b.pod.object.Labels[key] = value
 	}
 
-	for key, value := range b.pod.object.Labels {
-		newmatchlabels[key] = value
-	}
-
-	b.pod.object.Labels = newmatchlabels
 	return b
 }
 

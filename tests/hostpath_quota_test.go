@@ -22,7 +22,6 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -32,12 +31,6 @@ import (
 	"github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/pod"
 	"github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/volume"
 	sc "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/storage/v1/storageclass"
-	"github.com/openebs/dynamic-localpv-provisioner/tests/disk"
-)
-
-const (
-	// DiskImageSize is the default file size(1GB) used while creating backing image
-	DiskImageSize = 1073741824
 )
 
 var _ = Describe("TEST HOSTPATH XFS QUOTA LOCAL PV WITH NON-XFS FILESYSTEM", func() {
@@ -49,6 +42,7 @@ var _ = Describe("TEST HOSTPATH XFS QUOTA LOCAL PV WITH NON-XFS FILESYSTEM", fun
 		podName       = "busybox-hostpath"
 		label         = "demo=hostpath-pod"
 		createdPvc    *corev1.PersistentVolumeClaim
+		hostpathDir   = "/var/openebs/integration-test"
 		pvcName       = "pvc-hp"
 		scNamePrefix  = "sc-hp-xfs"
 		scName        string
@@ -67,7 +61,7 @@ var _ = Describe("TEST HOSTPATH XFS QUOTA LOCAL PV WITH NON-XFS FILESYSTEM", fun
 					"openebs.io/test-sc": "true",
 				}),
 				sc.WithLocalPV(),
-				sc.WithHostpath("/var/openebs/integration-test"),
+				sc.WithHostpath(hostpathDir),
 				sc.WithVolumeBindingMode("WaitForFirstConsumer"),
 				sc.WithReclaimPolicy("Delete"),
 				sc.WithParameters(map[string]string{
@@ -90,12 +84,14 @@ var _ = Describe("TEST HOSTPATH XFS QUOTA LOCAL PV WITH NON-XFS FILESYSTEM", fun
 				scNamePrefix,
 			)
 			scName = scObj.ObjectMeta.Name
+			Expect(scName).NotTo(BeEmpty(), "SC name should not be empty")
 		})
 	})
 
 	When("pvc with storageclass "+scName+" is created", func() {
 		It("should create a pvc", func() {
 			By("building a PVC with StorageClass " + scName)
+			Expect(scName).NotTo(BeEmpty(), "SC name should not be empty")
 			pvcObj, err = BuildPersistentVolumeClaim(pvcName, scName, capacity, accessModes)
 			Expect(err).ShouldNot(
 				HaveOccurred(),
@@ -127,7 +123,7 @@ var _ = Describe("TEST HOSTPATH XFS QUOTA LOCAL PV WITH NON-XFS FILESYSTEM", fun
 			)
 
 			By("creating above pod with busybox image")
-			createdPod, err := ops.PodClient.WithNamespace(namespaceObj.Name).
+			_, err := ops.PodClient.WithNamespace(namespaceObj.Name).
 				Create(context.TODO(), podObj)
 			Expect(err).To(
 				BeNil(),
@@ -137,7 +133,7 @@ var _ = Describe("TEST HOSTPATH XFS QUOTA LOCAL PV WITH NON-XFS FILESYSTEM", fun
 			)
 
 			By("verifying pod status as pending")
-			checkPhase := ops.CheckPodStatusEventually(createdPod, corev1.PodPending)
+			checkPhase := ops.CheckPodStatusEventually(namespaceObj.Name, podName, corev1.PodPending)
 			Expect(checkPhase).To(Equal(true), "while verifying pod pending status")
 
 			By("verifying the pvc phase as pending")
@@ -243,12 +239,14 @@ var _ = Describe("TEST HOSTPATH XFS QUOTA LOCAL PV WITH XFS FILESYSTEM", func() 
 				scNamePrefix,
 			)
 			scName = scObj.ObjectMeta.Name
+			Expect(scName).NotTo(BeEmpty(), "SC name should not be empty")
 		})
 	})
 
 	When("pvc with storageclass "+scName+" is created", func() {
 		It("should create a pvc", func() {
 			By("building a PVC with StorageClass " + scName)
+			Expect(scName).NotTo(BeEmpty(), "SC name should not be empty")
 			pvcObj, err = BuildPersistentVolumeClaim(pvcName, scName, capacity, accessModes)
 			Expect(err).ShouldNot(
 				HaveOccurred(),
@@ -307,6 +305,7 @@ var _ = Describe("TEST HOSTPATH XFS QUOTA LOCAL PV WITH XFS FILESYSTEM", func() 
 				WithCommand([]string{"/bin/sh", "-c", fmt.Sprintf(`for i in $(seq 1 7); do dd if=/dev/zero of=/mnt/store1/test.txt bs=1M count=$i 2>/dev/null; if [ $? -ne 0 ]; then echo "filesize of $i Mb failed, quota reached!"; else echo "filesize of $i Mb was ok"; fi; done`)}...)
 			stdOut, stdErr, err := ops.ExecPod(option)
 			fmt.Printf("When running command to test enforced quota. stdOut: {%s}, stderr: {%s}, error: {%v}", stdOut, stdErr, err)
+			Expect(err).To(BeNil(), "while exec'ing into the pod and running command(s)")
 			Expect(stdErr).NotTo(BeNil(), "trying to write beyond the quota limit should not be allowed")
 			Expect(stdOut).Should(ContainSubstring("filesize of 4 Mb was ok"), "trying to write till the quota limit should be allowed")
 			Expect(stdOut).Should(ContainSubstring("filesize of 5 Mb failed, quota reached!"), "trying to write beyond the quota limit should not be allowed")
@@ -408,56 +407,4 @@ func BuildPod(podName, pvcName string, labelselector map[string]string) (*corev1
 				WithPVCSource(pvcName),
 		).
 		Build()
-}
-
-// PrepareDisk prepares the setup necessary for testing xfs hostpath quota
-func PrepareDisk(fsType, hostPath string) (disk.Disk, error) {
-	physicalDisk := disk.NewDisk(DiskImageSize)
-
-	err := physicalDisk.CreateLoopDevice()
-	if err != nil {
-		return physicalDisk, errors.Wrapf(err, "while creating loop back device with disk %+v", physicalDisk)
-	}
-
-	// Make xfs fs on the created loopback device
-	err = physicalDisk.CreateFileSystem(fsType)
-	if err != nil {
-		return physicalDisk, errors.Wrapf(err, "while formatting the disk {%+v} with xfs fs", physicalDisk)
-	}
-
-	err = disk.MkdirAll(hostPath)
-	if err != nil {
-		return physicalDisk, errors.Wrapf(err, "while making a new directory {%s}", hostPath)
-	}
-
-	// Mount the xfs formatted loopback device
-	err = physicalDisk.Mount(hostPath)
-	if err != nil {
-		return physicalDisk, errors.Wrapf(err, "while mounting the disk with pquota option {%+v}", physicalDisk)
-	}
-
-	return physicalDisk, nil
-}
-
-// DestroyDisk performs performs the clean-up task after testing the features
-func DestroyDisk(physicalDisk disk.Disk, hostPath string) error {
-	// Unmount the disk
-	err = physicalDisk.Unmount()
-	if err != nil {
-		return errors.Wrapf(err, "while unmounting the disk {%+v}", physicalDisk)
-	}
-
-	// Detach and delete the disk
-	err = physicalDisk.DetachAndDeleteDisk()
-	if err != nil {
-		return errors.Wrapf(err, "while detaching and deleting the disk {%+v}", physicalDisk)
-	}
-
-	// Deleting the hostpath directory
-	err = disk.RunCommandWithSudo("rm -rf " + hostPath)
-	if err != nil {
-		return errors.Wrapf(err, "while deleting the mountpoint directory {%s}", hostPath)
-	}
-
-	return nil
 }

@@ -24,6 +24,13 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/pkg/errors"
+)
+
+const (
+	// DiskImageSize is the default file size(1GB) used while creating backing image
+	DiskImageSize = 1073741824
 )
 
 // Disk has the attributes of a virtual disk which is emulated for integration
@@ -121,9 +128,9 @@ func RunCommand(cmd string) error {
 	substring := strings.Fields(cmd)
 	name := substring[0]
 	args := substring[1:]
-	stdout, err := exec.Command(name, args...).CombinedOutput()
+	stdout, err := exec.Command(name, args...).CombinedOutput() // #nosec G204
 	if err != nil {
-		return fmt.Errorf("run failed %s %v %v", cmd, err, stdout)
+		return fmt.Errorf("run failed, cmd={%s} error={%v} output={%v}\"", cmd, err, stdout)
 	}
 	return err
 }
@@ -156,12 +163,12 @@ func (disk *Disk) Mount(path string) error {
 	return nil
 }
 
-func (disk *Disk) Unmount() error {
-	var lastErr error = nil
+func (disk *Disk) Unmount() []error {
+	var lastErr []error
 	for i := 0; i < len(disk.MountPoints); i++ {
 		err := RunCommandWithSudo("umount " + disk.MountPoints[i])
 		if err != nil {
-			lastErr = err
+			lastErr = append(lastErr, err)
 		} else {
 			disk.MountPoints = append(disk.MountPoints[:i], disk.MountPoints[i+1:]...)
 			i-- // -1 as the slice just got shorter
@@ -193,5 +200,61 @@ func (disk *Disk) DetachAndDeleteDisk() error {
 	if err != nil {
 		return fmt.Errorf("could not delete loop device. Error : %v", err)
 	}
+	return nil
+}
+
+// PrepareDisk prepares the setup necessary for testing xfs hostpath quota
+func PrepareDisk(fsType, hostPath string) (Disk, error) {
+	physicalDisk := NewDisk(DiskImageSize)
+
+	err := physicalDisk.CreateLoopDevice()
+	if err != nil {
+		return physicalDisk, errors.Wrapf(err, "while creating loop back device with disk %+v", physicalDisk)
+	}
+
+	// Make xfs fs on the created loopback device
+	err = physicalDisk.CreateFileSystem(fsType)
+	if err != nil {
+		return physicalDisk, errors.Wrapf(err, "while formatting the disk {%+v} with xfs fs", physicalDisk)
+	}
+
+	err = MkdirAll(hostPath)
+	if err != nil {
+		return physicalDisk, errors.Wrapf(err, "while making a new directory {%s}", hostPath)
+	}
+
+	// Mount the xfs formatted loopback device
+	err = physicalDisk.Mount(hostPath)
+	if err != nil {
+		return physicalDisk, errors.Wrapf(err, "while mounting the disk with pquota option {%+v}", physicalDisk)
+	}
+
+	return physicalDisk, nil
+}
+
+// DestroyDisk performs performs the clean-up task after testing the features
+func DestroyDisk(physicalDisk Disk, hostPath string) error {
+	var errs string
+	// Unmount the disk
+	err := physicalDisk.Unmount()
+	if len(err) > 0 {
+		for _, v := range err {
+			errs = errs + v.Error() + ";"
+		}
+		return errors.Wrapf(errors.New(errs), "while unmounting the disk {%+v}", physicalDisk)
+	}
+
+	// Detach and delete the disk
+	error := physicalDisk.DetachAndDeleteDisk()
+	if err != nil {
+		return errors.Wrapf(error, "while detaching and deleting the disk {%+v}", physicalDisk)
+	}
+
+	// Deleting the hostpath directory
+	error = RunCommandWithSudo("rm -rf " + hostPath)
+	if err != nil {
+		return errors.Wrapf(error, "while deleting the mountpoint directory {%s}", hostPath)
+	}
+
 	return nil
 }

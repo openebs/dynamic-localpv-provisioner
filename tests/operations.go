@@ -230,9 +230,12 @@ func (ops *Operations) withDefaults() {
 }
 
 // CheckPodStatusEventually gives the phase of the pod eventually
-func (ops *Operations) CheckPodStatusEventually(pod *corev1.Pod, expectedPodPhase corev1.PodPhase) bool {
-	//var podStatus corev1.PodPhase
+func (ops *Operations) CheckPodStatusEventually(namespace, podName string, expectedPodPhase corev1.PodPhase) bool {
 	for i := 0; i < maxRetry; i++ {
+		pod, err := ops.PodClient.
+			WithNamespace(namespace).
+			Get(context.TODO(), podName, metav1.GetOptions{})
+		Expect(err).ShouldNot(HaveOccurred())
 		if pod.Status.Phase == expectedPodPhase {
 			return true
 		}
