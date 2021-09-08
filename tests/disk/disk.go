@@ -84,8 +84,9 @@ func (disk *Disk) CreateLoopDevice() error {
 			if err != nil {
 				return err
 			}
+		} else if err != nil {
+			return err
 		}
-
 		deviceName := getLoopDevName()
 		devicePath := "/dev/" + deviceName
 		// create the loop device using losetup

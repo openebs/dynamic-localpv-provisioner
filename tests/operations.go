@@ -671,9 +671,6 @@ func (ops *Operations) ExecPod(opts *Options) (string, string, error) {
 		Stderr: &execErr,
 		Tty:    false,
 	})
-	/*Expect(err).To(BeNil(), "while streaming the command in pod ", opts.podName, execOut.String(), execErr.String())
-	Expect(execOut.Len()).Should(BeNumerically(">=", 0), "while streaming the command in pod ", opts.podName, execErr.String(), execOut.String())
-	return execOut.Bytes(), nil*/
 	if err != nil {
 		return execOut.String(), execErr.String(), errors.Errorf("error in Stream: %v", err)
 	}
