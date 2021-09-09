@@ -233,21 +233,21 @@ func PrepareDisk(fsType, hostPath string) (Disk, error) {
 }
 
 // DestroyDisk performs performs the clean-up task after testing the features
-func DestroyDisk(physicalDisk Disk, hostPath string) error {
+func (disk *Disk) DestroyDisk(hostPath string) error {
 	var errs string
 	// Unmount the disk
-	err := physicalDisk.Unmount()
+	err := disk.Unmount()
 	if len(err) > 0 {
 		for _, v := range err {
 			errs = errs + v.Error() + ";"
 		}
-		return errors.Wrapf(errors.New(errs), "while unmounting the disk {%+v}", physicalDisk)
+		return errors.Wrapf(errors.New(errs), "while unmounting the disk {%+v}", disk)
 	}
 
 	// Detach and delete the disk
-	error := physicalDisk.DetachAndDeleteDisk()
+	error := disk.DetachAndDeleteDisk()
 	if err != nil {
-		return errors.Wrapf(error, "while detaching and deleting the disk {%+v}", physicalDisk)
+		return errors.Wrapf(error, "while detaching and deleting the disk {%+v}", disk)
 	}
 
 	// Deleting the hostpath directory

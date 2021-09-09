@@ -98,6 +98,6 @@ var _ = AfterSuite(func() {
 	)
 
 	By("destroying the created disk")
-	err = disk.DestroyDisk(physicalDisk, xfsHostpathDir)
+	err = physicalDisk.DestroyDisk(xfsHostpathDir)
 	Expect(err).To(BeNil(), "while destroying the disk {%+v}", physicalDisk)
 })
