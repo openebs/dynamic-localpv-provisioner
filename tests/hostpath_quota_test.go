@@ -194,7 +194,8 @@ var _ = Describe("TEST HOSTPATH XFS QUOTA LOCAL PV WITH XFS FILESYSTEM", func() 
 		pvcObj        *corev1.PersistentVolumeClaim
 		scObj         *storagev1.StorageClass
 		accessModes   = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
-		capacity      = "5M"
+		capacityInMib = "5"
+		capacity      = capacityInMib + "M"
 		podName       = "busybox-hostpath"
 		label         = "demo=hostpath-pod"
 		createdPod    *corev1.Pod
@@ -302,13 +303,12 @@ var _ = Describe("TEST HOSTPATH XFS QUOTA LOCAL PV WITH XFS FILESYSTEM", func() 
 			option := execOption.WithPodName(createdPod.Name).
 				WithContainer("busybox").
 				WithNamespace(namespaceObj.Name).
-				WithCommand([]string{"/bin/sh", "-c", fmt.Sprintf(`for i in $(seq 1 7); do dd if=/dev/zero of=/mnt/store1/test.txt bs=1M count=$i 2>/dev/null; if [ $? -ne 0 ]; then echo "filesize of $i Mb failed, quota reached!"; else echo "filesize of $i Mb was ok"; fi; done`)}...)
+				WithCommand([]string{"/bin/sh", "-c", "dd if=/dev/zero of=/mnt/store1/test.txt bs=1M count=10 2>&1 || du -sm /mnt/store1 | cut -f -1 | tr -d '\n' 1>&2"}...)
 			stdOut, stdErr, err := ops.ExecPod(option)
 			fmt.Printf("When running command to test enforced quota. stdOut: {%s}, stderr: {%s}, error: {%v}", stdOut, stdErr, err)
 			Expect(err).To(BeNil(), "while exec'ing into the pod and running command(s)")
-			Expect(stdErr).NotTo(BeNil(), "trying to write beyond the quota limit should not be allowed")
-			Expect(stdOut).Should(ContainSubstring("filesize of 4 Mb was ok"), "trying to write till the quota limit should be allowed")
-			Expect(stdOut).Should(ContainSubstring("filesize of 5 Mb failed, quota reached!"), "trying to write beyond the quota limit should not be allowed")
+			Expect(stdOut).NotTo(BeEmpty(), "trying to write till the quota limit should be allowed")
+			Expect(stdErr).To(Equal(capacityInMib), "trying to write beyond the quota limit should not be allowed")
 		})
 	})
 
