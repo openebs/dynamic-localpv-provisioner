@@ -59,7 +59,7 @@ var _ = Describe("TEST HOSTPATH LOCAL PV", func() {
 					"openebs.io/test-sc": "true",
 				}),
 				sc.WithLocalPV(),
-				sc.WithHostpath("/var/openebs/integration-test"),
+				sc.WithHostpath(hostpathDir),
 				sc.WithVolumeBindingMode("WaitForFirstConsumer"),
 				sc.WithReclaimPolicy("Delete"),
 			)

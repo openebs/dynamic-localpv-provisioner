@@ -35,14 +35,14 @@ import (
 
 var _ = Describe("TEST HOSTPATH XFS QUOTA LOCAL PV WITH NON-XFS FILESYSTEM", func() {
 	var (
-		pvcObj        *corev1.PersistentVolumeClaim
-		scObj         *storagev1.StorageClass
-		accessModes   = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
-		capacity      = "5M"
-		podName       = "busybox-hostpath"
-		label         = "demo=hostpath-pod"
-		createdPvc    *corev1.PersistentVolumeClaim
-		hostpathDir   = "/var/openebs/integration-test"
+		pvcObj      *corev1.PersistentVolumeClaim
+		scObj       *storagev1.StorageClass
+		accessModes = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
+		capacity    = "5M"
+		podName     = "busybox-hostpath"
+		label       = "demo=hostpath-pod"
+		createdPvc  *corev1.PersistentVolumeClaim
+
 		pvcName       = "pvc-hp"
 		scNamePrefix  = "sc-hp-xfs"
 		scName        string

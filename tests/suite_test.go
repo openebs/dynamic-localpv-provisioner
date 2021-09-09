@@ -39,6 +39,7 @@ var (
 	storageClassLabelSelector       = "openebs.io/test-sc=true"
 	err                             error
 	LocalPVProvisionerLabelSelector = "openebs.io/component-name=openebs-localpv-provisioner"
+	hostpathDir                     = "/var/openebs/integration-test"
 	xfsHostpathDir                  = "/var/openebs/integration-test/xfs/"
 	physicalDisk                    = disk.Disk{}
 )
