@@ -91,7 +91,7 @@ You can provision LocalPV Hostpath volumes dynamically using the default `openeb
        #Use this to set a custom
        # hostpath directory
        #- name: BasePath
-       #  value: "/mnt/data"
+       #  value: "/var/openebs/local"
        #Use this to set a custom
        # label for node selection
        # This label will be used to
