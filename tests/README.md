@@ -53,3 +53,5 @@ Run the tests by being in the localpv tests folder.
  ```bash
   $ ginkgo -v -- -openebs-namespace=<your-namespace>
  ```
+
+ > **Tip:** Raising a pull request to this repo's 'develop' branch (or any one of the release branches) will automatically run the BDD tests in GitHub Actions. You can verify your code changes by moving to the 'Checks' tab in your pull request page, and checking the results of the 'integration-test' check.
