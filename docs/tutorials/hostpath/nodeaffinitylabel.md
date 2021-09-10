@@ -1,7 +1,7 @@
 # Use a unique Node-Selector label
 
 Hostpath LocalPV uses the Kubernetes Node label `kubernetes.io/hostname=<node-name>` to uniquely identifly a node.
-In some cases, this label is not persistent across Node reboots and/or Node crashes.
+In some cases, this label (`hostname`) is not unique across all the nodes in the cluster. This was seen on clusters provisioned with bash across different fault domains.
 A unique Node label may be used instead of the above mentioned Kubernetes default label to uniquely identify a node. This label may be set by you, the administrator.
 This label can be set when defining a StorageClass. One such sameple StorageClass is given below...
 
