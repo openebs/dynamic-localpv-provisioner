@@ -4,7 +4,7 @@ The Dynamic-LocalPV-Provisioner may be installed into a MicroK8s cluster in ANY 
 
 ## Using the OpenEBS Addon
 
-MicroK8s (v1.21 onwards) ships with an OpenEBS Addon which deploys LocalPV, cStor and Jiva storage engine control-plane components. Enable the plugin to enable the Dynamic-LocalPV-Provisioner
+MicroK8s (v1.21 onwards) ships with an OpenEBS Addon which deploys LocalPV, cStor and Jiva storage engine control-plane components. Enable the addon using the following command:
 ```console
 $ microk8s enable openebs
 ```
