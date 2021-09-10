@@ -92,13 +92,6 @@ You can provision LocalPV Hostpath volumes dynamically using the default `openeb
        # hostpath directory
        #- name: BasePath
        #  value: "/var/openebs/local"
-       #Use this to set a custom
-       # label for node selection
-       # This label will be used to
-       # uniquely identify a node instead
-       # of 'kubernetes.io/hostname'
-       #- name: NodeAffinityLabel
-       #  value: "openebs.io/custom-node-unique-id"
   provisioner: openebs.io/local
   reclaimPolicy: Delete
   #It is necessary to have volumeBindingMode as WaitForFirstConsumer
