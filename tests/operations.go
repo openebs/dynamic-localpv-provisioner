@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+
 	//"sort"
 	"strconv"
 	"time"
@@ -54,7 +55,7 @@ import (
 )
 
 const (
-	maxRetry = 30
+	maxRetry = 60
 )
 
 type bdcExitStatus string
