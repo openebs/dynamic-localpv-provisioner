@@ -125,13 +125,13 @@ jobs:
       - name: Set up Minikube
         uses: manusa/actions-setup-minikube@v2.4.2
         with:
-          minikube version: 'v1.22.0'
-          kubernetes version: 'v1.22.0'
+          minikube version: 'v1.23.0'
+          kubernetes version: 'v1.22.1'
           driver: none
 
       - name: Set up infra for integration test
         run: |
-          sudo apt-get update && sudo apt-get install -y xfsprogs
+          go install github.com/onsi/ginkgo/ginkgo@v1.16.4
           sudo fallocate -l 2.5GiB /mnt/disk.img
           sed -e "/path-filter/{N;N;N;s|\"\"|\"$(sudo losetup -fP /mnt/disk.img --show)\"|}" -e '/path-filter/{N;N;N;N;s|/dev/loop,||}' -e '/openebs-provisioner-hostpath/{N;s/IfNotPresent/Never/}' deploy/kubectl/openebs-operator-lite.yaml | kubectl apply -f -
 

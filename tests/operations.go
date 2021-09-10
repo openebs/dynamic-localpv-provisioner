@@ -55,7 +55,7 @@ import (
 )
 
 const (
-	maxRetry = 90
+	maxRetry = 60
 )
 
 type bdcExitStatus string
