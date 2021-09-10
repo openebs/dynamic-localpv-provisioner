@@ -17,10 +17,11 @@ limitations under the License.
 package pod
 
 import (
-	"github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/container"
-	"github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/volume"
 	errors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
+
+	"github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/container"
+	"github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/volume"
 )
 
 const (
@@ -87,6 +88,27 @@ func (b *Builder) WithNamespace(namespace string) *Builder {
 		return b
 	}
 	b.pod.object.Namespace = namespace
+	return b
+}
+
+// WithLabels sets the labels of Pod with provided value.
+func (b *Builder) WithLabels(matchlabels map[string]string) *Builder {
+	if len(matchlabels) == 0 {
+		b.errs = append(
+			b.errs,
+			errors.New("failed to build deployment object: no new matchlabels"),
+		)
+		return b
+	}
+
+	if b.pod.object.Labels == nil {
+		b.pod.object.Labels = make(map[string]string)
+	}
+
+	for key, value := range matchlabels {
+		b.pod.object.Labels[key] = value
+	}
+
 	return b
 }
 

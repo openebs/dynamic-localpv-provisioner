@@ -32,11 +32,12 @@ import (
 
 	hostpath "github.com/openebs/maya/pkg/hostpath/v1alpha1"
 
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/container"
 	"github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/pod"
 	"github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/volume"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type podConfig struct {

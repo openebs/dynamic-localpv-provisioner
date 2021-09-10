@@ -188,7 +188,8 @@ jobs:
 
       - name: Set up infra for integration test
         run: |
-          sudo fallocate -l 2.1GiB /mnt/disk.img
+          sudo apt-get update && sudo apt-get install -y xfsprogs
+          sudo fallocate -l 2.5GiB /mnt/disk.img
           sed -e "/path-filter/{N;N;N;s|\"\"|\"$(sudo losetup -fP /mnt/disk.img --show)\"|}" -e '/path-filter/{N;N;N;N;s|/dev/loop,||}' -e '/openebs-provisioner-hostpath/{N;s/IfNotPresent/Never/}' deploy/kubectl/openebs-operator-lite.yaml | kubectl apply -f -
 
       - name: Integration test
