@@ -7,7 +7,7 @@ Local PV Provisioner BDD tests are developed using ginkgo & gomega libraries.
 ### Pre-requisites
 
 - These tests are meant to be run in a single-node Kubernetes
-  cluster with one single available blockdevice.
+  cluster with one single available blockdevice (not mounted).
 
 - Get your Kubernetes Cluster ready and make sure you can run 
   kubectl from your development machine. 
@@ -21,14 +21,14 @@ Local PV Provisioner BDD tests are developed using ginkgo & gomega libraries.
   If you do not set this ENV, you will have to pass the file 
   to the Ginkgo CLI (see below)
 
-- You will require the Ginkgo binary to be able to run the test.
+- You will require the Ginkgo binary to be able to run the tests.
   Install the latest Ginkgo binary using the following command:
   ```bash
   $ go install github.com/onsi/ginkgo/ginkgo@latest
   ```
 
-- Some of the tests require block devices (that are not mounted)
-  to be available in the cluster.
+- The tests should not be run in parallel as it may lead to
+  unavailability of blockdevices for some of the tests.
 
 - Install required OpenEBS LocalPV Provisioner components
   Example: `kubectl apply -f https://openebs.github.io/charts/openebs-operator-lite.yaml`
