@@ -9,7 +9,7 @@ Local PV Provisioner BDD tests are developed using ginkgo & gomega libraries.
 - These tests are meant to be run in a single-node Kubernetes
   cluster with one single available blockdevice (not mounted).
 
-- Some of the test features exclusive to the XFS filesystem.
+- Some of the tests test features exclusive to the XFS filesystem.
   To run the XFS tests, you will require the 'xfsprogs' package
   installed on your node.
 
