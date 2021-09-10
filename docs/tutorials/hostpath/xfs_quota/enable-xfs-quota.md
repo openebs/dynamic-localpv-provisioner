@@ -1,18 +1,11 @@
-# OpenEBS LocalPV Hostpath Enable Quota
+# OpenEBS LocalPV Hostpath Enable XFS Quota
 
 ### Prerequisites
 
 1. A Kubernetes cluster with Kubernetes v1.16 or above is required
 2. All the nodes must have xfs utils installed
-3. The base path used by the provisioner should be mounted with XFS project quotas enabled
-
-### Setup for testing
-Create a disk file which will be formatted as xfs fs, mounted as loopback device and exposed as the Basepath
-```console
-sudo dd if=/dev/zero of=xfs.32M bs=1 count=0 seek=32M
-sudo mkfs -t xfs -q xfs.32M
-sudo mount -o loop,rw xfs.32M -o pquota /var/openebs/local
-```
+3. The base path used by the provisioner should have XFS filesystem
+4. The base path used by the provisioner should be mounted with XFS project quotas enabled
 
 ### Check Basepath
 Verify that filesystem is xfs
@@ -34,6 +27,19 @@ Project quota state on /var/openebs/local (/dev/loop16)
   Accounting: ON
   Enforcement: ON
 ```
+
+If project quotas are not enabled :-
+
+To set project quota on `/var/openebs/local`, enable project quota on `/var` filesystem,
+edit the `/etc/fstab` file, add `prjquota` after `default` keyword for `/var` file system
+```console
+$ vi /etc/fstab
+……………………………….
+/dev/mapper/Vol-var     /var     xfs     defaults,prjquota        0 0
+…………………………………
+```
+Then reboot the system
+
 
 ### Installing
 Install the OpenEBS Dynamic LocalPV Provisioner using the following command:
@@ -61,17 +67,8 @@ metadata:
   annotations:
     openebs.io/cas-type: local
     cas.openebs.io/config: |
-      #hostpath type will create a PV by 
-      # creating a sub-directory under the
-      # BASEPATH provided below.
       - name: StorageType
         value: "hostpath"
-      #Specify the location (directory) where
-      # where PV(volume) data will be saved. 
-      # A sub-directory with pv-name will be 
-      # created. When the volume is deleted, 
-      # the PV sub-directory will be deleted.
-      #Default value is /var/openebs/local
       - name: BasePath
         value: "/var/openebs/local/"
 provisioner: openebs.io/local
