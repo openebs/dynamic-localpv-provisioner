@@ -15,7 +15,6 @@ $ microk8s kubectl get pods -n openebs
 $ microk8s kubectl get storageclass
 ```
 
-
 ## Using the OpenEBS Helm Chart
 
 Using the helm chart directly let's you cuztomize your Dynamic-LocalPV-Provisioner deployment ([Helm chart README](https://github.com/openebs/charts/blob/develop/charts/openebs/README.md)). You will need to use the Helm3 MicroK8s Addon for this.
