@@ -66,7 +66,7 @@ type HelperBlockDeviceOptions struct {
 	//nodeAffinityLabelValue represents the label value of the node where pod should be launched.
 	nodeAffinityLabelValue string
 
-	capacity     string
+	capacity string
 	//	deviceType string
 	bdcName string
 	//  volumeMode of PVC
