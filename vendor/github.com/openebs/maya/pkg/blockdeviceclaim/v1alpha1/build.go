@@ -17,11 +17,14 @@ limitations under the License.
 package v1alpha1
 
 import (
-	ndm "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
+	"strings"
+
 	errors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	ndm "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
 )
 
 const (
@@ -302,5 +305,33 @@ func (b *Builder) WithBlockDeviceTag(bdTagValue string) *Builder {
 	}
 
 	b.BDC.Object.Spec.Selector.MatchLabels[bdTagKey] = bdTagValue
+	return b
+}
+
+// WithSelector appends (or creates) the BDC Label Selector
+// by setting the provided key and corresponding value
+// This will enable the NDM to pick only devices that
+// match the given label and its value.
+func (b *Builder) WithSelector(labelSelector map[string]string) *Builder {
+	if len(labelSelector) == 0 {
+		b.errs = append(
+			b.errs,
+			errors.New("failed to build BDC object: missing label selector fields"),
+		)
+		return b
+	}
+
+	if b.BDC.Object.Spec.Selector == nil {
+		b.BDC.Object.Spec.Selector = &metav1.LabelSelector{}
+	}
+	if b.BDC.Object.Spec.Selector.MatchLabels == nil {
+		b.BDC.Object.Spec.Selector.MatchLabels = map[string]string{}
+	}
+
+	for key, value := range labelSelector {
+		if len(strings.TrimSpace(value)) != 0 {
+			b.BDC.Object.Spec.Selector.MatchLabels[key] = value
+		}
+	}
 	return b
 }

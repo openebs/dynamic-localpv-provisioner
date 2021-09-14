@@ -68,6 +68,10 @@ type HelperBlockDeviceOptions struct {
 	//bdTagValue is the value passed for
 	// BlockDeviceTag via StorageClass config
 	bdTagValue string
+
+	// bdSelectors stores the different fields
+	// used for selecting a block device
+	bdSelectors map[string]string
 }
 
 // validate checks that the required fields to create BDC
@@ -134,6 +138,11 @@ func (p *Provisioner) createBlockDeviceClaim(ctx context.Context, blkDevOpts *He
 	// If bdTagValue is configure, set it on the BDC
 	if len(blkDevOpts.bdTagValue) > 0 {
 		bdcObjBuilder.WithBlockDeviceTag(blkDevOpts.bdTagValue)
+	}
+
+	// if block device selectors are present, set it on the BDC
+	if len(blkDevOpts.bdSelectors) > 0 {
+		bdcObjBuilder.WithSelector(blkDevOpts.bdSelectors)
 	}
 
 	bdcObj, err := bdcObjBuilder.Build()

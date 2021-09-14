@@ -25,6 +25,7 @@ import (
 	cast "github.com/openebs/maya/pkg/castemplate/v1alpha1"
 	hostpath "github.com/openebs/maya/pkg/hostpath/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
+	"gopkg.in/yaml.v2"
 	klog "k8s.io/klog/v2"
 
 	//"github.com/pkg/errors"
@@ -102,6 +103,30 @@ const (
 	//
 	KeyNodeAffinityLabel = "NodeAffinityLabel"
 
+	//KeyBlockDeviceSelectors defines the value for the Block Device selectors
+	//during bdc to bd claim configured via the StorageClass annotations.
+	//
+	//Example: Local PV device StorageClass for selecting devices
+	//of SSD type and no filesystem present on it will be as follows
+	//
+	// kind: StorageClass
+	// metadata:
+	//   name: local-device
+	//   annotations:
+	//     openebs.io/cas-type: local
+	//     cas.openebs.io/config: |
+	//       - name: StorageType
+	//         value: "device"
+	//       - name: BlockDeviceSelectors
+	//         value: |-
+	//           ndm.io/driveType: "SSD"
+	//           ndm.io/fsType: "none"
+	// provisioner: openebs.io/local
+	// volumeBindingMode: WaitForFirstConsumer
+	// reclaimPolicy: Delete
+	//
+	KeyBlockDeviceSelectors = "BlockDeviceSelectors"
+
 	//KeyPVRelativePath defines the alternate folder name under the BasePath
 	// By default, the pv name will be used as the folder name.
 	// KeyPVBasePath can be useful for providing the same underlying folder
@@ -114,6 +139,9 @@ const (
 	// to underlying hostpaths across multiple pods.
 	//KeyPVAbsolutePath = "AbsolutePath"
 )
+
+// BlockDeviceSelectorFields stores the block device selectors
+type BlockDeviceSelectorFields map[string]string
 
 const (
 	// Some of the PVCs launched with older helm charts, still
@@ -185,6 +213,26 @@ func (c *VolumeConfig) GetStorageType() string {
 		return "hostpath"
 	}
 	return stgType
+}
+
+//GetStorageType returns the BlockDeviceSelectors value configured
+// in StorageClass. Default is ""
+func (c *VolumeConfig) GetBlockDeviceSelectors() string {
+	blockDeviceSelector := c.getValue(KeyBlockDeviceSelectors)
+	if len(strings.TrimSpace(blockDeviceSelector)) == 0 {
+		return ""
+	}
+	return blockDeviceSelector
+}
+
+// GetBlockDeviceSelectorFields unmarshalls the multi-line blockDeviceSelectors string
+// value into a map of strings.
+func GetBlockDeviceSelectorFields(blockDeviceSelectors string) (map[string]string, error) {
+	var out BlockDeviceSelectorFields
+	if err := yaml.Unmarshal([]byte(blockDeviceSelectors), &out); err != nil {
+		return out, errors.Wrapf(err, "unable to unmarshal block device selector fields: {%s}", blockDeviceSelectors)
+	}
+	return out, nil
 }
 
 //GetFSType returns the FSType value configured
