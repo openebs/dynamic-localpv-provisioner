@@ -205,6 +205,8 @@ jobs:
           make hostpath-integration-test
 
   localpv-e2e:
+    # to ignore builds on release AND build only if the branch is develop
+    if: ${{ (github.event.ref_type != 'tag') && (github.ref == 'refs/heads/develop') }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
