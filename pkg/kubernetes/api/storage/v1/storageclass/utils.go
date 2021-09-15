@@ -18,6 +18,7 @@ package storageclass
 
 import (
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	mconfig "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
@@ -74,6 +75,78 @@ func isCompatibleWithHostpath(s *storagev1.StorageClass) bool {
 			switch strings.TrimSpace(config.Name) {
 			case "NodeAffinityLabel":
 				continue
+			case "XFSQuota":
+				if !isValidXfsQuotaData(config.Data) {
+					return false
+				}
+				continue
+			default:
+				return false
+			}
+		}
+	}
+
+	if len(s.Provisioner) > 0 && s.Provisioner != localPVprovisionerName {
+		return false
+	}
+
+	return true
+}
+
+func isValidXfsQuotaData(data map[string]string) bool {
+	if data == nil {
+		return true
+	}
+	if softLimit, ok := data[KeyXfsQuotaSoftLimit]; ok {
+		//Allows values of the following formats:
+		// 123.456%, 123%, 123.%, .45%
+		//Does not allow:
+		// .%, %, ., 1234.45%
+		if !regexp.MustCompile("^(^$|(^[0-9]{1,3}([.][0-9]*)?|[.][0-9]+)%)$").MatchString(softLimit) {
+			return false
+		}
+	}
+	if hardLimit, ok := data[KeyXfsQuotaHardLimit]; ok {
+		//Allows values of the following formats:
+		// 123.456%, 123%, 123.%, .45%
+		//Does not allow:
+		// .%, %, ., 1234.45%
+		if !regexp.MustCompile("^(^$|(^[0-9]{1,3}([.][0-9]*)?|[.][0-9]+)%)$").MatchString(hardLimit) {
+			return false
+		}
+	}
+
+	return true
+}
+
+func isCompatibleWithXfsQuota(s *storagev1.StorageClass) bool {
+	if !isCompatibleWithLocalPVcasType(s) {
+		return false
+	}
+
+	if scCASConfigStr, ok := s.ObjectMeta.Annotations[string(mconfig.CASConfigKey)]; ok {
+		// Unmarshall to mconfig.Config
+		scCASConfig, err := cast.UnMarshallToConfig(scCASConfigStr)
+		if err != nil {
+			return false
+		}
+
+		// Check for invalid CAS config parameters
+		for _, config := range scCASConfig {
+			switch strings.TrimSpace(config.Name) {
+			case "StorageType":
+				if config.Value == "\"hostpath\"" || config.Value == "hostpath" {
+					continue
+				} else {
+					return false
+				}
+			case "BasePath":
+				if !isValidPath(config.Value) {
+					return false
+				}
+				continue
+			case "NodeAffinityLabel":
+				continue
 			default:
 				return false
 			}
@@ -110,6 +183,11 @@ func isCompatibleWithNodeAffinityLabel(s *storagev1.StorageClass) bool {
 				}
 			case "BasePath":
 				if !isValidPath(config.Value) {
+					return false
+				}
+				continue
+			case "XFSQuota":
+				if !isValidXfsQuotaData(config.Data) {
 					return false
 				}
 				continue
