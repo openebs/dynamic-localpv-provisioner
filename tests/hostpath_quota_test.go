@@ -62,13 +62,9 @@ var _ = Describe("TEST HOSTPATH XFS QUOTA LOCAL PV WITH NON-XFS FILESYSTEM", fun
 				}),
 				sc.WithLocalPV(),
 				sc.WithHostpath(hostpathDir),
+				sc.WithXfsQuota("20%", "50%"),
 				sc.WithVolumeBindingMode("WaitForFirstConsumer"),
 				sc.WithReclaimPolicy("Delete"),
-				sc.WithParameters(map[string]string{
-					"enableXfsQuota": "true",
-					"softLimitGrace": "20%",
-					"hardLimitGrace": "50%",
-				}),
 			)
 			Expect(err).To(
 				BeNil(),
@@ -218,13 +214,9 @@ var _ = Describe("TEST HOSTPATH XFS QUOTA LOCAL PV WITH XFS FILESYSTEM", func() 
 				}),
 				sc.WithLocalPV(),
 				sc.WithHostpath(xfsHostpathDir),
+				sc.WithXfsQuota("0%", "0%"),
 				sc.WithVolumeBindingMode("WaitForFirstConsumer"),
 				sc.WithReclaimPolicy("Delete"),
-				sc.WithParameters(map[string]string{
-					"enableXfsQuota": "true",
-					"softLimitGrace": "0%",
-					"hardLimitGrace": "0%",
-				}),
 			)
 			Expect(err).To(
 				BeNil(),
