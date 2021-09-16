@@ -42,24 +42,6 @@ func (p *Provisioner) ProvisionBlockDevice(ctx context.Context, opts pvControlle
 	fsType := volumeConfig.GetFSType()
 	blockDeviceSelectors := volumeConfig.GetBlockDeviceSelectors()
 
-	var bdSelector map[string]string
-	if blockDeviceSelectors != "" {
-		var err error
-		// convert the selector fields into a map
-		bdSelector, err = GetBlockDeviceSelectorFields(blockDeviceSelectors)
-		if err != nil {
-			klog.Infof("Unmarshalling block device selectors {%v} failed: %v", blockDeviceSelectors, err)
-			alertlog.Logger.Errorw("",
-				"eventcode", "local.pv.provision.failure",
-				"msg", "Failed to provision Local PV",
-				"rname", opts.PVName,
-				"reason", "unable to understand block device selectors",
-				"storagetype", stgType,
-			)
-			return nil, pvController.ProvisioningFinished, err
-		}
-	}
-
 	//Extract the details to create a Block Device Claim
 	blkDevOpts := &HelperBlockDeviceOptions{
 		nodeHostname: nodeHostname,
@@ -67,7 +49,7 @@ func (p *Provisioner) ProvisionBlockDevice(ctx context.Context, opts pvControlle
 		capacity:     capacity.String(),
 		volumeMode:   *opts.PVC.Spec.VolumeMode,
 		bdTagValue:   volumeConfig.GetBDTagValue(),
-		bdSelectors:  bdSelector,
+		bdSelectors:  blockDeviceSelectors,
 	}
 
 	path, blkPath, err := p.getBlockDevicePath(ctx, blkDevOpts)
