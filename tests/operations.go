@@ -312,7 +312,7 @@ func (ops *Operations) IsPVCBoundEventually(pvcName string) bool {
 		Expect(err).ShouldNot(HaveOccurred())
 		return pvc.NewForAPIObject(volume).IsBound()
 	},
-		120, 10).
+		450, 5).
 		Should(BeTrue())
 }
 
@@ -326,7 +326,7 @@ func (ops *Operations) VerifyCapacity(pvcName, capacity string) bool {
 		desiredCapacity, _ := resource.ParseQuantity(capacity)
 		return (desiredCapacity.Cmp(actualCapacity) == 0)
 	},
-		120, 10).
+		450, 5).
 		Should(BeTrue())
 }
 
@@ -350,7 +350,7 @@ func (ops *Operations) IsPodRunningEventually(namespace, podName string) bool {
 		return pod.NewForAPIObject(p).
 			IsRunning()
 	},
-		150, 10).
+		450, 5).
 		Should(BeTrue())
 }
 
@@ -469,7 +469,7 @@ func (ops *Operations) IsPVCDeletedEventually(pvcName, namespace string) bool {
 			Get(context.TODO(), pvcName, metav1.GetOptions{})
 		return isNotFound(err)
 	},
-		120, 2).
+		450, 5).
 		Should(BeTrue())
 }
 
@@ -491,7 +491,7 @@ func (ops *Operations) IsPVDeletedEventually(pvName string) bool {
 			Get(context.TODO(), pvName, metav1.GetOptions{})
 		return isNotFound(err)
 	},
-		120, 2).
+		450, 5).
 		Should(BeTrue())
 }
 
@@ -503,7 +503,7 @@ func (ops *Operations) IsPodDeletedEventually(namespace, podName string) bool {
 			Get(context.TODO(), podName, metav1.GetOptions{})
 		return isNotFound(err)
 	},
-		120, 10).
+		450, 5).
 		Should(BeTrue())
 }
 
@@ -537,7 +537,7 @@ func (ops *Operations) IsBDCDeletedEventually(bdcName, namespace string) bool {
 			Get(context.TODO(), bdcName, metav1.GetOptions{})
 		return isNotFound(err)
 	},
-		120, 2).
+		450, 5).
 		Should(BeTrue())
 }
 
