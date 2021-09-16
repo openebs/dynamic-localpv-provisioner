@@ -214,7 +214,7 @@ var _ = Describe("TEST HOSTPATH XFS QUOTA LOCAL PV WITH XFS FILESYSTEM", func() 
 				}),
 				sc.WithLocalPV(),
 				sc.WithHostpath(xfsHostpathDir),
-				sc.WithXfsQuota("0%", "0%"),
+				sc.WithXfsQuota("", ""),
 				sc.WithVolumeBindingMode("WaitForFirstConsumer"),
 				sc.WithReclaimPolicy("Delete"),
 			)

@@ -199,20 +199,24 @@ func WithXfsQuota(softLimit, hardLimit string) StorageClassOption {
 				" parameters or Provisioner name.")
 		}
 
-		if !isValidXfsQuotaData(map[string]string{
-			KeyXfsQuotaSoftLimit: softLimit,
-			KeyXfsQuotaHardLimit: hardLimit,
-		}) {
-			return errors.New("Failed to set XFSQuota parameters. " +
-				"Invalid " + KeyXfsQuotaSoftLimit + " and " +
-				KeyXfsQuotaHardLimit + " values")
-		}
-
 		config := "- name: XFSQuota\n" +
-			"  enabled: \"true\"\n" +
-			"  data:\n" +
-			"    " + KeyXfsQuotaSoftLimit + ": \"" + softLimit + "\"\n" +
-			"    " + KeyXfsQuotaHardLimit + ": \"" + hardLimit + "\"\n"
+			"  enabled: \"true\"\n"
+
+		if len(softLimit) > 0 || len(hardLimit) > 0 {
+			if !isValidXfsQuotaData(map[string]string{
+				KeyXfsQuotaSoftLimit: softLimit,
+				KeyXfsQuotaHardLimit: hardLimit,
+			}) {
+				return errors.New("Failed to set XFSQuota parameters. " +
+					"Invalid " + KeyXfsQuotaSoftLimit + " and " +
+					KeyXfsQuotaHardLimit + " values")
+			}
+
+			config = config +
+				"  data:\n" +
+				"    " + KeyXfsQuotaSoftLimit + ": \"" + softLimit + "\"\n" +
+				"    " + KeyXfsQuotaHardLimit + ": \"" + hardLimit + "\"\n"
+		}
 
 		ok := writeOrAppendCASConfig(s, config)
 		if !ok {
