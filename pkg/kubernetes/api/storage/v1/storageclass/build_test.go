@@ -72,6 +72,8 @@ func TestBuildWithName(t *testing.T) {
 	}
 
 	for name, mock := range tests {
+		name := name
+		mock := mock
 		t.Run(name, func(t *testing.T) {
 			opt := WithName(mock.name)
 			err := opt(mock.storageClass)
@@ -105,6 +107,8 @@ func TestBuildWithGenerateName(t *testing.T) {
 	}
 
 	for name, mock := range tests {
+		name := name
+		mock := mock
 		t.Run(name, func(t *testing.T) {
 			opt := WithGenerateName(mock.generateName)
 			err := opt(mock.storageClass)
@@ -150,6 +154,8 @@ func TestBuildWithLocalPV(t *testing.T) {
 	}
 
 	for name, mock := range tests {
+		name := name
+		mock := mock
 		t.Run(name, func(t *testing.T) {
 			opt := WithLocalPV()
 			err := opt(mock.storageClass)
@@ -280,8 +286,150 @@ func TestBuildWithHostpath(t *testing.T) {
 	}
 
 	for name, mock := range tests {
+		name := name
+		mock := mock
 		t.Run(name, func(t *testing.T) {
 			opt := WithHostpath(mock.hostpathDir)
+			err := opt(mock.storageClass)
+
+			if mock.expectErr && err == nil {
+				t.Fatal("Test '" + name + "' failed: expected error to not be nil.")
+			}
+			if !mock.expectErr && err != nil {
+				t.Fatal("Test '" + name + "' failed: expected error to be nil.")
+			}
+		})
+	}
+}
+
+func TestBuildWithXfsQuota(t *testing.T) {
+	tests := map[string]struct {
+		softLimit    string
+		hardLimit    string
+		storageClass *storagev1.StorageClass
+		expectErr    bool
+	}{
+		"Build with sane limits": {
+			softLimit:    "75%",
+			hardLimit:    "80%",
+			storageClass: &storagev1.StorageClass{},
+			expectErr:    false,
+		},
+		"Build with empty softLimit": {
+			softLimit:    "",
+			hardLimit:    "80%",
+			storageClass: &storagev1.StorageClass{},
+			expectErr:    false,
+		},
+		"Build with empty hardLimit": {
+			softLimit:    "80%",
+			hardLimit:    "",
+			storageClass: &storagev1.StorageClass{},
+			expectErr:    false,
+		},
+		"Build with compatible '" + string(mconfig.CASConfigKey) + "' annotation": {
+			softLimit: "75%",
+			hardLimit: "80%",
+			storageClass: &storagev1.StorageClass{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						string(mconfig.CASConfigKey): mockNodeAffinityLabelConfig,
+					},
+				},
+			},
+			expectErr: false,
+		},
+		"Build with incompatible '" + string(mconfig.CASConfigKey) + "' annotation": {
+			softLimit: "75%",
+			hardLimit: "80%",
+			storageClass: &storagev1.StorageClass{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						string(mconfig.CASConfigKey): mockBlockDeviceTagConfig,
+					},
+				},
+			},
+			expectErr: true,
+		},
+		"Build with empty '" + string(mconfig.CASConfigKey) + "' annotation": {
+			softLimit: "75%",
+			hardLimit: "80%",
+			storageClass: &storagev1.StorageClass{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						string(mconfig.CASConfigKey): "",
+					},
+				},
+			},
+			expectErr: false,
+		},
+		"Build with valid '" + string(mconfig.CASTypeKey) + "' annotation": {
+			softLimit: "75%",
+			hardLimit: "80%",
+			storageClass: &storagev1.StorageClass{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						string(mconfig.CASTypeKey): localPVcasTypeValue,
+					},
+				},
+			},
+			expectErr: false,
+		},
+		"Build with invalid '" + string(mconfig.CASTypeKey) + "' annotation": {
+			softLimit: "75%",
+			hardLimit: "80%",
+			storageClass: &storagev1.StorageClass{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						string(mconfig.CASTypeKey): fakeCASTypeValue,
+					},
+				},
+			},
+			expectErr: true,
+		},
+		"Build with empty '" + string(mconfig.CASTypeKey) + "' annotation": {
+			softLimit: "75%",
+			hardLimit: "80%",
+			storageClass: &storagev1.StorageClass{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						string(mconfig.CASTypeKey): "",
+					},
+				},
+			},
+			expectErr: false,
+		},
+		"Build with valid Provisioner name": {
+			softLimit: "75%",
+			hardLimit: "80%",
+			storageClass: &storagev1.StorageClass{
+				Provisioner: localPVprovisionerName,
+			},
+			expectErr: false,
+		},
+		"Build with invalid Provisioner name": {
+			softLimit: "75%",
+			hardLimit: "80%",
+			storageClass: &storagev1.StorageClass{
+				Provisioner: fakeProvisionerName,
+			},
+			expectErr: true,
+		},
+		"Build with empty Provisioner name": {
+			softLimit: "75%",
+			hardLimit: "80%",
+			storageClass: &storagev1.StorageClass{
+				Provisioner: "",
+			},
+			expectErr: false,
+		},
+	}
+
+	for name, mock := range tests {
+		name := name
+		mock := mock
+		t.Run(name, func(t *testing.T) {
+			opt := WithXfsQuota(mock.softLimit, mock.hardLimit)
 			err := opt(mock.storageClass)
 
 			if mock.expectErr && err == nil {
@@ -384,6 +532,8 @@ func TestBuildWithDevice(t *testing.T) {
 	}
 
 	for name, mock := range tests {
+		name := name
+		mock := mock
 		t.Run(name, func(t *testing.T) {
 			opt := WithDevice()
 			err := opt(mock.storageClass)
@@ -420,6 +570,8 @@ func TestBuildWithVolumeBindingMode(t *testing.T) {
 	}
 
 	for name, mock := range tests {
+		name := name
+		mock := mock
 		t.Run(name, func(t *testing.T) {
 			opt := WithVolumeBindingMode(mock.volBindMode)
 			_ = opt(mock.storageClass)
@@ -457,6 +609,8 @@ func TestBuildWithReclaimPolicy(t *testing.T) {
 	}
 
 	for name, mock := range tests {
+		name := name
+		mock := mock
 		t.Run(name, func(t *testing.T) {
 			opt := WithReclaimPolicy(mock.rPolicy)
 			_ = opt(mock.storageClass)
@@ -493,6 +647,8 @@ func TestBuildWithAllowedTopologies(t *testing.T) {
 	}
 
 	for name, mock := range tests {
+		name := name
+		mock := mock
 		t.Run(name, func(t *testing.T) {
 			opt := WithAllowedTopologies(mock.nodeSelector)
 			err := opt(mock.storageClass)
@@ -613,6 +769,8 @@ func TestBuildWithNodeAffinityLabel(t *testing.T) {
 	}
 
 	for name, mock := range tests {
+		name := name
+		mock := mock
 		t.Run(name, func(t *testing.T) {
 			opt := WithNodeAffinityLabel(mock.nodeAffinityLabel)
 			err := opt(mock.storageClass)
@@ -738,6 +896,8 @@ func TestBuildWithFSType(t *testing.T) {
 	}
 
 	for name, mock := range tests {
+		name := name
+		mock := mock
 		t.Run(name, func(t *testing.T) {
 			opt := WithFSType(mock.fstype)
 			err := opt(mock.storageClass)
@@ -858,6 +1018,8 @@ func TestBuildWithBlockDeviceTag(t *testing.T) {
 	}
 
 	for name, mock := range tests {
+		name := name
+		mock := mock
 		t.Run(name, func(t *testing.T) {
 			opt := WithBlockDeviceTag(mock.bdtag)
 			err := opt(mock.storageClass)
