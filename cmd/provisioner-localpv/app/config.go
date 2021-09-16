@@ -291,15 +291,6 @@ func (c *VolumeConfig) IsXfsQuotaEnabled() bool {
 	//        true or false
 	//    ii. The value was empty
 	if err != nil {
-		softLimit := strings.TrimSpace(c.getData(KeyXFSQuota, KeyXfsQuotaSoftLimit))
-		hardLimit := strings.TrimSpace(c.getData(KeyXFSQuota, KeyXfsQuotaHardLimit))
-		// Checking if XFS enabling is implied
-		// by the usage of 'KeyXfsQuotaSoftLimit' or
-		// 'KeyXfsQuotaHardLimit'
-		if len(softLimit) > 0 || len(hardLimit) > 0 {
-			return true
-		}
-
 		return false
 	}
 
