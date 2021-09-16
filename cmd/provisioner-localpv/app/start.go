@@ -110,13 +110,13 @@ func Start(cmd *cobra.Command) error {
 		provisioner,
 		pvController.LeaderElection(isLeaderElectionEnabled()),
 	)
-	klog.V(4).Info("Provisioner started")
 
 	if menv.Truthy(menv.OpenEBSEnableAnalytics) {
 		analytics.New().Build().InstallBuilder(true).Send()
 		go analytics.PingCheck()
 	}
 
+	klog.V(4).Info("Provisioner started")
 	//Run the provisioner till a shutdown signal is received.
 	pc.Run(ctx)
 	klog.V(4).Info("Provisioner stopped")
