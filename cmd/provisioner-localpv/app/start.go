@@ -22,6 +22,8 @@ import (
 	"os"
 	"strings"
 
+	menv "github.com/openebs/maya/pkg/env/v1alpha1"
+	analytics "github.com/openebs/maya/pkg/usage"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -110,7 +112,14 @@ func Start(cmd *cobra.Command) error {
 	)
 	klog.V(4).Info("Provisioner started")
 	//Run the provisioner till a shutdown signal is received.
-	pc.Run(ctx)
+	go pc.Run(ctx)
+
+	if menv.Truthy(menv.OpenEBSEnableAnalytics) {
+		analytics.New().Build().InstallBuilder(true).Send()
+		go analytics.PingCheck()
+	}
+
+	<-ctx.Done()
 	klog.V(4).Info("Provisioner stopped")
 
 	return nil
