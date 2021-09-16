@@ -199,6 +199,8 @@ func WithXfsQuota(softLimit, hardLimit string) StorageClassOption {
 				" parameters or Provisioner name.")
 		}
 
+		// TODO: Refactor this code
+
 		config := "- name: XFSQuota\n" +
 			"  enabled: \"true\"\n"
 
