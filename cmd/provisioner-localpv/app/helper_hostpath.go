@@ -109,7 +109,12 @@ func (pOpts *HelperPodOptions) validate() error {
 func (pOpts *HelperPodOptions) validateLimits() error {
 	if pOpts.softLimitGrace == "0k" &&
 		pOpts.hardLimitGrace == "0k" {
-		return errors.Errorf("both limits cannot be 0")
+
+		// Hack: using convertToK() style converstion
+		pvcStorageInK := math.Ceil(float64(pOpts.pvcStorage) / 1000)
+		pvcStorageInKString := strconv.FormatFloat(pvcStorageInK, 'f', -1, 64) + "k"
+		pOpts.softLimitGrace, pOpts.hardLimitGrace = pvcStorageInKString, pvcStorageInKString
+		return nil
 	}
 
 	if pOpts.softLimitGrace == "0k" ||
@@ -154,10 +159,7 @@ func convertToK(limit string, pvcStorage int64) (string, error) {
 	value += float64(pvcStorage)
 	value /= 1000
 
-	if value != math.Trunc(value) {
-		value++
-	}
-	value = math.Trunc(value)
+	value = math.Ceil(value)
 	valueString = strconv.FormatFloat(value, 'f', -1, 64)
 	valueString += "k"
 	return valueString, nil
