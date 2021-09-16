@@ -80,7 +80,7 @@ func NewProvisioner(kubeClient *clientset.Clientset) (*Provisioner, error) {
 
 // SupportsBlock will be used by controller to determine if block mode is
 //  supported by the host path provisioner.
-func (p *Provisioner) SupportsBlock(ctx context.Context) bool {
+func (p *Provisioner) SupportsBlock(_ context.Context) bool {
 	return true
 }
 
