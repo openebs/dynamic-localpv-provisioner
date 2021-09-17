@@ -40,7 +40,6 @@ func (p *Provisioner) ProvisionBlockDevice(ctx context.Context, opts pvControlle
 	capacity := opts.PVC.Spec.Resources.Requests[v1.ResourceName(v1.ResourceStorage)]
 	stgType := volumeConfig.GetStorageType()
 	fsType := volumeConfig.GetFSType()
-	blockDeviceSelectors := volumeConfig.GetBlockDeviceSelectors()
 
 	//Extract the details to create a Block Device Claim
 	blkDevOpts := &HelperBlockDeviceOptions{
@@ -49,7 +48,7 @@ func (p *Provisioner) ProvisionBlockDevice(ctx context.Context, opts pvControlle
 		capacity:     capacity.String(),
 		volumeMode:   *opts.PVC.Spec.VolumeMode,
 		bdTagValue:   volumeConfig.GetBDTagValue(),
-		bdSelectors:  blockDeviceSelectors,
+		bdSelectors:  volumeConfig.GetBlockDeviceSelectors(),
 	}
 
 	path, blkPath, err := p.getBlockDevicePath(ctx, blkDevOpts)
