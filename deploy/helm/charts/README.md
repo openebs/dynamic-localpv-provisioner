@@ -103,12 +103,12 @@ helm install openebs-localpv openebs-localpv/localpv-provisioner --namespace ope
 | `helperPod.image.registry`                  | Registry for helper image                         | `""`                            |
 | `helperPod.image.repository`                | Image for helper pod                              | `"openebs/linux-utils"`         |
 | `helperPod.image.pullPolicy`                | Pull policy for helper pod                        | `"IfNotPresent"`                |
-| `helperPod.image.tag`                       | Image tag for helper image                        | `3.0.0`                        |
+| `helperPod.image.tag`                       | Image tag for helper image                        | `3.0.0`                         |
 | `hostpathClass.basePath`                    | BasePath for openebs-hostpath StorageClass        | `"/var/openebs/local"`          |
 | `hostpathClass.enabled`                     | Enables creation of default Hostpath StorageClass | `true`                          |
 | `hostpathClass.isDefaultClass`              | Make openebs-hostpath the default StorageClass    | `"false"`                       |
-| `hostpathClass.nodeAffinityLabel`           | Custom node label key to uniquely identify nodes. `kubernetes.io/hostname` is the default label key for node selection. | `""`                            |
-| `hostpathClass.xfsQuota.enabled`           | Enable XFS Quota (requires XFS filesystem) | `false`                            |
+| `hostpathClass.nodeAffinityLabel`           | Custom node label key to uniquely identify nodes. `kubernetes.io/hostname` is the default label key for node selection. | `""` |
+| `hostpathClass.xfsQuota.enabled`            | Enable XFS Quota (requires XFS filesystem)        | `false`                         |
 | `hostpathClass.reclaimPolicy`               | ReclaimPolicy for Hostpath PVs                    | `"Delete"`                      |
 | `imagePullSecrets`                          | Provides image pull secrect                       | `""`                            |
 | `localpv.enabled`                           | Enable LocalPV Provisioner                        | `true`                          |

@@ -111,7 +111,7 @@ hostpathClass:
   # This helps in cases where the hostname changes when the node is removed and
   # added back with the disks still intact.
   nodeAffinityLabel: ""
-  # Prerequisite: XFS Quota requires an XFS filesystem mounted with 
+  # Prerequisite: XFS Quota requires an XFS filesystem mounted with
   # the 'pquota' or 'prjquota' mount option.
   xfsQuota:
     # If true, enables XFS project quota
