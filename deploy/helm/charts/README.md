@@ -46,7 +46,7 @@ By default this chart installs additional, dependent charts:
 
 | Repository | Name | Version |
 |------------|------|---------|
-| https://openebs.github.io/node-disk-manager | openebs-ndm | 1.7.0 |
+| https://openebs.github.io/node-disk-manager | openebs-ndm | 1.7.1 |
 
 **Note:** Find detailed Node Disk Manager Helm chart configuration options [here](https://github.com/openebs/node-disk-manager/blob/master/deploy/helm/charts/README.md).
 
