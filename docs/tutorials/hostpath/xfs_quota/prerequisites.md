@@ -1,4 +1,4 @@
-# Prereuisites for enabling XFS Quota on Hostpath LocalPV
+# Prerequisites for enabling XFS Quota on Hostpath LocalPV
 
 ## Install the 'xfsprogs' package
 
