@@ -29,7 +29,7 @@ $ df -Th /var/openebs/local
 Filesystem     Type  Size  Used Avail Use% Mounted on
 /dev/nvme0n1p1 xfs   8.0G  959M  7.1G  12% /
 ```
->The above command may fail if the path does not yet exist. To work around this, let's check for the host-device name and the filesystem type the directory will have, if it were created. To do this, run the following script which will check `df -Th` against /var/openebs/local, /var/openebs, /var, and so on...
+>The above command may fail if the path does not yet exist. To work around this, let's check for the host-device name and the filesystem type the directory will have, if it was created. To do this, run the following script, which will run `df -Th` against /var/openebs/local, /var/openebs, /var, and so on...
 >```console
 >BASEPATH="/var/openebs/local"
 >
