@@ -238,6 +238,6 @@ spec:
 ```
 
 
-Visit the official [OpenEBS documentation](https://docs.openebs.io) for more information.
+Visit the official [OpenEBS documentation](https://openebs.io/docs/) for more information.
 
 Connect with the OpenEBS maintainers at the [Kubernetes Slack workspace](https://kubernetes.slack.com/messages/openebs). Visit [openebs.io/community](https://openebs.io/community) for details.

@@ -2,50 +2,16 @@
 
 ### Prerequisites
 
-1. A Kubernetes cluster with Kubernetes v1.16 or above is required
-2. All the nodes must have xfs utils installed
-3. The base path used by the provisioner should have XFS filesystem
-4. The base path used by the provisioner should be mounted with XFS project quotas enabled
+1. The BasePath used by the provisioner should have XFS filesystem
+2. All of the nodes used for hostpath storage must have [the 'xfsprogs' package installed](./prerequisites.md).
+3. The BasePath used by the provisioner [should be mounted with XFS project quotas enabled](./prerequisites.md).
 
-### Check Basepath
-Verify that filesystem is xfs
-```console
-stat -f -c %T /var/openebs/local
-```
-Filesystem of Basepath will be shown 
-```console
-xfs
-```
-
-Verify that project quotas are enabled
-```console
-xfs_quota -x -c state | grep 'Project quota state on /var/openebs/local' -A 2
-```
-Both Accounting and Enforcement should be ON
-```console
-Project quota state on /var/openebs/local (/dev/loop16)
-  Accounting: ON
-  Enforcement: ON
-```
-
-If project quotas are not enabled :-
-
-To set project quota on `/var/openebs/local`, enable project quota on `/var` filesystem,
-edit the `/etc/fstab` file, add `prjquota` after `default` keyword for `/var` file system
-```console
-$ vi /etc/fstab
-……………………………….
-/dev/mapper/Vol-var     /var     xfs     defaults,prjquota        0 0
-…………………………………
-```
-Then reboot the system
-
-
-### Installing
-Install the OpenEBS Dynamic LocalPV Provisioner using the following command:
+### Install the OpenEBS Dynamic LocalPV Provisioner
+Install the OpenEBS Dynamic LocalPV Provisioner using the following given below. For more installation options, refer to [the quickstart guide](../../../quickstart.md).
 ```console
 kubectl apply -f https://openebs.github.io/charts/openebs-operator-lite.yaml
 ```
+
 Verify that pods in openebs namespace are running
 ```console
 $ kubectl get pods -n openebs
@@ -56,9 +22,9 @@ openebs-ndm-operator-849d89cb87-djct8          1/1     Running       0          
 openebs-ndm-zd8lt                              1/1     Running       0          7m12s
 ```
 
-### Deployment
+### Create StorageClass
 
-#### 1. Create a Storage Class
+Create a hostpath StorageClass with the XFSQuota config option.
 ```yaml
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
@@ -71,42 +37,78 @@ metadata:
         value: "hostpath"
       - name: BasePath
         value: "/var/openebs/local/"
+      - name: XFSQuota
+        enabled: "true"
 provisioner: openebs.io/local
 volumeBindingMode: WaitForFirstConsumer
 reclaimPolicy: Delete
-parameters:
-  enableXfsQuota: 'true'
-  softLimitGrace: 20%
-  hardLimitGrace: 40%
 ```
-`softLimitGrace` and `hardLimitGrace` with PV Storage Request will decide the soft limit and hard limit to be set.
-The size of a limit will be => size of PV Storage request * ( 1 + LimitGrace% )
-Anyone of hard limit or soft limit can also be used
-[Click here](https://man7.org/linux/man-pages/man8/xfs_quota.8.html#QUOTA_OVERVIEW) for detailed instructions about soft and hard limits.
+<details>
+  <summary>Click here if you want to configure advanced XFSQuota options.</summary>
+  
+  ```yaml
+  apiVersion: storage.k8s.io/v1
+  kind: StorageClass
+  metadata:
+    name: openebs-hostpath-xfs
+    annotations:
+      openebs.io/cas-type: local
+      cas.openebs.io/config: |
+        - name: StorageType
+          value: "hostpath"
+        - name: BasePath
+          value: "/var/openebs/local/"
+        - name: XFSQuota
+          enabled: "true"
+          data:
+            softLimitGrace: "0%"
+            hardLimitGrace: "0%"
+  provisioner: openebs.io/local
+  volumeBindingMode: WaitForFirstConsumer
+  reclaimPolicy: Delete
+  ```
+  
+  `softLimitGrace` and `hardLimitGrace` with PV Storage Request will decide the soft limit and hard limit to be set beyond the storage capacity of the PV.
+  
+  The size of a limit will be as follows:<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Size of PV storage request * ( 1 + LimitGrace% )
 
-#### 2. Create a PVC with storage class
+  Setting no value defaults to --> softLimitGrace: "0%" / hardLimitGrace: "0%"<br>
+  This limits capacity to the what was specified in the PV storage request.<br>
+
+  For a PV with 100Gi capacity, and values --> softLimitGrace: "90%" / hardLimitGrace: "100%"<br>
+  This sets the soft limit at 190Gi and the hard limit at 200Gi.
+  
+  Anyone one of hardLimitGrace or softLimitGrace can also be used.<br>
+  [Click here](https://man7.org/linux/man-pages/man8/xfs_quota.8.html#QUOTA_OVERVIEW) for detailed instructions about soft and hard limits.
+
+</details><br>
+
+### Create a PVC
+
+Create a PVC using the StorageClass's name.
 ```yaml
 kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
-  name: local-hostpath-pvc
+  name: local-hostpath-xfs
 spec:
   storageClassName: openebs-hostpath-xfs
   accessModes:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 5G
+      storage: 5Gi
 ```
 The PVC will be in 'Pending' state until the volume is mounted.
 ```console
 $ kubectl get pvc
 
-NAME                  STATUS    VOLUME   CAPACITY   ACCESS MODES   STORAGECLASS          AGE
-local-hostpath-pvc   Pending                                      openebs-hostpath-xfs   21s
+NAME                  STATUS    VOLUME   CAPACITY   ACCESS MODES   STORAGECLASS           AGE
+local-hostpath-xfs    Pending                                      openebs-hostpath-xfs   21s
 ```
 
-#### 3. Mount the Volume
+### Mount the Volume
 Mount the volume to the application pod container. The PVC status will change to 'Bound' when the volume is mounted to a container and quota is applied. A sample BusyBox Pod template is given below.
 ```yaml
 apiVersion: v1
@@ -117,7 +119,7 @@ spec:
   volumes:
   - name: local-storage
     persistentVolumeClaim:
-      claimName: local-hostpath-pvc
+      claimName: local-hostpath-xfs
   containers:
   - name: busybox
     image: busybox
@@ -129,9 +131,10 @@ spec:
     - mountPath: /mnt/store
       name: local-storage
 ```
-Verify that quota is applied successfully
+
+Verify that the project quota is applied successfully.
 ```console
-master@node$ sudo xfs_quota -x -c 'report -h' /var/openebs/local/  
+$ sudo xfs_quota -x -c 'report -h' /var/openebs/local/  
 Project quota on /var/openebs/local (/dev/loop16)
                         Blocks              
 Project ID   Used   Soft   Hard Warn/Grace   
@@ -139,5 +142,5 @@ Project ID   Used   Soft   Hard Warn/Grace
 #0              0      0      0  00 [------]
 #1              0   5.7G   6.7G  00 [------]
 ```
-#### Limitation
-* Resize of quota is not supported
+### Limitation
+* Resize of quota is not supported.
