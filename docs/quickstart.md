@@ -104,7 +104,8 @@ You can provision LocalPV Hostpath volumes dynamically using the default `openeb
   #     - worker-1
   #     - worker-2
   ```
-</details>
+</details><br>
+For more advanced tutorials, visit [tutorials/hostpath](./tutorials/hostpath).
 
 Create a PVC with the StorageClass.
 ```yaml
@@ -183,7 +184,8 @@ You can provision LocalPV Hostpath volumes dynamically using the default `openeb
   #     - worker-1
   #     - worker-2
   ```
-</details>
+</details><br>
+For more advanced tutorials, visit [tutorials/device](./tutorials/device).
 
 Create a PVC with the StorageClass.
 ```yaml

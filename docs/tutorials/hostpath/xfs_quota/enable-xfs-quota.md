@@ -3,8 +3,8 @@
 ### Prerequisites
 
 1. The BasePath used by the provisioner should have XFS filesystem
-2. All of the nodes used for hostpath storage must have [the 'xfsprogs' package installed](./prerequisites.md).
-3. The BasePath used by the provisioner [should be mounted with XFS project quotas enabled](./prerequisites.md).
+2. All of the nodes used for hostpath storage must have [the 'xfsprogs' package installed](./prerequisites.md#install-the-xfsprogs-package).
+3. The BasePath used by the provisioner [should be mounted with XFS project quotas enabled](./prerequisites.md#mount-filesystem-using-pquota-mount-option).
 
 ### Install the OpenEBS Dynamic LocalPV Provisioner
 Install the OpenEBS Dynamic LocalPV Provisioner using the following given below. For more installation options, refer to [the quickstart guide](../../../quickstart.md).

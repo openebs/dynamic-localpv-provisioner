@@ -50,10 +50,10 @@ $ sudo mount | grep "^/dev/nvme0n1p1"
 
 /dev/nvme0n1p1 on / type xfs (rw,relatime,seclabel,attr2,inode64,noquota)
 ```
-If the mount options include 'pquota' or 'prjquota', you can move over to [this doc](./enable-nfs-quota.md) to enable XFS Quota.
+If the mount options include 'pquota' or 'prjquota', you can move over to [this doc](./enable-xfs-quota.md) to enable XFS Quota.
 
 ### Step 3:
-In this step we will remount the device using the 'pquota' mount option. If the filesystem you're trying to remount is your root filesystem (mounted on '/'), then follow the instructions below. If the filesystem is a on a data disk, and not on the root filesystem, then move to the [data disk sub-section](#).
+In this step we will remount the device using the 'pquota' mount option. If the filesystem you're trying to remount is your root filesystem (mounted on '/'), then follow the instructions below. If the filesystem is a on a data disk, and not on the root filesystem, then move to the [data disk sub-section](#filesystem-on-data-disk).
 
 #### **Root filesystem**
 
