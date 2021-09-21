@@ -6,6 +6,8 @@
 2. All of the nodes used for hostpath storage must have [the 'xfsprogs' package installed](./prerequisites.md#install-the-xfsprogs-package).
 3. The BasePath used by the provisioner [should be mounted with XFS project quotas enabled](./prerequisites.md#mount-filesystem-using-pquota-mount-option).
 
+>**Note:** You may [use a loop device with XFS filesystem](./use-xfs-fs-with-loop-device.md) for XFS Quota. With a loop device based setup, you don't have to have an XFS root filesystem or external disks with XFS.
+
 ### Install the OpenEBS Dynamic LocalPV Provisioner
 Install the OpenEBS Dynamic LocalPV Provisioner using the following given below. For more installation options, refer to [the quickstart guide](../../../quickstart.md).
 ```console
@@ -74,7 +76,8 @@ reclaimPolicy: Delete
   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Size of PV storage request * ( 1 + LimitGrace% )
 
   Setting no value defaults to --> softLimitGrace: "0%" / hardLimitGrace: "0%"<br>
-  This limits capacity to the what was specified in the PV storage request.<br>
+  This limits capacity to the value specified in the PV storage request.<br>
+  For a PV with 100Gi capcity, this sets the soft and hard limits at 100Gi.<br>
 
   For a PV with 100Gi capacity, and values --> softLimitGrace: "90%" / hardLimitGrace: "100%"<br>
   This sets the soft limit at 190Gi and the hard limit at 200Gi.

@@ -114,7 +114,7 @@ $ sudo umount /dev/nvme1n1
 ```
 
 Mount the disk using 'pquota' mount option into the mount path.
-> Note: 'pquota' is not usable with 'remount' mount option.
+> **Note:** 'pquota' is not usable with 'remount' mount option.
 ```console
 $ sudo mount -o rw,pquota /dev/nvme1n1 /mnt/data
 ```
