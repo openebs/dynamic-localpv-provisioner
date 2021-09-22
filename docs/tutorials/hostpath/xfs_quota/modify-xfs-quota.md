@@ -68,14 +68,21 @@ Project ID   Used   Soft   Hard Warn/Grace
 #1             1G   2.0G   2.0G  00 [------]
 ```
 
-Modify the limits as desired using the following command. The values of bhard and bsoft must be in KB (not KiB). The sample command below sets the bsoft and bhard values to 0 for a project ID=1.
+Modify the limits as desired using the following command. The values of bhard and bsoft must be in B/KB/MB/GB (not KiB/MiB/GiB). The sample command below sets the soft limit at 3GB and the hard limit at 5G for project ID=1.
 ```command
-$ sudo xfs_quota -x -c 'limit -p bhard=0 bsoft=0 1' /var/openebs/local
+$ sudo xfs_quota -x -c 'limit -p bsoft=3G bhard=5G 1' /var/openebs/local
 ```
 
 Verify the changes:
 ```console
-sudo xfs_quota -x -c 'report -h' /var/openebs/local
+$ sudo xfs_quota -x -c 'report -h' /var/openebs/local
+
+Project quota on /var/openebs/local (/dev/nvme1n1)
+                        Blocks              
+Project ID   Used   Soft   Hard Warn/Grace   
+---------- --------------------------------- 
+#0              0      0      0  00 [------]
+#1             1G     3G     5G  00 [------]
 ```
 
 ### Remove project
@@ -94,7 +101,12 @@ Project ID   Used   Soft   Hard Warn/Grace
 #1             1G   2.0G   2.0G  00 [------]
 ```
 
-Clear the directory tree from XFS project quota using the following command. The sample command is for a project ID=1 at directory path '/var/openebs/local'.
+Set the project limits to 0. The following sample command is for a project ID=1 at directory path '/var/openebs/local'.
+```command
+$ sudo xfs_quota -x -c 'limit -p bsoft=0 bhard=0 1' /var/openebs/local
+```
+
+Clear the directory tree from XFS project quota using the following command. The following sample command is for a project ID=1 at directory path '/var/openebs/local'.
 
 ```console
 $ sudo xfs_quota 'project -C -p /var/openebs/local 1' /var/openebs/local
@@ -102,5 +114,11 @@ $ sudo xfs_quota 'project -C -p /var/openebs/local 1' /var/openebs/local
 
 Verify the changes:
 ```console
-sudo xfs_quota -x -c 'report -h' /var/openebs/local
+$ sudo xfs_quota -x -c 'report -h' /var/openebs/local
+
+Project quota on /var/openebs/local (/dev/nvme1n1)
+                        Blocks              
+Project ID   Used   Soft   Hard Warn/Grace   
+---------- --------------------------------- 
+#0             1G      0      0  00 [------]
 ```
