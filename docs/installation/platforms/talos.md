@@ -1,6 +1,6 @@
 # Install Dynamic-LocalPV-Provisioner on Talos
 
-To use OpenEBS LocalPV Hostpath with an Talos cluster, you will have to bind-mount the hostpath directories to the kubelet containers. You can do this by editing the KubeletConfig section of your cluster machineconfig and adding in the `extraMounts` (see below).
+To use OpenEBS LocalPV Hostpath with a Talos cluster, you will have to bind-mount the hostpath directories to the kubelet containers. You can do this by editing the KubeletConfig section of your cluster machineconfig and adding in the `extraMounts` (see below).
 
 **Note:** If you want to use a custom hostpath directory, then you will have to bind-mount the custom directory's absolute path. See below for an example with the default hostpath directory.
 
