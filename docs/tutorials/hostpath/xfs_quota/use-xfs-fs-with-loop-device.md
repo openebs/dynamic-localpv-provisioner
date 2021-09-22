@@ -12,13 +12,13 @@ sudo apt-get install -y xfsprogs
 #sudo yum install -y xfsprogs
 ```
 
-2. Make directory where mount will occur :-
+2. Make directory where mount will occur
 ```console
 sudo mkdir -p /var/openebs/local
 cd /var/openebs
 ```
 
-3. Create sparse file of max size 32MiB using seek of max size 32MiB
+3. Create a sparse file of max size 32MiB using seek of max size 32MiB
 ```console
 sudo dd if=/dev/zero of=xfs.32M bs=1 count=0 seek=32M
 ```

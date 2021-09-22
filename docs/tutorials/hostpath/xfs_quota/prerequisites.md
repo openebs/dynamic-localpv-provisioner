@@ -99,6 +99,7 @@ $ sudo reboot
 After the system reboots, you can check the mount options again to confirm.
 ```console
 $ sudo mount | grep "^/dev/nvme0n1p1"
+
 /dev/nvme0n1p1 on / type xfs (rw,relatime,seclabel,attr2,inode64,prjquota)
 ```
 
@@ -122,6 +123,7 @@ $ sudo mount -o rw,pquota /dev/nvme1n1 /mnt/data
 Check the mount options again to confirm.
 ```console
 $ sudo mount | grep "^/dev/nvme1n1"
+
 /dev/nvme1n1 on /mnt/data type xfs (rw,relatime,seclabel,attr2,inode64,prjquota)
 ```
 
