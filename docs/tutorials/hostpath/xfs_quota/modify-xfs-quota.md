@@ -68,7 +68,7 @@ Project ID   Used   Soft   Hard Warn/Grace
 #1             1G   2.0G   2.0G  00 [------]
 ```
 
-Modify the limits as desired using the following command. The values of bhard and bsoft must be in B/KB/MB/GB (not KiB/MiB/GiB). The sample command below sets the soft limit at 3GB and the hard limit at 5G for project ID=1.
+Modify the limits as desired using the following command. The values of bhard and bsoft must be in B/KB/MB/GB (not KiB/MiB/GiB). The sample command below sets the soft limit at 3G and the hard limit at 5G for project ID=1.
 ```command
 $ sudo xfs_quota -x -c 'limit -p bsoft=3G bhard=5G 1' /var/openebs/local
 ```
