@@ -138,6 +138,7 @@ spec:
 Verify that the project quota is applied successfully.
 ```console
 $ sudo xfs_quota -x -c 'report -h' /var/openebs/local/  
+
 Project quota on /var/openebs/local (/dev/loop16)
                         Blocks              
 Project ID   Used   Soft   Hard Warn/Grace   
