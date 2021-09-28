@@ -229,13 +229,10 @@ func (c *VolumeConfig) GetStorageType() string {
 	return stgType
 }
 
-//GetBlockDeviceSelectors returns the BlockDeviceSelectors value configured
-// in StorageClass. Default is ""
-func (c *VolumeConfig) GetBlockDeviceSelectors() string {
-	blockDeviceSelector := c.getValue(KeyBlockDeviceSelectors)
-	if len(strings.TrimSpace(blockDeviceSelector)) == 0 {
-		return ""
-	}
+//GetBlockDeviceSelectors returns the BlockDeviceSelectors data configured
+// in StorageClass. Default is nil
+func (c *VolumeConfig) GetBlockDeviceSelectors() map[string]string {
+	blockDeviceSelector := c.getData(KeyBlockDeviceSelectors)
 	return blockDeviceSelector
 }
 
@@ -366,7 +363,7 @@ func (c *VolumeConfig) getEnabled(key string) string {
 //This is similar to getValue() and getEnabled().
 // This gets the value for a specific
 // 'Data' parameter key-value pair.
-func (c *VolumeConfig) getData(key string, dataKey string) string {
+func (c *VolumeConfig) getDataField(key string, dataKey string) string {
 	if configData, ok := util.GetNestedField(c.configData, key).(map[string]string); ok {
 		if val, p := configData[dataKey]; p {
 			return val
@@ -374,6 +371,16 @@ func (c *VolumeConfig) getData(key string, dataKey string) string {
 	}
 	//Default case
 	return ""
+}
+
+//This is similar to getValue() and getEnabled().
+// This returns the value of the `Data` parameter
+func (c *VolumeConfig) getData(key string) map[string]string {
+	if configData, ok := util.GetNestedField(c.configData, key).(map[string]string); ok {
+		return configData
+	}
+	//Default case
+	return nil
 }
 
 // GetStorageClassName extracts the StorageClass name from PVC

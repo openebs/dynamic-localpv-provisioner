@@ -21,8 +21,6 @@ package app
 
 import (
 	"github.com/openebs/maya/pkg/util"
-	"gopkg.in/yaml.v2"
-
 	//"fmt"
 	//"path/filepath"
 	//"strings"
@@ -73,7 +71,7 @@ type HelperBlockDeviceOptions struct {
 
 	// bdSelectors stores the different fields
 	// used for selecting a block device
-	bdSelectors string
+	bdSelectors map[string]string
 }
 
 // BlockDeviceSelectorFields stores the block device selectors
@@ -146,13 +144,8 @@ func (p *Provisioner) createBlockDeviceClaim(ctx context.Context, blkDevOpts *He
 	}
 
 	// if block device selectors are present, set it on the BDC
-	if blkDevOpts.bdSelectors != "" {
-		// convert the selector fields into a map
-		bdSelector, err := GetBlockDeviceSelectorFields(blkDevOpts.bdSelectors)
-		if err != nil {
-			return errors.Wrapf(err, "Failed to form BDC object")
-		}
-		bdcObjBuilder.WithSelector(bdSelector)
+	if blkDevOpts.bdSelectors != nil {
+		bdcObjBuilder.WithSelector(blkDevOpts.bdSelectors)
 	}
 
 	bdcObj, err := bdcObjBuilder.Build()
@@ -175,16 +168,6 @@ func (p *Provisioner) createBlockDeviceClaim(ctx context.Context, blkDevOpts *He
 	blkDevOpts.bdcName = bdcName
 
 	return nil
-}
-
-// GetBlockDeviceSelectorFields unmarshalls the multi-line blockDeviceSelectors string
-// value into a map of strings.
-func GetBlockDeviceSelectorFields(blockDeviceSelectors string) (map[string]string, error) {
-	var out BlockDeviceSelectorFields
-	if err := yaml.Unmarshal([]byte(blockDeviceSelectors), &out); err != nil {
-		return out, errors.Wrapf(err, "unable to unmarshal block device selector fields: {%s}", blockDeviceSelectors)
-	}
-	return out, nil
 }
 
 // getBlockDevicePath fetches the BDC associated with this Local PV
