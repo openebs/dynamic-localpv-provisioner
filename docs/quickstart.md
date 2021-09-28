@@ -104,7 +104,8 @@ You can provision LocalPV Hostpath volumes dynamically using the default `openeb
   #     - worker-1
   #     - worker-2
   ```
-</details>
+</details><br>
+For more advanced tutorials, visit [tutorials/hostpath](./tutorials/hostpath).
 
 Create a PVC with the StorageClass.
 ```yaml
@@ -183,7 +184,8 @@ You can provision LocalPV Hostpath volumes dynamically using the default `openeb
   #     - worker-1
   #     - worker-2
   ```
-</details>
+</details><br>
+For more advanced tutorials, visit [tutorials/device](./tutorials/device).
 
 Create a PVC with the StorageClass.
 ```yaml
@@ -238,6 +240,6 @@ spec:
 ```
 
 
-Visit the official [OpenEBS documentation](https://docs.openebs.io) for more information.
+Visit the official [OpenEBS documentation](https://openebs.io/docs/) for more information.
 
 Connect with the OpenEBS maintainers at the [Kubernetes Slack workspace](https://kubernetes.slack.com/messages/openebs). Visit [openebs.io/community](https://openebs.io/community) for details.

@@ -4,10 +4,10 @@ description: Helm chart for OpenEBS Dynamic Local PV. For instructions to instal
 type: application
 # This is the chart version. This version number should be incremented each time you make changes
 # to the chart and its templates, including the app version.
-version: 2.12.1
+version: 3.0.1
 # This is the version number of the application being deployed. This version number should be
 # incremented each time you make changes to the application.
-appVersion: 2.12.1
+appVersion: 3.0.0
 icon: https://raw.githubusercontent.com/cncf/artwork/master/projects/openebs/icon/color/openebs-icon-color.png
 home: http://www.openebs.io/
 keywords:
@@ -19,7 +19,7 @@ sources:
 
 dependencies:
   - name: openebs-ndm
-    version: "1.6.1"
+    version: "1.7.1"
     repository: "https://openebs.github.io/node-disk-manager"
     condition: openebsNDM.enabled
 

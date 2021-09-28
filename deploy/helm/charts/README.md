@@ -46,7 +46,7 @@ By default this chart installs additional, dependent charts:
 
 | Repository | Name | Version |
 |------------|------|---------|
-| https://openebs.github.io/node-disk-manager | openebs-ndm | 1.6.1 |
+| https://openebs.github.io/node-disk-manager | openebs-ndm | 1.7.1 |
 
 **Note:** Find detailed Node Disk Manager Helm chart configuration options [here](https://github.com/openebs/node-disk-manager/blob/master/deploy/helm/charts/README.md).
 
@@ -92,7 +92,7 @@ helm install openebs-localpv openebs-localpv/localpv-provisioner --namespace ope
 
 | Parameter                                   | Description                                   | Default                                   |
 | ------------------------------------------- | --------------------------------------------- | ----------------------------------------- |
-| `release.version`                           | LocalPV Provisioner release version               | `2.12.1`                        |
+| `release.version`                           | LocalPV Provisioner release version               | `3.0.0`                        |
 | `analytics.enabled`                         | Enable sending stats to Google Analytics          | `true`                          |
 | `analytics.pingInterval`                    | Duration(hours) between sending ping stat         | `24h`                           |
 | `deviceClass.blockDeviceTag`                | Value of `openebs.io/block-device-tag` BD label   | `""`                            |
@@ -103,18 +103,19 @@ helm install openebs-localpv openebs-localpv/localpv-provisioner --namespace ope
 | `helperPod.image.registry`                  | Registry for helper image                         | `""`                            |
 | `helperPod.image.repository`                | Image for helper pod                              | `"openebs/linux-utils"`         |
 | `helperPod.image.pullPolicy`                | Pull policy for helper pod                        | `"IfNotPresent"`                |
-| `helperPod.image.tag`                       | Image tag for helper image                        | `2.12.1`                        |
+| `helperPod.image.tag`                       | Image tag for helper image                        | `3.0.0`                         |
 | `hostpathClass.basePath`                    | BasePath for openebs-hostpath StorageClass        | `"/var/openebs/local"`          |
 | `hostpathClass.enabled`                     | Enables creation of default Hostpath StorageClass | `true`                          |
 | `hostpathClass.isDefaultClass`              | Make openebs-hostpath the default StorageClass    | `"false"`                       |
-| `hostpathClass.nodeAffinityLabel`           | Custom node label key to uniquely identify nodes. `kubernetes.io/hostname` is the default label key for node selection. | `""`                            |
+| `hostpathClass.nodeAffinityLabel`           | Custom node label key to uniquely identify nodes. `kubernetes.io/hostname` is the default label key for node selection. | `""` |
+| `hostpathClass.xfsQuota.enabled`            | Enable XFS Quota (requires XFS filesystem)        | `false`                         |
 | `hostpathClass.reclaimPolicy`               | ReclaimPolicy for Hostpath PVs                    | `"Delete"`                      |
 | `imagePullSecrets`                          | Provides image pull secrect                       | `""`                            |
 | `localpv.enabled`                           | Enable LocalPV Provisioner                        | `true`                          |
 | `localpv.image.registry`                    | Registry for LocalPV Provisioner image            | `""`                            |
 | `localpv.image.repository`                  | Image repository for LocalPV Provisioner          | `openebs/localpv-provisioner`   |
 | `localpv.image.pullPolicy`                  | Image pull policy for LocalPV Provisioner         | `IfNotPresent`                  |
-| `localpv.image.tag`                         | Image tag for LocalPV Provisioner                 | `2.12.1`                        |
+| `localpv.image.tag`                         | Image tag for LocalPV Provisioner                 | `3.0.0`                        |
 | `localpv.updateStrategy.type`               | Update strategy for LocalPV Provisioner           | `RollingUpdate`                 |
 | `localpv.annotations`                       | Annotations for LocalPV Provisioner metadata      | `""`                            |
 | `localpv.podAnnotations`                    | Annotations for LocalPV Provisioner pods metadata | `""`                            |

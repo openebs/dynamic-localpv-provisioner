@@ -1,3 +1,8 @@
+v3.0.0 / 2021-09-22
+========================
+* add support for enabling XFS project quota in hostpath volumes. ([#78](https://github.com/openebs/dynamic-localpv-provisioner/pull/78),[@almas33](https://github.com/almas33))
+
+
 v2.8.0 / 2021-04-14
 ========================
 * fix provisioner crashing when old PVs are not cleaned up. ([#39](https://github.com/openebs/dynamic-localpv-provisioner/pull/39),[@niladrih](https://github.com/niladrih))

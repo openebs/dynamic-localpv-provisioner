@@ -27,12 +27,17 @@ import (
 const (
 	localPVcasTypeValue = "local"
 
-	// Provisioner Name
+	//Provisioner Name
 	localPVprovisionerName = "openebs.io/local"
 
-	// The following are imported from mconfig at the moment
+	//The following are imported from mconfig at the moment
 	// CASConfigKey = "cas.openebs.io/config"
 	// CASTypeKey = "openebs.io/cas-type"
+
+	//These are from 'app' package
+	// cmd/provisioner-localpv/app/config.go
+	KeyXfsQuotaSoftLimit = "softLimitGrace"
+	KeyXfsQuotaHardLimit = "hardLimitGrace"
 )
 
 type StorageClassOption func(*storagev1.StorageClass) error
@@ -182,6 +187,43 @@ func WithDevice() StorageClassOption {
 			return errors.New("Failed to set StorageType parameter for Device.")
 		}
 
+		return nil
+	}
+}
+
+func WithXfsQuota(softLimit, hardLimit string) StorageClassOption {
+	return func(s *storagev1.StorageClass) error {
+		if !isCompatibleWithXfsQuota(s) {
+			return errors.New("Failed to set XFSQuota parameters. " +
+				"Invalid existing '" + string(mconfig.CASConfigKey) + "' annotation" +
+				" parameters or Provisioner name.")
+		}
+
+		// TODO: Refactor this code
+
+		config := "- name: XFSQuota\n" +
+			"  enabled: \"true\"\n"
+
+		if len(softLimit) > 0 || len(hardLimit) > 0 {
+			if !isValidXfsQuotaData(map[string]string{
+				KeyXfsQuotaSoftLimit: softLimit,
+				KeyXfsQuotaHardLimit: hardLimit,
+			}) {
+				return errors.New("Failed to set XFSQuota parameters. " +
+					"Invalid " + KeyXfsQuotaSoftLimit + " and " +
+					KeyXfsQuotaHardLimit + " values")
+			}
+
+			config = config +
+				"  data:\n" +
+				"    " + KeyXfsQuotaSoftLimit + ": \"" + softLimit + "\"\n" +
+				"    " + KeyXfsQuotaHardLimit + ": \"" + hardLimit + "\"\n"
+		}
+
+		ok := writeOrAppendCASConfig(s, config)
+		if !ok {
+			return errors.New("Failed to set XFSQuota parameters")
+		}
 		return nil
 	}
 }

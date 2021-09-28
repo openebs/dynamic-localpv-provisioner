@@ -10,11 +10,18 @@ metadata:
         value: "hostpath"
 {{- if .Values.hostpathClass.basePath }}
       - name: BasePath
-        value: {{ .Values.hostpathClass.basePath }}
+        value: "{{ .Values.hostpathClass.basePath }}"
 {{- end }}
 {{- if .Values.hostpathClass.nodeAffinityLabel }}
       - name: NodeAffinityLabel
-        value: {{ .Values.hostpathClass.nodeAffinityLabel }}
+        value: "{{ .Values.hostpathClass.nodeAffinityLabel }}"
+{{- end }}
+{{- if .Values.hostpathClass.xfsQuota.enabled }}
+      - name: XFSQuota
+        enabled: "{{ .Values.hostpathClass.xfsQuota.enabled }}"
+        data:
+          softLimitGrace: "{{ .Values.hostpathClass.xfsQuota.softLimitGrace }}"
+          hardLimitGrace: "{{ .Values.hostpathClass.xfsQuota.hardLimitGrace }}"
 {{- end }}
 {{- if .Values.hostpathClass.isDefaultClass }}
     storageclass.kubernetes.io/is-default-class: "true"
