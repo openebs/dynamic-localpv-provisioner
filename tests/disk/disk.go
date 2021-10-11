@@ -18,9 +18,11 @@ package disk
 
 import (
 	"fmt"
+	"io/ioutil"
 	"math/rand"
 	"os"
 	"os/exec"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -30,7 +32,8 @@ import (
 
 const (
 	// DiskImageSize is the default file size(1GB) used while creating backing image
-	DiskImageSize = 1073741824
+	DiskImageSize       = 1073741824
+	DiskImageNamePrefix = "openebs-disk-xfs_quota"
 )
 
 // Disk has the attributes of a virtual disk which is emulated for integration
@@ -54,26 +57,18 @@ type Disk struct {
 func NewDisk(size int64) Disk {
 	disk := Disk{
 		Size:      size,
-		imageName: generateDiskImageName(),
+		imageName: "",
 		DiskPath:  "",
 	}
 	return disk
 }
 
-// Generates a random image name for the backing file.
-// the file name will be of the format fakeXXX, where X=[0-9]
-func generateDiskImageName() string {
-	rand.Seed(time.Now().UTC().UnixNano())
-	randomNumber := 100 + rand.Intn(899)
-	imageName := "fake" + strconv.Itoa(randomNumber)
-	return os.TempDir() + "/" + imageName
-}
-
-func (disk *Disk) createDiskImage() error {
-	f, err := os.Create(disk.imageName)
+func (disk *Disk) createDiskImage(imgDir string) error {
+	f, err := ioutil.TempFile(imgDir, DiskImageNamePrefix+"-*.img")
 	if err != nil {
 		return fmt.Errorf("error creating disk image. Error : %v", err)
 	}
+	disk.imageName = f.Name()
 	err = f.Truncate(disk.Size)
 	if err != nil {
 		return fmt.Errorf("error truncating disk image. Error : %v", err)
@@ -82,28 +77,30 @@ func (disk *Disk) createDiskImage() error {
 	return nil
 }
 
-// CreateLoopDevice creates a loopback device if the disk is not present
-func (disk *Disk) CreateLoopDevice() error {
-	if disk.DiskPath == "" {
-		var err error
-		if _, err = os.Stat(disk.imageName); err != nil && os.IsNotExist(err) {
-			err = disk.createDiskImage()
-			if err != nil {
-				return err
-			}
-		} else if err != nil {
-			return err
-		}
-		deviceName := getLoopDevName()
-		devicePath := "/dev/" + deviceName
-		// create the loop device using losetup
-		createLoopDeviceCommand := "losetup " + devicePath + " " + disk.imageName + " --show"
-		err = RunCommandWithSudo(createLoopDeviceCommand)
-		if err != nil {
-			return fmt.Errorf("error creating loop device. Error : %v", err)
-		}
-		disk.DiskPath = devicePath
+// CreateLoopDevice creates a loop device if the disk is not present
+func (disk *Disk) CreateLoopDevice(imgDir string) error {
+	if len(disk.DiskPath) != 0 {
+		return fmt.Errorf("aborting disk creation. " +
+			"Error: disk path is already set on Disk obj")
 	}
+
+	err := disk.createDiskImage(imgDir)
+	if err != nil {
+		return err
+	}
+
+	// create the loop device using losetup
+	createLoopDeviceCommand := "losetup -P " + "/dev/" + getLoopDevName() + " " + disk.imageName + " --show"
+	var devicePath []byte
+	devicePath, err = RunCommand(createLoopDeviceCommand)
+	if err != nil {
+		return fmt.Errorf("error creating loop device. Error : %v", err)
+	}
+	// Trim trailing newline
+	devicePath = devicePath[:len(devicePath)-1]
+
+	disk.DiskPath = string(devicePath)
+
 	return nil
 }
 
@@ -118,59 +115,113 @@ func getLoopDevName() string {
 	return diskName
 }
 
+/*
 // RunCommandWithSudo runs a command with sudo permissions
 func RunCommandWithSudo(cmd string) error {
 	return RunCommand("sudo " + cmd)
 }
+*/
 
 // RunCommand runs a command on the host
-func RunCommand(cmd string) error {
+func RunCommand(cmd string) ([]byte, error) {
 	substring := strings.Fields(cmd)
 	name := substring[0]
 	args := substring[1:]
 	stdout, err := exec.Command(name, args...).CombinedOutput() // #nosec G204
 	if err != nil {
-		return fmt.Errorf("run failed, cmd={%s} error={%v} output={%v}\"", cmd, err, stdout)
+		return stdout, fmt.Errorf("run failed, cmd={%s}\nerror={%v}\noutput={%v}", cmd, err, stdout)
 	}
-	return err
+	return stdout, err
 }
 
-func (disk *Disk) CreateFileSystem(fstype string) error {
-	createMkfsCommand := "mkfs -t " + fstype + " " + disk.DiskPath
-	err := RunCommandWithSudo(createMkfsCommand)
+func (disk *Disk) CreateFilesystem(fstype string) error {
+	var mkfsCommand string
+	switch fstype {
+	case "ext4":
+		mkfsCommand = "mkfs.ext4 -O quota -E quotatype=prjquota " + disk.DiskPath
+	case "xfs":
+		mkfsCommand = "mkfs.xfs " + disk.DiskPath
+	default:
+		return fmt.Errorf("error creating mkfs command. " +
+			"Error: invalid filesystem type")
+	}
+
+	_, err := RunCommand(mkfsCommand)
 	if err != nil {
 		return fmt.Errorf("error creating fileystem on loop device. Error : %v", err)
 	}
 	return nil
 }
 
-func MkdirAll(path string) error {
-	createMkdirCommand := "mkdir -p " + path
-	err := RunCommandWithSudo(createMkdirCommand)
+func (disk *Disk) Wipefs() error {
+	// List partitions
+	fdiskCommand := "fdisk -o Device -l " + disk.DiskPath
+	fdiskStdOut, err := RunCommand(fdiskCommand)
 	if err != nil {
-		return fmt.Errorf("error creating hostath directory. Error : %v", err)
+		return fmt.Errorf("error listing disk partitions. Error: %v", err)
+	}
+
+	// Wipe partitions
+	stringsAndSubstrings := regexp.MustCompile("\n("+disk.DiskPath+".*)").
+		FindAllStringSubmatch(string(fdiskStdOut), -1)
+	for _, stringAndSubstrings := range stringsAndSubstrings {
+		//Remove string match (which includes newline)
+		// leave behind substring (without newline)
+		substrings := stringAndSubstrings[1:]
+
+		//This range will be always be of length 1
+		for _, substring := range substrings {
+			_, err := RunCommand("wipefs -fa " + substring)
+			if err != nil {
+				return fmt.Errorf("error removing filesystem "+
+					"from partition %s. Error: %v",
+					substring, err,
+				)
+			}
+		}
+	}
+
+	// Wipe disk
+	wipefsDeviceCommand := "wipefs -fa " + disk.DiskPath
+	_, err = RunCommand(wipefsDeviceCommand)
+	if err != nil {
+		return fmt.Errorf("error wiping disk %s. Error: %v",
+			disk.DiskPath, err,
+		)
 	}
 	return nil
 }
 
-func (disk *Disk) Mount(path string) error {
-	createMountCommand := "mount -o rw,pquota " + disk.DiskPath + " " + path
-	err := RunCommandWithSudo(createMountCommand)
+func MkdirAll(paths ...string) error {
+	createMkdirCommand := "mkdir -p"
+	for _, path := range paths {
+		createMkdirCommand += " " + path
+	}
+	_, err := RunCommand(createMkdirCommand)
+	if err != nil {
+		return fmt.Errorf("error creating directory. Error : %v", err)
+	}
+	return nil
+}
+
+func (disk *Disk) PrjquotaMount(mountpoint string) error {
+	createMountCommand := "mount -o rw,prjquota " + disk.DiskPath + " " + mountpoint
+	_, err := RunCommand(createMountCommand)
 	if err != nil {
 		return fmt.Errorf("error mounting loop device. Error : %v", err)
 	}
-	disk.MountPoints = append(disk.MountPoints, path)
+	disk.MountPoints = append(disk.MountPoints, mountpoint)
 	return nil
 }
 
 func (disk *Disk) Unmount() []error {
 	var lastErr []error
 	for i := 0; i < len(disk.MountPoints); i++ {
-		err := RunCommandWithSudo("umount " + disk.MountPoints[i])
+		_, err := RunCommand("umount " + disk.MountPoints[i])
 		if err != nil {
 			lastErr = append(lastErr, err)
 		} else {
-			disk.MountPoints = append(disk.MountPoints[:i], disk.MountPoints[i+1:]...)
+			disk.MountPoints = disk.MountPoints[1:]
 			i-- // -1 as the slice just got shorter
 		}
 	}
@@ -187,7 +238,7 @@ func (disk *Disk) DetachAndDeleteDisk() error {
 		return fmt.Errorf("the disk is still mounted at mountpoint(s): %+v", disk.MountPoints)
 	}
 	detachLoopCommand := "losetup -d " + disk.DiskPath
-	err := RunCommandWithSudo(detachLoopCommand)
+	_, err := RunCommand(detachLoopCommand)
 	if err != nil {
 		return fmt.Errorf("cannot detach loop device. Error : %v", err)
 	}
@@ -196,7 +247,7 @@ func (disk *Disk) DetachAndDeleteDisk() error {
 		return fmt.Errorf("could not delete backing disk image. Error : %v", err)
 	}
 	deleteLoopDeviceCommand := "rm " + disk.DiskPath
-	err = RunCommandWithSudo(deleteLoopDeviceCommand)
+	_, err = RunCommand(deleteLoopDeviceCommand)
 	if err != nil {
 		return fmt.Errorf("could not delete loop device. Error : %v", err)
 	}
@@ -204,36 +255,37 @@ func (disk *Disk) DetachAndDeleteDisk() error {
 }
 
 // PrepareDisk prepares the setup necessary for testing xfs hostpath quota
-func PrepareDisk(fsType, hostPath string) (Disk, error) {
+func PrepareDisk(imgDir, hostPath string) (Disk, error) {
 	physicalDisk := NewDisk(DiskImageSize)
 
-	err := physicalDisk.CreateLoopDevice()
+	err := MkdirAll(imgDir, hostPath)
+	if err != nil {
+		return physicalDisk, errors.Wrapf(err, "while making a new directory at {%s}, {%s}", imgDir, hostPath)
+	}
+
+	err = physicalDisk.CreateLoopDevice(imgDir)
 	if err != nil {
 		return physicalDisk, errors.Wrapf(err, "while creating loop back device with disk %+v", physicalDisk)
 	}
 
-	// Make xfs fs on the created loopback device
-	err = physicalDisk.CreateFileSystem(fsType)
-	if err != nil {
-		return physicalDisk, errors.Wrapf(err, "while formatting the disk {%+v} with xfs fs", physicalDisk)
-	}
+	/*
+		// Make xfs fs on the created loopback device
+		err = physicalDisk.CreateFilesystem(fsType)
+		if err != nil {
+			return physicalDisk, errors.Wrapf(err, "while formatting the disk {%+v} with xfs fs", physicalDisk)
+		}
 
-	err = MkdirAll(hostPath)
-	if err != nil {
-		return physicalDisk, errors.Wrapf(err, "while making a new directory {%s}", hostPath)
-	}
-
-	// Mount the xfs formatted loopback device
-	err = physicalDisk.Mount(hostPath)
-	if err != nil {
-		return physicalDisk, errors.Wrapf(err, "while mounting the disk with pquota option {%+v}", physicalDisk)
-	}
-
+		// Mount the xfs formatted loopback device
+		err = physicalDisk.PrjquotaMount(hostPath)
+		if err != nil {
+			return physicalDisk, errors.Wrapf(err, "while mounting the disk with pquota option {%+v}", physicalDisk)
+		}
+	*/
 	return physicalDisk, nil
 }
 
 // DestroyDisk performs performs the clean-up task after testing the features
-func (disk *Disk) DestroyDisk(hostPath string) error {
+func (disk *Disk) DestroyDisk(hostPath, imgDir string) error {
 	var errs string
 	// Unmount the disk
 	err := disk.Unmount()
@@ -250,10 +302,10 @@ func (disk *Disk) DestroyDisk(hostPath string) error {
 		return errors.Wrapf(error, "while detaching and deleting the disk {%+v}", disk)
 	}
 
-	// Deleting the hostpath directory
-	error = RunCommandWithSudo("rm -rf " + hostPath)
+	// Deleting the image directory and the hostpath directory
+	_, error = RunCommand("rm -rf " + imgDir + " " + hostPath)
 	if err != nil {
-		return errors.Wrapf(error, "while deleting the mountpoint directory {%s}", hostPath)
+		return errors.Wrapf(error, "while deleting the directories {%s}, {%s}", imgDir, hostPath)
 	}
 
 	return nil

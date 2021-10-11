@@ -170,7 +170,7 @@ var _ = Describe("TEST HOSTPATH LOCAL PV", func() {
 	})
 
 	When("deployment is deleted", func() {
-		It("should not have any deployment or running pod", func() {
+		It("should not have any deployment or pod", func() {
 
 			By("deleting above deployment")
 			err = ops.DeployClient.WithNamespace(namespaceObj.Name).Delete(context.TODO(), deployName, &metav1.DeleteOptions{})
@@ -182,7 +182,7 @@ var _ = Describe("TEST HOSTPATH LOCAL PV", func() {
 			)
 
 			By("verifying pod count as 0")
-			podCount := ops.GetPodRunningCountEventually(namespaceObj.Name, label, 0)
+			podCount := ops.GetPodCountEventually(namespaceObj.Name, label, nil, 0)
 			Expect(podCount).To(Equal(0), "while verifying pod count")
 
 		})
@@ -191,7 +191,7 @@ var _ = Describe("TEST HOSTPATH LOCAL PV", func() {
 	When("PVC with StorageClass "+scName+" is deleted ", func() {
 		It("should delete the PVC", func() {
 			By("getting the PV name from Bound PVC object spec")
-			pvName := ops.GetPVNameFromPVCName(pvcName)
+			pvName := ops.GetPVNameFromPVCName(namespaceObj.Name, pvcName)
 			Expect(pvName).ToNot(
 				BeEmpty(),
 				"while getting Spec.VolumeName from "+
@@ -201,7 +201,7 @@ var _ = Describe("TEST HOSTPATH LOCAL PV", func() {
 			)
 
 			By("deleting above PVC")
-			err = ops.PVCClient.Delete(context.TODO(), pvcName, &metav1.DeleteOptions{})
+			err = ops.PVCClient.WithNamespace(namespaceObj.Name).Delete(context.TODO(), pvcName, &metav1.DeleteOptions{})
 			Expect(err).To(
 				BeNil(),
 				"while deleting pvc {%s} in namespace {%s}",

@@ -26,10 +26,6 @@ import (
 	storagev1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/container"
-	pvc "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/persistentvolumeclaim"
-	"github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/pod"
-	"github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/volume"
 	sc "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/storage/v1/storageclass"
 )
 
@@ -61,7 +57,7 @@ var _ = Describe("TEST HOSTPATH XFS QUOTA LOCAL PV WITH NON-XFS FILESYSTEM", fun
 					"openebs.io/test-sc": "true",
 				}),
 				sc.WithLocalPV(),
-				sc.WithHostpath(hostpathDir),
+				sc.WithHostpath(loopHostpathDir),
 				sc.WithXfsQuota("20%", "50%"),
 				sc.WithVolumeBindingMode("WaitForFirstConsumer"),
 				sc.WithReclaimPolicy("Delete"),
@@ -86,9 +82,26 @@ var _ = Describe("TEST HOSTPATH XFS QUOTA LOCAL PV WITH NON-XFS FILESYSTEM", fun
 
 	When("pvc with storageclass "+scName+" is created", func() {
 		It("should create a pvc", func() {
+			By("Writing ext4 filesystem into the loop device")
+			//umount
+			errs := physicalDisk.Unmount()
+			Expect(errs).To(BeEmpty(), "when unmounting loop device")
+			//wipefs
+			err := physicalDisk.Wipefs()
+			Expect(err).To(BeNil(), "when wiping filesystem from loop device")
+			//mkfs
+			err = physicalDisk.CreateFilesystem("ext4")
+			Expect(err).To(BeNil(), "when writing filesystem to loop device")
+			//mount
+			err = physicalDisk.PrjquotaMount(loopHostpathDir)
+			Expect(err).To(
+				BeNil(),
+				"when mounting loop device filesystem to mountpoint",
+			)
+
 			By("building a PVC with StorageClass " + scName)
 			Expect(scName).NotTo(BeEmpty(), "SC name should not be empty")
-			pvcObj, err = BuildPersistentVolumeClaim(pvcName, scName, capacity, accessModes)
+			pvcObj, err = BuildPersistentVolumeClaim(namespaceObj.Name, pvcName, scName, capacity, accessModes)
 			Expect(err).ShouldNot(
 				HaveOccurred(),
 				"while building PVC {%s} in namespace {%s}",
@@ -110,7 +123,7 @@ var _ = Describe("TEST HOSTPATH XFS QUOTA LOCAL PV WITH NON-XFS FILESYSTEM", fun
 	When("pod is created with pvc "+pvcName, func() {
 		It("should be in pending state and so do pvc", func() {
 			By("building a pod with busybox image")
-			podObj, err = BuildPod(podName, pvcName, labelselector)
+			podObj, err = BuildPod(namespaceObj.Name, podName, pvcName, labelselector)
 			Expect(err).ShouldNot(
 				HaveOccurred(),
 				"while building pod {%s} in namespace {%s}",
@@ -129,11 +142,21 @@ var _ = Describe("TEST HOSTPATH XFS QUOTA LOCAL PV WITH NON-XFS FILESYSTEM", fun
 			)
 
 			By("verifying pod status as pending")
-			checkPhase := ops.CheckPodStatusEventually(namespaceObj.Name, podName, corev1.PodPending)
-			Expect(checkPhase).To(Equal(true), "while verifying pod pending status")
+			//Giving the check till timeout to try to see if the Status changes to Running
+			podPhase := ops.CheckPodStatusEventually(namespaceObj.Name, podName, corev1.PodRunning)
+			Expect(podPhase).To(Equal(corev1.PodPending), "while verifying pod pending status")
 
 			By("verifying the pvc phase as pending")
 			Expect(createdPvc.Status.Phase).To(Equal(corev1.ClaimPending), "while verifying the pvc pending state")
+
+			By("verifying that the VolumeName is empty for the PVC")
+			pvName := ops.GetPVNameFromPVCName(namespaceObj.Name, pvcName)
+			Expect(pvName).To(
+				BeEmpty(),
+				"while getting Spec.VolumeName from PVC {%s} in namespace {%s}",
+				pvcName,
+				namespaceObj.Name,
+			)
 		})
 	})
 
@@ -156,15 +179,6 @@ var _ = Describe("TEST HOSTPATH XFS QUOTA LOCAL PV WITH NON-XFS FILESYSTEM", fun
 
 	When("pvc with storageclass "+scName+" is deleted", func() {
 		It("should delete the pvc", func() {
-			By("deleting the PVC with StorageClass " + scName)
-			pvName := ops.GetPVNameFromPVCName(pvcName)
-			Expect(pvName).To(
-				BeEmpty(),
-				"while getting Spec.VolumeName from PVC {%s} in namespace {%s}",
-				pvcName,
-				namespaceObj.Name,
-			)
-
 			By("deleting above PVC")
 			err = ops.PVCClient.Delete(context.TODO(), pvcName, &metav1.DeleteOptions{})
 			Expect(err).To(
@@ -181,6 +195,14 @@ var _ = Describe("TEST HOSTPATH XFS QUOTA LOCAL PV WITH NON-XFS FILESYSTEM", fun
 				"when checking status of deleted PVC {%s}",
 				pvcName,
 			)
+
+			By("removing the ext4 filesystem")
+			//umount
+			errs := physicalDisk.Unmount()
+			Expect(errs).To(BeEmpty(), "when unmounting loop device")
+			//wipefs
+			err := physicalDisk.Wipefs()
+			Expect(err).To(BeNil(), "when wiping filesystem from loop device")
 		})
 	})
 })
@@ -213,7 +235,7 @@ var _ = Describe("TEST HOSTPATH XFS QUOTA LOCAL PV WITH XFS FILESYSTEM", func() 
 					"openebs.io/test-sc": "true",
 				}),
 				sc.WithLocalPV(),
-				sc.WithHostpath(xfsHostpathDir),
+				sc.WithHostpath(loopHostpathDir),
 				sc.WithXfsQuota("", ""),
 				sc.WithVolumeBindingMode("WaitForFirstConsumer"),
 				sc.WithReclaimPolicy("Delete"),
@@ -238,9 +260,26 @@ var _ = Describe("TEST HOSTPATH XFS QUOTA LOCAL PV WITH XFS FILESYSTEM", func() 
 
 	When("pvc with storageclass "+scName+" is created", func() {
 		It("should create a pvc", func() {
+			By("Writing xfs filesystem into the loop device")
+			//umount
+			errs := physicalDisk.Unmount()
+			Expect(errs).To(BeEmpty(), "when unmounting loop device")
+			//wipefs
+			err := physicalDisk.Wipefs()
+			Expect(err).To(BeNil(), "when wiping filesystem from loop device")
+			//mkfs
+			err = physicalDisk.CreateFilesystem("xfs")
+			Expect(err).To(BeNil(), "when writing filesystem to loop device")
+			//mount
+			err = physicalDisk.PrjquotaMount(loopHostpathDir)
+			Expect(err).To(
+				BeNil(),
+				"when mounting loop device filesystem to mountpoint",
+			)
+
 			By("building a PVC with StorageClass " + scName)
 			Expect(scName).NotTo(BeEmpty(), "SC name should not be empty")
-			pvcObj, err = BuildPersistentVolumeClaim(pvcName, scName, capacity, accessModes)
+			pvcObj, err = BuildPersistentVolumeClaim(namespaceObj.Name, pvcName, scName, capacity, accessModes)
 			Expect(err).ShouldNot(
 				HaveOccurred(),
 				"while building PVC {%s} in namespace {%s}",
@@ -262,7 +301,7 @@ var _ = Describe("TEST HOSTPATH XFS QUOTA LOCAL PV WITH XFS FILESYSTEM", func() 
 	When("pod is created with pvc "+pvcName, func() {
 		It("should be up and running", func() {
 			By("building a pod with busybox image")
-			podObj, err = BuildPod(podName, pvcName, labelselector)
+			podObj, err = BuildPod(namespaceObj.Name, podName, pvcName, labelselector)
 			Expect(err).ShouldNot(
 				HaveOccurred(),
 				"while building pod {%s} in namespace {%s}",
@@ -316,15 +355,15 @@ var _ = Describe("TEST HOSTPATH XFS QUOTA LOCAL PV WITH XFS FILESYSTEM", func() 
 			)
 
 			By("verifying pod count as 0")
-			podCount := ops.GetPodRunningCountEventually(namespaceObj.Name, label, 0)
+			podCount := ops.GetPodCountEventually(namespaceObj.Name, label, nil, 0)
 			Expect(podCount).To(Equal(0), "while verifying pod count")
 		})
 	})
 
 	When("pvc with storageclass "+scName+" is deleted", func() {
 		It("should delete the pvc", func() {
-			By("deleting the PVC with StorageClass " + scName)
-			pvName := ops.GetPVNameFromPVCName(pvcName)
+			By("getting the PV name from Bound PVC object spec")
+			pvName := ops.GetPVNameFromPVCName(namespaceObj.Name, pvcName)
 			Expect(pvName).ToNot(
 				BeEmpty(),
 				"while getting Spec.VolumeName from "+
@@ -342,61 +381,29 @@ var _ = Describe("TEST HOSTPATH XFS QUOTA LOCAL PV WITH XFS FILESYSTEM", func() 
 				namespaceObj.Name,
 			)
 
+			By("having the Provisioner delete the PV")
+			status := ops.IsPVDeletedEventually(pvName)
+			Expect(status).To(
+				BeTrue(),
+				"while waiting for the Provisioner to delete PV {%s}",
+				pvName,
+			)
+
 			By("verifying PVC is deleted")
-			status := ops.IsPVCDeletedEventually(pvcName, namespaceObj.Name)
+			status = ops.IsPVCDeletedEventually(pvcName, namespaceObj.Name)
 			Expect(status).To(
 				BeTrue(),
 				"when checking status of deleted PVC {%s}",
 				pvcName,
 			)
+
+			By("removing the xfs filesystem")
+			//umount
+			errs := physicalDisk.Unmount()
+			Expect(errs).To(BeEmpty(), "when unmounting loop device")
+			//wipefs
+			err := physicalDisk.Wipefs()
+			Expect(err).To(BeNil(), "when wiping filesystem from loop device")
 		})
 	})
 })
-
-// BuildPersistentVolumeClaim builds the PVC object
-func BuildPersistentVolumeClaim(pvcName, scName, capacity string, accessModes []corev1.PersistentVolumeAccessMode) (*corev1.PersistentVolumeClaim, error) {
-	return pvc.NewBuilder().
-		WithName(pvcName).
-		WithNamespace(namespaceObj.Name).
-		WithStorageClass(scName).
-		WithAccessModes(accessModes).
-		WithCapacity(capacity).Build()
-}
-
-// BuildPod builds the pod object
-func BuildPod(podName, pvcName string, labelselector map[string]string) (*corev1.Pod, error) {
-	return pod.NewBuilder().
-		WithName(podName).
-		WithNamespace(namespaceObj.Name).
-		WithLabels(labelselector).
-		WithContainerBuilder(
-			container.NewBuilder().
-				WithName("busybox").
-				WithImage("busybox").
-				WithCommandNew(
-					[]string{
-						"/bin/sh",
-					},
-				).
-				WithArgumentsNew(
-					[]string{
-						"-c",
-						"sleep 3600",
-					},
-				).
-				WithVolumeMountsNew(
-					[]corev1.VolumeMount{
-						{
-							Name:      "demo-vol1",
-							MountPath: "/mnt/store1",
-						},
-					},
-				),
-		).
-		WithVolumeBuilder(
-			volume.NewBuilder().
-				WithName("demo-vol1").
-				WithPVCSource(pvcName),
-		).
-		Build()
-}
