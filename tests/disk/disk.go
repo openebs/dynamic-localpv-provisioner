@@ -268,19 +268,6 @@ func PrepareDisk(imgDir, hostPath string) (Disk, error) {
 		return physicalDisk, errors.Wrapf(err, "while creating loop back device with disk %+v", physicalDisk)
 	}
 
-	/*
-		// Make xfs fs on the created loopback device
-		err = physicalDisk.CreateFilesystem(fsType)
-		if err != nil {
-			return physicalDisk, errors.Wrapf(err, "while formatting the disk {%+v} with xfs fs", physicalDisk)
-		}
-
-		// Mount the xfs formatted loopback device
-		err = physicalDisk.PrjquotaMount(hostPath)
-		if err != nil {
-			return physicalDisk, errors.Wrapf(err, "while mounting the disk with pquota option {%+v}", physicalDisk)
-		}
-	*/
 	return physicalDisk, nil
 }
 

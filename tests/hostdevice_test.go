@@ -754,16 +754,6 @@ var _ = Describe("[-ve] TEST HOSTDEVICE LOCAL PV", func() {
 				namespaceObj.Name,
 			)
 
-			/*
-				By("checking if BDC gets deleted")
-				staleBDCName := "bdc-pvc-" + string(pvcObj.GetUID())
-				exitStatus := ops.GetBDCStatusAfterAge(staleBDCName, openebsNamespace, time.Duration(bdcTimeoutDuration+1)*time.Second)
-				Expect(exitStatus).To(
-					Equal(deleted),
-					"while checking if the stale BDC {%s} got deleted",
-					staleBDCName,
-				)
-			*/
 			By("verifying pod count as 1")
 			podCount := ops.GetPodCountEventually(namespaceObj.Name, existinglabel, nil, 1)
 			Expect(podCount).To(Equal(1), "while verifying running pod count")
