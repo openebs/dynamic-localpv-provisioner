@@ -46,11 +46,17 @@ func (p *Provisioner) ProvisionHostPath(ctx context.Context, opts pvController.P
 	stgType := volumeConfig.GetStorageType()
 	saName := getOpenEBSServiceAccountName()
 
-	nodeAffinityKey := volumeConfig.GetNodeAffinityLabelKey()
-	if len(nodeAffinityKey) == 0 {
-		nodeAffinityKey = k8sNodeLabelKeyHostname
+	// nodeAffinityLabels
+	nodeAffinityLabels := make(map[string]string)
+
+	nodeAffinityKeys := volumeConfig.GetNodeAffinityLabelKeys()
+	if nodeAffinityKeys == nil {
+		nodeAffinityLabels[k8sNodeLabelKeyHostname] = GetNodeLabelValue(opts.SelectedNode, k8sNodeLabelKeyHostname)
+	} else {
+		for _, nodeAffinityKey := range nodeAffinityKeys {
+			nodeAffinityLabels[nodeAffinityKey] = GetNodeLabelValue(opts.SelectedNode, nodeAffinityKey)
+		}
 	}
-	nodeAffinityValue := GetNodeLabelValue(opts.SelectedNode, nodeAffinityKey)
 
 	path, err := volumeConfig.GetPath()
 	if err != nil {
@@ -66,19 +72,18 @@ func (p *Provisioner) ProvisionHostPath(ctx context.Context, opts pvController.P
 
 	imagePullSecrets := GetImagePullSecrets(getOpenEBSImagePullSecrets())
 
-	klog.Infof("Creating volume %v at node with label %v=%v, path:%v,ImagePullSecrets:%v", name, nodeAffinityKey, nodeAffinityValue, path, imagePullSecrets)
+	klog.Infof("Creating volume %v at node with labels {%v}, path:%v,ImagePullSecrets:%v", name, nodeAffinityLabels, path, imagePullSecrets)
 
 	//Before using the path for local PV, make sure it is created.
 	initCmdsForPath := []string{"mkdir", "-m", "0777", "-p"}
 	podOpts := &HelperPodOptions{
-		cmdsForPath:            initCmdsForPath,
-		name:                   name,
-		path:                   path,
-		nodeAffinityLabelKey:   nodeAffinityKey,
-		nodeAffinityLabelValue: nodeAffinityValue,
-		serviceAccountName:     saName,
-		selectedNodeTaints:     taints,
-		imagePullSecrets:       imagePullSecrets,
+		cmdsForPath:        initCmdsForPath,
+		name:               name,
+		path:               path,
+		nodeAffinityLabels: nodeAffinityLabels,
+		serviceAccountName: saName,
+		selectedNodeTaints: taints,
+		imagePullSecrets:   imagePullSecrets,
 	}
 	iErr := p.createInitPod(ctx, podOpts)
 	if iErr != nil {
@@ -99,16 +104,15 @@ func (p *Provisioner) ProvisionHostPath(ctx context.Context, opts pvController.P
 		pvcStorage := opts.PVC.Spec.Resources.Requests.Storage().Value()
 
 		podOpts := &HelperPodOptions{
-			name:                   name,
-			path:                   path,
-			nodeAffinityLabelKey:   nodeAffinityKey,
-			nodeAffinityLabelValue: nodeAffinityValue,
-			serviceAccountName:     saName,
-			selectedNodeTaints:     taints,
-			imagePullSecrets:       imagePullSecrets,
-			softLimitGrace:         softLimitGrace,
-			hardLimitGrace:         hardLimitGrace,
-			pvcStorage:             pvcStorage,
+			name:               name,
+			path:               path,
+			nodeAffinityLabels: nodeAffinityLabels,
+			serviceAccountName: saName,
+			selectedNodeTaints: taints,
+			imagePullSecrets:   imagePullSecrets,
+			softLimitGrace:     softLimitGrace,
+			hardLimitGrace:     hardLimitGrace,
+			pvcStorage:         pvcStorage,
 		}
 		iErr := p.createQuotaPod(ctx, podOpts)
 		if iErr != nil {
@@ -157,7 +161,7 @@ func (p *Provisioner) ProvisionHostPath(ctx context.Context, opts pvController.P
 		WithVolumeMode(fs).
 		WithCapacityQty(pvc.Spec.Resources.Requests[v1.ResourceName(v1.ResourceStorage)]).
 		WithLocalHostDirectory(path).
-		WithNodeAffinity(nodeAffinityKey, nodeAffinityValue).
+		WithNodeAffinity(nodeAffinityLabels).
 		Build()
 
 	if err != nil {
@@ -180,8 +184,8 @@ func (p *Provisioner) ProvisionHostPath(ctx context.Context, opts pvController.P
 }
 
 // GetNodeObjectFromLabels returns the Node Object with matching label key and value
-func (p *Provisioner) GetNodeObjectFromLabels(key, value string) (*v1.Node, error) {
-	labelSelector := metav1.LabelSelector{MatchLabels: map[string]string{key: value}}
+func (p *Provisioner) GetNodeObjectFromLabels(nodeLabels map[string]string) (*v1.Node, error) {
+	labelSelector := metav1.LabelSelector{MatchLabels: nodeLabels}
 	listOptions := metav1.ListOptions{
 		LabelSelector: labels.Set(labelSelector.MatchLabels).String(),
 	}
@@ -191,13 +195,13 @@ func (p *Provisioner) GetNodeObjectFromLabels(key, value string) (*v1.Node, erro
 		// based on kubernetes.io/hostname label, either:
 		// - hostname label changed on the node or
 		// - the node is deleted from the cluster.
-		return nil, errors.Errorf("Unable to get the Node with the Node Label %s [%s]", key, value)
+		return nil, errors.Errorf("Unable to get the Node with the Node Labels {%v}", nodeLabels)
 	}
 	if len(nodeList.Items) != 1 {
 		// After the PV is created and node affinity is set
 		// on a custom affinity label, there may be a transitory state
 		// with two nodes matching (old and new) label.
-		return nil, errors.Errorf("Unable to determine the Node. Found multiple nodes matching the labels %s [%s].", key, value)
+		return nil, errors.Errorf("Unable to determine the Node. Found multiple nodes matching the labels {%v}", nodeLabels)
 	}
 	return &nodeList.Items[0], nil
 
@@ -220,14 +224,14 @@ func (p *Provisioner) DeleteHostPath(ctx context.Context, pv *v1.PersistentVolum
 		return errors.Errorf("no HostPath set")
 	}
 
-	nodeAffinityKey, nodeAffinityValue := pvObj.GetAffinitedNodeLabelKeyAndValue()
-	if nodeAffinityValue == "" {
+	nodeAffinityLabels := pvObj.GetAffinitedNodeLabels()
+	if nodeAffinityLabels == nil || len(nodeAffinityLabels) == 0 {
 		return errors.Errorf("cannot find affinited node details")
 	}
-	alertlog.Logger.Infof("Get the Node Object with label %v : %v", nodeAffinityKey, nodeAffinityValue)
+	alertlog.Logger.Infof("Get the Node Object with label {%v}", nodeAffinityLabels)
 
 	//Get the node Object once again to get updated Taints.
-	nodeObject, err := p.GetNodeObjectFromLabels(nodeAffinityKey, nodeAffinityValue)
+	nodeObject, err := p.GetNodeObjectFromLabels(nodeAffinityLabels)
 	if err != nil {
 		return err
 	}
@@ -239,14 +243,13 @@ func (p *Provisioner) DeleteHostPath(ctx context.Context, pv *v1.PersistentVolum
 	klog.Infof("Deleting volume %v at %v:%v", pv.Name, GetNodeHostname(nodeObject), path)
 	cleanupCmdsForPath := []string{"rm", "-rf"}
 	podOpts := &HelperPodOptions{
-		cmdsForPath:            cleanupCmdsForPath,
-		name:                   pv.Name,
-		path:                   path,
-		nodeAffinityLabelKey:   nodeAffinityKey,
-		nodeAffinityLabelValue: nodeAffinityValue,
-		serviceAccountName:     saName,
-		selectedNodeTaints:     taints,
-		imagePullSecrets:       imagePullSecrets,
+		cmdsForPath:        cleanupCmdsForPath,
+		name:               pv.Name,
+		path:               path,
+		nodeAffinityLabels: nodeAffinityLabels,
+		serviceAccountName: saName,
+		selectedNodeTaints: taints,
+		imagePullSecrets:   imagePullSecrets,
 	}
 
 	if err := p.createCleanupPod(ctx, podOpts); err != nil {

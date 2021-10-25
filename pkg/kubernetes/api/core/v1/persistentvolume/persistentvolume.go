@@ -142,34 +142,29 @@ func (p *PV) GetAffinitedNodeHostname() string {
 //           values:
 //           - hostname
 //
-func (p *PV) GetAffinitedNodeLabelKeyAndValue() (string, string) {
+func (p *PV) GetAffinitedNodeLabels() map[string]string {
 	nodeAffinity := p.object.Spec.NodeAffinity
 	if nodeAffinity == nil {
-		return "", ""
+		return nil
 	}
 	required := nodeAffinity.Required
 	if required == nil {
-		return "", ""
+		return nil
 	}
 
-	key := ""
-	value := ""
+	labels := make(map[string]string)
+
 	for _, selectorTerm := range required.NodeSelectorTerms {
 		for _, expression := range selectorTerm.MatchExpressions {
 			if expression.Operator == corev1.NodeSelectorOpIn {
 				if len(expression.Values) != 1 {
-					return "", ""
+					return nil
 				}
-				key = expression.Key
-				value = expression.Values[0]
-				break
+				labels[expression.Key] = expression.Values[0]
 			}
 		}
-		if value != "" {
-			break
-		}
 	}
-	return key, value
+	return labels
 }
 
 // IsNil is predicate to filter out nil PV

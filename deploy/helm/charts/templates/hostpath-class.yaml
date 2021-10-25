@@ -12,9 +12,10 @@ metadata:
       - name: BasePath
         value: "{{ .Values.hostpathClass.basePath }}"
 {{- end }}
-{{- if .Values.hostpathClass.nodeAffinityLabel }}
+{{- if .Values.hostpathClass.nodeAffinityLabels }}
       - name: NodeAffinityLabel
-        value: "{{ .Values.hostpathClass.nodeAffinityLabel }}"
+        list:
+{{ toYaml .Values.hostpathClass.nodeAffinityLabels | indent 10 }}
 {{- end }}
 {{- if .Values.hostpathClass.xfsQuota.enabled }}
       - name: XFSQuota

@@ -42,21 +42,28 @@ func (p *Provisioner) ProvisionBlockDevice(ctx context.Context, opts pvControlle
 	stgType := volumeConfig.GetStorageType()
 	fsType := volumeConfig.GetFSType()
 
-	nodeAffinityKey := volumeConfig.GetNodeAffinityLabelKey()
-	if len(nodeAffinityKey) == 0 {
-		nodeAffinityKey = k8sNodeLabelKeyHostname
+	// nodeAffinityLabels contains all the custom node affinity labels.
+	// This helps in cases where the hostname changes when the node is removed and
+	// added back.
+	nodeAffinityLabels := make(map[string]string)
+
+	nodeAffinityKeys := volumeConfig.GetNodeAffinityLabelKeys()
+	if nodeAffinityKeys == nil {
+		nodeAffinityLabels[k8sNodeLabelKeyHostname] = GetNodeLabelValue(opts.SelectedNode, k8sNodeLabelKeyHostname)
+	} else {
+		for _, nodeAffinityKey := range nodeAffinityKeys {
+			nodeAffinityLabels[nodeAffinityKey] = GetNodeLabelValue(opts.SelectedNode, nodeAffinityKey)
+		}
 	}
-	nodeAffinityValue := GetNodeLabelValue(opts.SelectedNode, nodeAffinityKey)
 
 	//Extract the details to create a Block Device Claim
 	blkDevOpts := &HelperBlockDeviceOptions{
-		nodeHostname:           nodeHostname,
-		name:                   name,
-		nodeAffinityLabelKey:   nodeAffinityKey,
-		nodeAffinityLabelValue: nodeAffinityValue,
-		capacity:               capacity.String(),
-		volumeMode:             *opts.PVC.Spec.VolumeMode,
-		bdTagValue:             volumeConfig.GetBDTagValue(),
+		nodeHostname:       nodeHostname,
+		name:               name,
+		nodeAffinityLabels: nodeAffinityLabels,
+		capacity:           capacity.String(),
+		volumeMode:         *opts.PVC.Spec.VolumeMode,
+		bdTagValue:         volumeConfig.GetBDTagValue(),
 	}
 
 	path, blkPath, err := p.getBlockDevicePath(ctx, blkDevOpts)
@@ -102,7 +109,7 @@ func (p *Provisioner) ProvisionBlockDevice(ctx context.Context, opts pvControlle
 		WithAccessModes(pvc.Spec.AccessModes).
 		WithCapacityQty(pvc.Spec.Resources.Requests[v1.ResourceName(v1.ResourceStorage)]).
 		WithLocalHostPathFormat(path, fsType).
-		WithNodeAffinity(nodeAffinityKey, nodeAffinityValue)
+		WithNodeAffinity(nodeAffinityLabels)
 
 	// If volumeMode set to "Block", then provide the appropriate volumeMode, to pvObj
 	if *opts.PVC.Spec.VolumeMode == v1.PersistentVolumeBlock {

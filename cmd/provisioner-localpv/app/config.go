@@ -80,8 +80,8 @@ const (
 	//
 	KeyBDTag = "BlockDeviceTag"
 
-	//KeyNodeAffinityLabel defines the label key that should be
-	//used in the nodeAffinitySpec. Default is to use "kubernetes.io/hostname"
+	//KeyNodeAffinityLabels defines the label keys that should be
+	//used in the nodeAffinitySpec.
 	//
 	//Example: Local PV device StorageClass for using a custom
 	//node label as: openebs.io/node-affinity-value
@@ -96,12 +96,14 @@ const (
 	//       - name: StorageType
 	//         value: "device"
 	//       - name: NodeAffinityLabel
-	//         value: "openebs.io/node-affinity-value"
+	//         list:
+	//           - "openebs.io/node-affinity-value-1"
+	//           - "openebs.io/node-affinity-value-2"
 	// provisioner: openebs.io/local
 	// volumeBindingMode: WaitForFirstConsumer
 	// reclaimPolicy: Delete
 	//
-	KeyNodeAffinityLabel = "NodeAffinityLabel"
+	KeyNodeAffinityLabels = "NodeAffinityLabels"
 
 	//KeyPVRelativePath defines the alternate folder name under the BasePath
 	// By default, the pv name will be used as the folder name.
@@ -185,12 +187,18 @@ func (p *Provisioner) GetVolumeConfig(ctx context.Context, pvName string, pvc *c
 		return nil, errors.Wrapf(err, "unable to read volume config: pvc {%v}", pvc.ObjectMeta.Name)
 	}
 
+	listPvConfigMap, err := listConfigToMap(pvConfig)
+	if err != nil {
+		return nil, errors.Wrapf(err, "unable to read volume config: pvc {%v}", pvc.ObjectMeta.Name)
+	}
+
 	c := &VolumeConfig{
 		pvName:     pvName,
 		pvcName:    pvc.ObjectMeta.Name,
 		scName:     *scName,
 		options:    pvConfigMap,
 		configData: dataPvConfigMap,
+		ListValues: listPvConfigMap,
 	}
 	return c, nil
 }
@@ -231,15 +239,15 @@ func (c *VolumeConfig) GetBDTagValue() string {
 }
 
 //GetNodeAffinityLabelKey returns the custom node affinity
-//label key as configured in StorageClass.
+//label keys as configured in StorageClass.
 //
-//Default is "", use the standard kubernetes.io/hostname label.
-func (c *VolumeConfig) GetNodeAffinityLabelKey() string {
-	nodeAffinityLabelKey := c.getValue(KeyNodeAffinityLabel)
-	if len(strings.TrimSpace(nodeAffinityLabelKey)) == 0 {
-		return ""
+//Default is nil.
+func (c *VolumeConfig) GetNodeAffinityLabelKeys() []string {
+	nodeAffinityLabels := c.getList(KeyNodeAffinityLabels)
+	if len(nodeAffinityLabels) == 0 {
+		return nil
 	}
-	return nodeAffinityLabelKey
+	return nodeAffinityLabels
 }
 
 //GetPath returns a valid PV path based on the configuration
@@ -342,6 +350,16 @@ func (c *VolumeConfig) getData(key string, dataKey string) string {
 	return ""
 }
 
+//This is similar to getValue() and getEnabled().
+// This gets the list of values for the 'List' parameter.
+func (c *VolumeConfig) getList(key string) []string {
+	if listValues, ok := util.GetNestedField(c.ListValues, key).([]string); ok {
+		return listValues
+	}
+	//Default case
+	return nil
+}
+
 // GetStorageClassName extracts the StorageClass name from PVC
 func GetStorageClassName(pvc *corev1.PersistentVolumeClaim) *string {
 	// Use beta annotation first
@@ -423,6 +441,28 @@ func dataConfigToMap(pvConfig []mconfig.Config) (map[string]interface{}, error) 
 		isMerged := util.MergeMapOfObjects(m, confHierarchy)
 		if !isMerged {
 			return nil, errors.Errorf("failed to transform cas config 'Data' for configName '%s' to map: failed to merge: %s", configName, configObj)
+		}
+	}
+
+	return m, nil
+}
+
+func listConfigToMap(pvConfig []mconfig.Config) (map[string]interface{}, error) {
+	m := map[string]interface{}{}
+
+	for _, configObj := range pvConfig {
+		//No List Parameter
+		if configObj.List == nil || len(configObj.List) == 0 {
+			continue
+		}
+
+		configName := strings.TrimSpace(configObj.Name)
+		confHierarchy := map[string]interface{}{
+			configName: configObj.List,
+		}
+		isMerged := util.MergeMapOfObjects(m, confHierarchy)
+		if !isMerged {
+			return nil, errors.Errorf("failed to transform cas config 'List' for configName '%s' to map: failed to merge: %s", configName, configObj)
 		}
 	}
 

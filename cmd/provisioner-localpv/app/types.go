@@ -65,6 +65,7 @@ type VolumeConfig struct {
 	scName     string
 	options    map[string]interface{}
 	configData map[string]interface{}
+	ListValues map[string]interface{}
 }
 
 // GetVolumeConfigFn allows to plugin a custom function

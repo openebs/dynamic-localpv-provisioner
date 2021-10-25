@@ -60,11 +60,8 @@ type HelperBlockDeviceOptions struct {
 	nodeHostname string
 	name         string
 
-	//nodeAffinityLabelKey represents the label key of the node where pod should be launched.
-	nodeAffinityLabelKey string
-
-	//nodeAffinityLabelValue represents the label value of the node where pod should be launched.
-	nodeAffinityLabelValue string
+	//nodeAffinityLabels represents the labels of the node where pod should be launched.
+	nodeAffinityLabels map[string]string
 
 	capacity string
 	//	deviceType string
@@ -130,16 +127,10 @@ func (p *Provisioner) createBlockDeviceClaim(ctx context.Context, blkDevOpts *He
 		return nil
 	}
 
-	// Form the labelSelector map with node affinity key and value
-	labelSelector := map[string]string{
-		blkDevOpts.nodeAffinityLabelKey: blkDevOpts.nodeAffinityLabelValue,
-	}
-
 	bdcObjBuilder := blockdeviceclaim.NewBuilder().
 		WithNamespace(p.namespace).
 		WithName(bdcName).
-		WithSelector(labelSelector).
-		//WithHostName(blkDevOpts.nodeHostname).
+		WithSelector(blkDevOpts.nodeAffinityLabels).
 		WithCapacity(blkDevOpts.capacity).
 		WithFinalizer(LocalPVFinalizer).
 		WithBlockVolumeMode(blkDevOpts.volumeMode)

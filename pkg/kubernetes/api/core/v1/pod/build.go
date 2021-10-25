@@ -185,29 +185,43 @@ func (b *Builder) WithNodeSelectorHostnameNew(hostname string) *Builder {
 	return b
 }
 
-// WithNodeAffinityNew sets the NodeAffinity field of Pod with provided node label and key
-func (b *Builder) WithNodeAffinityNew(key, value string) *Builder {
-	if len(key) == 0 || len(value) == 0 {
-		b.errs = append(b.errs, errors.New("failed to build Pod object: missing node label key or value"))
+// WithNodeAffinityNew sets the NodeAffinity field of Pod with provided node labels
+func (b *Builder) WithNodeAffinityNew(labels map[string]string) *Builder {
+	if len(labels) == 0 {
+		b.errs = append(b.errs, errors.New("failed to build Pod object: missing node labels"))
 		return b
 	}
+
+	var MatchExpressions []corev1.NodeSelectorRequirement
+
+	for key, value := range labels {
+		if value != "" {
+			MatchExpressions = append(MatchExpressions, corev1.NodeSelectorRequirement{
+				Key:      key,
+				Operator: corev1.NodeSelectorOpIn,
+				Values: []string{
+					value,
+				},
+			})
+		}
+	}
+
+	if len(MatchExpressions) == 0 {
+		b.errs = append(b.errs, errors.New("failed to build Pod object: missing node label values"))
+		return b
+	}
+
 	nodeAffinity := &corev1.NodeAffinity{
 		RequiredDuringSchedulingIgnoredDuringExecution: &corev1.NodeSelector{
-			NodeSelectorTerms: []corev1.NodeSelectorTerm{
-				{
-					MatchExpressions: []corev1.NodeSelectorRequirement{
-						{
-							Key:      key,
-							Operator: corev1.NodeSelectorOpIn,
-							Values: []string{
-								value,
-							},
-						},
-					},
-				},
-			},
+			NodeSelectorTerms: []corev1.NodeSelectorTerm{},
 		},
 	}
+
+	var NodeSelector corev1.NodeSelectorTerm
+	NodeSelector.MatchExpressions = MatchExpressions
+
+	nodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms = append(nodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms, NodeSelector)
+
 	b.pod.object.Spec.Affinity = &corev1.Affinity{
 		NodeAffinity: nodeAffinity,
 	}

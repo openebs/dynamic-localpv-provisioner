@@ -105,3 +105,34 @@ func TestDataConfigToMap(t *testing.T) {
 		})
 	}
 }
+
+func Test_listConfigToMap(t *testing.T) {
+	tests := map[string]struct {
+		pvConfig      []mconfig.Config
+		expectedValue map[string]interface{}
+		wantErr       bool
+	}{
+		"Valid list parameter": {
+			pvConfig: []mconfig.Config{
+				{Name: "StorageType", Value: "hostpath"},
+				{Name: "NodeAffinityLabels", List: []string{"fake-node-label-key"}},
+			},
+			expectedValue: map[string]interface{}{
+				"NodeAffinityLabels": []string{"fake-node-label-key"},
+			},
+			wantErr: false,
+		},
+	}
+	for k, v := range tests {
+		t.Run(k, func(t *testing.T) {
+			got, err := listConfigToMap(v.pvConfig)
+			if (err != nil) != v.wantErr {
+				t.Errorf("listConfigToMap() error = %v, wantErr %v", err, v.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, v.expectedValue) {
+				t.Errorf("listConfigToMap() got = %v, want %v", got, v.expectedValue)
+			}
+		})
+	}
+}
