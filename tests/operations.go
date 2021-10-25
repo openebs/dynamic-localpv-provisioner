@@ -25,16 +25,7 @@ import (
 	"strconv"
 	"time"
 
-	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	deploy "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/apps/v1/deployment"
-	container "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/container"
-	pv "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/persistentvolume"
-	pvc "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/persistentvolumeclaim"
-	pod "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/pod"
-	pts "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/podtemplatespec"
-	k8svolume "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/volume"
-	sc "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/storage/v1/storageclass"
 	bd "github.com/openebs/maya/pkg/blockdevice/v1alpha2"
 	bdc "github.com/openebs/maya/pkg/blockdeviceclaim/v1alpha1"
 	kubeclient "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
@@ -52,10 +43,19 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/remotecommand"
+
+	deploy "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/apps/v1/deployment"
+	container "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/container"
+	pv "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/persistentvolume"
+	pvc "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/persistentvolumeclaim"
+	pod "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/pod"
+	pts "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/podtemplatespec"
+	k8svolume "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/volume"
+	sc "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/storage/v1/storageclass"
 )
 
 const (
-	maxRetry = 30
+	maxRetry = 90
 )
 
 type bdcExitStatus string
@@ -230,6 +230,21 @@ func (ops *Operations) withDefaults() {
 	}
 }
 
+// CheckPodStatusEventually gives the phase of the pod eventually
+func (ops *Operations) CheckPodStatusEventually(namespace, podName string, expectedPodPhase corev1.PodPhase) bool {
+	for i := 0; i < maxRetry; i++ {
+		pod, err := ops.PodClient.
+			WithNamespace(namespace).
+			Get(context.TODO(), podName, metav1.GetOptions{})
+		Expect(err).ShouldNot(HaveOccurred())
+		if pod.Status.Phase == expectedPodPhase {
+			return true
+		}
+		time.Sleep(5 * time.Second)
+	}
+	return false
+}
+
 // GetPodRunningCountEventually gives the number of pods running eventually
 func (ops *Operations) GetPodRunningCountEventually(namespace, lselector string, expectedPodCount int) int {
 	var podCount int
@@ -252,6 +267,18 @@ func (ops *Operations) GetPodRunningCount(namespace, lselector string) int {
 	return pod.
 		ListBuilderForAPIList(pods).
 		WithFilter(pod.IsRunning()).
+		List().
+		Len()
+}
+
+// GetPodCount gives number of current pods
+func (ops *Operations) GetPodCount(namespace, lselector string) int {
+	pods, err := ops.PodClient.
+		WithNamespace(namespace).
+		List(context.TODO(), metav1.ListOptions{LabelSelector: lselector})
+	Expect(err).ShouldNot(HaveOccurred())
+	return pod.
+		ListBuilderForAPIList(pods).
 		List().
 		Len()
 }
@@ -285,7 +312,7 @@ func (ops *Operations) IsPVCBoundEventually(pvcName string) bool {
 		Expect(err).ShouldNot(HaveOccurred())
 		return pvc.NewForAPIObject(volume).IsBound()
 	},
-		120, 10).
+		450, 5).
 		Should(BeTrue())
 }
 
@@ -299,7 +326,7 @@ func (ops *Operations) VerifyCapacity(pvcName, capacity string) bool {
 		desiredCapacity, _ := resource.ParseQuantity(capacity)
 		return (desiredCapacity.Cmp(actualCapacity) == 0)
 	},
-		120, 10).
+		450, 5).
 		Should(BeTrue())
 }
 
@@ -323,7 +350,7 @@ func (ops *Operations) IsPodRunningEventually(namespace, podName string) bool {
 		return pod.NewForAPIObject(p).
 			IsRunning()
 	},
-		150, 10).
+		450, 5).
 		Should(BeTrue())
 }
 
@@ -442,7 +469,7 @@ func (ops *Operations) IsPVCDeletedEventually(pvcName, namespace string) bool {
 			Get(context.TODO(), pvcName, metav1.GetOptions{})
 		return isNotFound(err)
 	},
-		120, 2).
+		450, 5).
 		Should(BeTrue())
 }
 
@@ -464,7 +491,7 @@ func (ops *Operations) IsPVDeletedEventually(pvName string) bool {
 			Get(context.TODO(), pvName, metav1.GetOptions{})
 		return isNotFound(err)
 	},
-		120, 2).
+		450, 5).
 		Should(BeTrue())
 }
 
@@ -476,7 +503,7 @@ func (ops *Operations) IsPodDeletedEventually(namespace, podName string) bool {
 			Get(context.TODO(), podName, metav1.GetOptions{})
 		return isNotFound(err)
 	},
-		120, 10).
+		450, 5).
 		Should(BeTrue())
 }
 
@@ -510,7 +537,7 @@ func (ops *Operations) IsBDCDeletedEventually(bdcName, namespace string) bool {
 			Get(context.TODO(), bdcName, metav1.GetOptions{})
 		return isNotFound(err)
 	},
-		120, 2).
+		450, 5).
 		Should(BeTrue())
 }
 
@@ -605,18 +632,21 @@ func (ops *Operations) GetBDCStatusAfterAge(bdcName string, namespace string, un
 }
 
 // ExecPod executes arbitrary command inside the pod
-func (ops *Operations) ExecPod(opts *Options) ([]byte, error) {
+func (ops *Operations) ExecPod(opts *Options) (string, string, error) {
 	var (
 		execOut bytes.Buffer
 		execErr bytes.Buffer
 		err     error
 	)
-	By("getting rest config")
 	config, err := ops.KubeClient.GetConfigForPathOrDirect()
-	Expect(err).To(BeNil(), "while getting config for exec'ing into pod")
-	By("getting clientset")
+	if err != nil {
+		return "", "", errors.Errorf("error while getting config for exec'ing into pod: %v", err)
+	}
+
 	cset, err := ops.KubeClient.Clientset()
-	Expect(err).To(BeNil(), "while getting clientset for exec'ing into pod")
+	if err != nil {
+		return "", "", errors.Errorf("while getting clientset for exec'ing into pod: %v", err)
+	}
 	req := cset.
 		CoreV1().
 		RESTClient().
@@ -635,19 +665,21 @@ func (ops *Operations) ExecPod(opts *Options) ([]byte, error) {
 			TTY:       false,
 		}, scheme.ParameterCodec)
 
-	By("creating a POST request for executing command")
 	exec, err := remotecommand.NewSPDYExecutor(config, "POST", req.URL())
-	Expect(err).To(BeNil(), "while exec'ing command in pod ", opts.podName)
+	if err != nil {
+		return "", "", fmt.Errorf("error while creating Executor: %v", err)
+	}
 
-	By("processing request")
 	err = exec.Stream(remotecommand.StreamOptions{
 		Stdout: &execOut,
 		Stderr: &execErr,
 		Tty:    false,
 	})
-	Expect(err).To(BeNil(), "while streaming the command in pod ", opts.podName, execOut.String(), execErr.String())
-	Expect(execOut.Len()).Should(BeNumerically(">=", 0), "while streaming the command in pod ", opts.podName, execErr.String(), execOut.String())
-	return execOut.Bytes(), nil
+	if err != nil {
+		return execOut.String(), execErr.String(), errors.Errorf("error in Stream: %v", err)
+	}
+
+	return execOut.String(), execErr.String(), nil
 }
 
 // GetPodCompletedCountEventually gives the number of pods running eventually

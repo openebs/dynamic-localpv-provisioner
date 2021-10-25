@@ -19,6 +19,7 @@ package app
 
 import (
 	"context"
+	"strconv"
 	"strings"
 
 	mconfig "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
@@ -113,6 +114,17 @@ const (
 	// is specified with PVC and is useful for granting shared access
 	// to underlying hostpaths across multiple pods.
 	//KeyPVAbsolutePath = "AbsolutePath"
+
+	//KeyXFSQuota enables/sets parameters for XFS Quota.
+	// Example StorageClass snippet:
+	//    - name: XFSQuota
+	//      enabled: true
+	//      data:
+	//        softLimitGrace: "80%"
+	//        hardLimitGrace: "85%"
+	KeyXFSQuota          = "XFSQuota"
+	KeyXfsQuotaSoftLimit = "softLimitGrace"
+	KeyXfsQuotaHardLimit = "hardLimitGrace"
 )
 
 const (
@@ -168,11 +180,17 @@ func (p *Provisioner) GetVolumeConfig(ctx context.Context, pvName string, pvc *c
 		return nil, errors.Wrapf(err, "unable to read volume config: pvc {%v}", pvc.ObjectMeta.Name)
 	}
 
+	dataPvConfigMap, err := dataConfigToMap(pvConfig)
+	if err != nil {
+		return nil, errors.Wrapf(err, "unable to read volume config: pvc {%v}", pvc.ObjectMeta.Name)
+	}
+
 	c := &VolumeConfig{
-		pvName:  pvName,
-		pvcName: pvc.ObjectMeta.Name,
-		scName:  *scName,
-		options: pvConfigMap,
+		pvName:     pvName,
+		pvcName:    pvc.ObjectMeta.Name,
+		scName:     *scName,
+		options:    pvConfigMap,
+		configData: dataPvConfigMap,
 	}
 	return c, nil
 }
@@ -262,6 +280,23 @@ func (c *VolumeConfig) GetPath() (string, error) {
 		ValidateAndBuild()
 }
 
+func (c *VolumeConfig) IsXfsQuotaEnabled() bool {
+	xfsQuotaEnabled := c.getEnabled(KeyXFSQuota)
+	xfsQuotaEnabled = strings.TrimSpace(xfsQuotaEnabled)
+
+	enableXfsQuotaBool, err := strconv.ParseBool(xfsQuotaEnabled)
+	//Default case
+	// this means that we have hit either of the two cases below:
+	//     i. The value was something other than a straightforward
+	//        true or false
+	//    ii. The value was empty
+	if err != nil {
+		return false
+	}
+
+	return enableXfsQuotaBool
+}
+
 //getValue is a utility function to extract the value
 // of the `key` from the ConfigMap object - which is
 // map[string]interface{map[string][string]}
@@ -280,6 +315,30 @@ func (c *VolumeConfig) getValue(key string) string {
 			return val
 		}
 	}
+	return ""
+}
+
+//Similar to getValue() above. Returns value of the
+// 'Enabled' parameter.
+func (c *VolumeConfig) getEnabled(key string) string {
+	if configObj, ok := util.GetNestedField(c.options, key).(map[string]string); ok {
+		if val, p := configObj[string(mconfig.EnabledPTP)]; p {
+			return val
+		}
+	}
+	return ""
+}
+
+//This is similar to getValue() and getEnabled().
+// This gets the value for a specific
+// 'Data' parameter key-value pair.
+func (c *VolumeConfig) getData(key string, dataKey string) string {
+	if configData, ok := util.GetNestedField(c.configData, key).(map[string]string); ok {
+		if val, p := configData[dataKey]; p {
+			return val
+		}
+	}
+	//Default case
 	return ""
 }
 
@@ -346,4 +405,26 @@ func GetImagePullSecrets(s string) []corev1.LocalObjectReference {
 		}
 	}
 	return list
+}
+
+func dataConfigToMap(pvConfig []mconfig.Config) (map[string]interface{}, error) {
+	m := map[string]interface{}{}
+
+	for _, configObj := range pvConfig {
+		//No Data Parameter
+		if configObj.Data == nil {
+			continue
+		}
+
+		configName := strings.TrimSpace(configObj.Name)
+		confHierarchy := map[string]interface{}{
+			configName: configObj.Data,
+		}
+		isMerged := util.MergeMapOfObjects(m, confHierarchy)
+		if !isMerged {
+			return nil, errors.Errorf("failed to transform cas config 'Data' for configName '%s' to map: failed to merge: %s", configName, configObj)
+		}
+	}
+
+	return m, nil
 }

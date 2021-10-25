@@ -16,19 +16,19 @@ package tests
 import (
 	"context"
 	"flag"
-
 	"os"
 	"testing"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	ns "github.com/openebs/maya/pkg/kubernetes/namespace/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	// auth plugins
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
+
+	"github.com/openebs/dynamic-localpv-provisioner/tests/disk"
 )
 
 var (
@@ -39,6 +39,9 @@ var (
 	storageClassLabelSelector       = "openebs.io/test-sc=true"
 	err                             error
 	LocalPVProvisionerLabelSelector = "openebs.io/component-name=openebs-localpv-provisioner"
+	hostpathDir                     = "/var/openebs/integration-test"
+	xfsHostpathDir                  = "/var/openebs/integration-test/xfs/"
+	physicalDisk                    = disk.Disk{}
 )
 
 func TestSource(t *testing.T) {
@@ -75,6 +78,9 @@ var _ = BeforeSuite(func() {
 	namespaceObj, err = ops.NSClient.Create(namespaceObj)
 	Expect(err).To(BeNil(), "while creating namespace {%s}", namespaceObj.GenerateName)
 
+	By("preparing the loopback device with xfs fs")
+	physicalDisk, err = disk.PrepareDisk("xfs", xfsHostpathDir)
+	Expect(err).To(BeNil(), "while preparing disk {%+v}", physicalDisk)
 })
 
 var _ = AfterSuite(func() {
@@ -91,4 +97,8 @@ var _ = AfterSuite(func() {
 		},
 		&metav1.DeleteOptions{},
 	)
+
+	By("destroying the created disk")
+	err = physicalDisk.DestroyDisk(xfsHostpathDir)
+	Expect(err).To(BeNil(), "while destroying the disk {%+v}", physicalDisk)
 })

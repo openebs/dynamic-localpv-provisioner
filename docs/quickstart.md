@@ -2,36 +2,17 @@
 
 ## Prerequisites
 
-A Kubernetes cluster with Kubernetes v1.16 or above is required. 
+A Kubernetes cluster with Kubernetes v1.16 or above. 
 
-<details>
-  <summary>Click here if you are using RKE or Rancher 2.x.</summary>
-
-  To use OpenEBS LocalPV Hostpath with an RKE/Rancher 2.x cluster, you will have to mount the hostpath directories to the kubelet containers. You can do this by editing the kubelet configuration section of your RKE/Rancher 2.x cluster and adding in the `extra_binds` (see below).
-
-  **Note:** If you want to use a custom hostpath directory, then you will have to mount the custom directory's absolute path. See below for an example with the default hostpath directory.
-
-  For an RKE cluster, you can add the `extra_binds` to your cluster.yml file and apply the changes using the `rke up` command.
-
-  For a Rancher 2.x cluster, you can edit your cluster's configuration options and add the `extra_binds` there.
-
-  ```yaml
-  services:
-    kubelet:
-      extra_binds:
-      # Default hostpath directory
-      - /var/openebs/local:/var/openebs/local
-  ```
-
-  For more information, please go through the official Rancher documentaion -- [RKE - Kubernetes Configuration Options](https://rancher.com/docs/rke/latest/en/config-options/services/services-extras/#extra-binds), [RKE - Installation](https://rancher.com/docs/rke/latest/en/installation/#deploying-kubernetes-with-rke).
-</details>
+For more platform-specific installation instructions, [click here](https://github.com/openebs/dynamic-localpv-provisioner/tree/develop/docs/installation/platforms/).
 
 ## Install using Helm chart
-Install OpenEBS Dynamic LocalPV Provisioner using the localpv-provisioner helm chart. Sample command:
+Install OpenEBS Dynamic LocalPV Provisioner using the openebs helm chart. Sample command:
 ```console
-# helm repo add openebs-localpv https://openebs.github.io/dynamic-localpv-provisioner
-# helm repo update
-helm install openebs-localpv openebs-localpv/localpv-provisioner -n openebs --create-namespace
+#helm repo add openebs https://openebs.github.io/charts
+#helm repo update
+helm install openebs openebs/openebs -n openebs --create-namespace \
+	--set legacy.enabled=false
 ```
 	
 <details>
@@ -44,20 +25,25 @@ helm install openebs-localpv openebs-localpv/localpv-provisioner -n openebs --cr
      - you already have NDM installed. Check if NDM pods exist with the command `kubectl get pods -n openebs -l 'openebs.io/component-name in (ndm, ndm-operator)'`
 
 ```console
-helm install openebs-localpv openebs-localpv/localpv-provisioner -n openebs --create-namespace \
-	--set openebsNDM.enabled=false
+helm install openebs openebs/openebs -n openebs --create-namespace \
+	--set legacy.enabled=false \
+	--set ndm.enabled=false \
+	--set ndmOperator.enabled=false
 ```
   2. Install OpenEBS Dynamic LocalPV Provisioner for Hostpath volumes only
 ```console
-helm install openebs-localpv openebs-localpv/localpv-provisioner -n openebs --create-namespace \
-	--set openebsNDM.enabled=false \
-	--set deviceClass.enabled=false
+helm install openebs openebs/openebs -n openebs --create-namespace \
+	--set legacy.enabled=false \
+	--set ndm.enabled=false \
+	--set ndmOperator.enabled=false \
+	--set localprovisioner.enableDeviceClass=false
 ```
   3. Install OpenEBS Dynamic LocalPV Provisioner with a custom hostpath directory. 
      This will change the `BasePath` value for the 'openebs-hostpath' StorageClass.
 ```console
-helm install openebs-localpv openebs-localpv/localpv-provisioner -n openebs --create-namespace \
-	--set hostpathClass.basePath=<custom-hostpath>
+helm install openebs openebs/openebs -n openebs --create-namespace \
+	--set legacy.enabled=false \
+	--set localprovisioner.basePath=<custom-hostpath>
 ```
 </details>
 
@@ -89,29 +75,37 @@ You can provision LocalPV Hostpath volumes dynamically using the default `openeb
   <summary>Click here if you want to configure your own custom StorageClass.</summary>
 
   ```yaml
-  # This is a custom StorageClass template
+  #This is a custom StorageClass template
   # Uncomment config options as desired
   apiVersion: storage.k8s.io/v1
   kind: StorageClass
   metadata:
     name: custom-hostpath
     annotations:
-      ## Use this annotation to set this StorageClass by default
+      #Use this annotation to set this StorageClass by default
       # storageclass.kubernetes.io/is-default-class: true
       openebs.io/cas-type: local
       cas.openebs.io/config: |
         - name: StorageType
-          value: hostpath
-      # - name: BasePath     # Use this to set a custom 
-      #   value: /mnt/data   # hostpath directory
-      # - name: NodeAffinityLabel                   # Use this to set a custom 
-      #   value: "openebs.io/custom-node-unique-id" # label for node selection
+          value: "hostpath"
+       #Use this to set a custom
+       # hostpath directory
+       #- name: BasePath
+       #  value: "/var/openebs/local"
   provisioner: openebs.io/local
   reclaimPolicy: Delete
-  ## It is necessary to have volumeBindingMode as WaitForFirstConsumer
+  #It is necessary to have volumeBindingMode as WaitForFirstConsumer
   volumeBindingMode: WaitForFirstConsumer
+  #Match labels in allowedTopologies to select nodes for volume provisioning
+  # allowedTopologies:
+  # - matchLabelExpressions:
+  #   - key: kubernetes.io/hostname
+  #     values:
+  #     - worker-1
+  #     - worker-2
   ```
-</details>
+</details><br>
+For more advanced tutorials, visit [tutorials/hostpath](./tutorials/hostpath).
 
 Create a PVC with the StorageClass.
 ```yaml
@@ -120,12 +114,12 @@ apiVersion: v1
 metadata:
   name: localpv-vol
 spec:
-  ## Change this name if you are using a custom StorageClass
+  #Change this name if you are using a custom StorageClass
   storageClassName: openebs-hostpath
   accessModes: ["ReadWriteOnce"]
   resources:
     requests:
-      ## Set capacity here
+      #Set capacity here
       storage: 5Gi
 ```
 The PVC will be in 'Pending' state until the volume is mounted.
@@ -135,7 +129,7 @@ $ kubectl get pvc
 NAME          STATUS    VOLUME   CAPACITY   ACCESS MODES   STORAGECLASS       AGE
 localpv-vol   Pending                                      openebs-hostpath   21s
 ```
-
+**Note**: The NodeAffinityLabel parameter does not influence where the application Pod will be scheduled. The NodeAffinityLabel parameter is to be used in cases where the value of the 'kubernetes.io/hostname' node label may change due to auto-scaling or similar behavior for the same node. In such cases, the administrator may choose to set a unique label which persists across node reboots and replacements.
 
 ## Provisioning LocalPV Device Persistent Volume
 
@@ -156,28 +150,33 @@ You can provision LocalPV Hostpath volumes dynamically using the default `openeb
   <summary>Click here if you want to configure your own custom StorageClass.</summary>
 
   ```yaml
-  # This is a custom StorageClass template
+  #This is a custom StorageClass template
   # Uncomment config options as desired
   apiVersion: storage.k8s.io/v1
   kind: StorageClass
   metadata:
     name: custom-device
     annotations:
-      ## Use this annotation to set this StorageClass by default
+      #Use this annotation to set this StorageClass by default
       # storageclass.kubernetes.io/is-default-class: true
       openebs.io/cas-type: local
       cas.openebs.io/config: |
         - name: StorageType
-          value: device
-      # - name: FSType  # Use this to set the filesystem
-      #   value: xfs    # type. Default is ext4.
-      # - name: BlockDeviceTag  # Only blockdevices with the label 
-      #   value: "mongo"        # openebs.io/block-device-tag=mongo will be used
+          value: "device"
+       #Use this to set the filesystem
+       # type. Default is 'ext4'.
+       #- name: FSType
+       #  value: "xfs"
+       #Only blockdevices with the label
+       # openebs.io/block-device-tag=mongo
+       # will be used
+       #- name: BlockDeviceTag
+       #  value: "mongo"
   provisioner: openebs.io/local
   reclaimPolicy: Delete
-  ## It is necessary to have volumeBindingMode as WaitForFirstConsumer
+  #It is necessary to have volumeBindingMode as WaitForFirstConsumer
   volumeBindingMode: WaitForFirstConsumer
-  ## Match labels in allowedTopologies to select nodes for volume provisioning
+  #Match labels in allowedTopologies to select nodes for volume provisioning
   # allowedTopologies:
   # - matchLabelExpressions:
   #   - key: kubernetes.io/hostname
@@ -185,7 +184,8 @@ You can provision LocalPV Hostpath volumes dynamically using the default `openeb
   #     - worker-1
   #     - worker-2
   ```
-</details>
+</details><br>
+For more advanced tutorials, visit [tutorials/device](./tutorials/device).
 
 Create a PVC with the StorageClass.
 ```yaml
@@ -194,15 +194,15 @@ apiVersion: v1
 metadata:
   name: localpv-vol
 spec:
-  ## Change this name if you are using a custom StorageClass
+  #Change this name if you are using a custom StorageClass
   storageClassName: openebs-device
   accessModes: ["ReadWriteOnce"]
-  ## You can also provision a raw block volume
+  #You can also provision a raw block volume
   # volumeMode: Block
   volumeMode: Filesystem
   resources:
     requests:
-      ## Set capacity here
+      #Set capacity here
       storage: 5Gi
 ```
 The PVC will be in 'Pending' state until the volume is mounted/attached.
@@ -240,6 +240,6 @@ spec:
 ```
 
 
-Visit the official [OpenEBS documentation](https://docs.openebs.io) for more information.
+Visit the official [OpenEBS documentation](https://openebs.io/docs/) for more information.
 
 Connect with the OpenEBS maintainers at the [Kubernetes Slack workspace](https://kubernetes.slack.com/messages/openebs). Visit [openebs.io/community](https://openebs.io/community) for details.

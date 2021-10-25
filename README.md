@@ -4,7 +4,7 @@
 [![GitHub go.mod Go version (develop)](https://img.shields.io/github/go-mod/go-version/openebs/dynamic-localpv-provisioner/develop?style=flat)](https://github.com/openebs/dynamic-localpv-provisioner/blob/develop/go.mod)
 [![codecov](https://codecov.io/gh/openebs/dynamic-localpv-provisioner/branch/develop/graph/badge.svg)](https://codecov.io/gh/openebs/dynamic-localpv-provisioner)
 [![Go Report Card](https://goreportcard.com/badge/github.com/openebs/maya)](https://goreportcard.com/report/github.com/openebs/maya)
-![stability-beta](https://img.shields.io/badge/stability-beta-33bbff.svg)
+![stability-GA](https://img.shields.io/badge/stability-GA-33bbff.svg)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/openebs/dynamic-localpv-provisioner/blob/develop/LICENSE)
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fopenebs%2Fdynamic-localpv-provisioner.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fopenebs%2Fdynamic-localpv-provisioner?ref=badge_shield)
 
@@ -17,7 +17,7 @@ Kubernetes Local Volumes using different kinds of storage available on the Kuber
 <br>
 </p>
 
-## Project Status: Beta
+## Project Status: GA
 
 Local Persistent Volumes are great for distributed cloud native data services that can handle resiliency and availability and expect low-latency access to the storage. Local Persistent Volumes can be provisioned using the hostpath, NVMe or PCIe based SSDs, Hard Disks or on top of other filesystems like ZFS, LVM. 
 
@@ -54,15 +54,15 @@ differences include:
 
 |                               | Kubernetes <= 1.15 | Kubernetes 1.16 | Kubernetes 1.17 | Kubernetes 1.18 | Kubernetes 1.19 | Kubernetes 1.20 | Kubernetes 1.21 | Kubernetes 1.22 |
 |-------------------------------|-----------------|-----------------|-----------------|-----------------|-----------------|-----------------|-----------------|-----------------|
-| `localpv-provisioner-2.10.1`/`v2.10.1` | ✕              | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               |
-| `localpv-provisioner-2.11.1`/`v2.11.1` | ✕              | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               |
-| `localpv-provisioner-2.12.0`/`v2.12.0` | ✕              | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               |
+| `localpv-provisioner-2.11.x`/`v2.11.x` | ✕              | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               |
+| `localpv-provisioner-2.12.x`/`v2.12.x` | ✕              | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               |
+| `localpv-provisioner-3.0.x`/`v3.0.x` | ✕              | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               |
 | `HEAD`                                 | ✕              | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               |
 
 
 ## Install
 
-Please refer to our [Quickstart](https://github.com/openebs/dynamic-localpv-provisioner/blob/develop/docs/quickstart.md) and the [OpenEBS Documentation](http://docs.openebs.io/).
+Please refer to our [Quickstart](https://github.com/openebs/dynamic-localpv-provisioner/blob/develop/docs/quickstart.md) and the [OpenEBS Documentation](http://openebs.io/docs/).
 
 ## Contributing
 
