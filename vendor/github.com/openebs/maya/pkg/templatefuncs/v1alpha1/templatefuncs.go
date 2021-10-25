@@ -761,7 +761,7 @@ func versionMismatchErr(errMessage string, isWrongVersion bool) (err error) {
 // This is designed to be called from a template.
 //
 // NOTE: Borrowed from a similar function in helm
-//  https://github.com/kubernetes/helm/blob/master/pkg/chartutil/files.go
+//  https://github.com/kubernetes/helm/blob/HEAD/pkg/chartutil/files.go
 func ToYaml(v interface{}) (yamlstr string) {
 	data, err := yaml.Marshal(v)
 	if err != nil {
@@ -782,7 +782,7 @@ func ToYaml(v interface{}) (yamlstr string) {
 // m["Error"] in the returned map.
 //
 // NOTE: Borrowed from helm
-// https://github.com/kubernetes/helm/blob/master/pkg/chartutil/files.go
+// https://github.com/kubernetes/helm/blob/HEAD/pkg/chartutil/files.go
 func fromYaml(str string) map[string]interface{} {
 	m := map[string]interface{}{}
 
