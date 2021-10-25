@@ -319,32 +319,3 @@ func WithFSType(filesystem string) StorageClassOption {
 		return nil
 	}
 }
-
-func WithBlockDeviceTag(bdLabelValue string) StorageClassOption {
-	return func(s *storagev1.StorageClass) error {
-		if len(bdLabelValue) == 0 {
-			return errors.New("Failed to set BlockDeviceTag. " +
-				"Input is invalid.")
-		}
-
-		// Check if the existing parameters and Provisioner name
-		// are usable with BlockDeviceTag.
-		// BlockDeviceTag is only compatible with
-		// Device StorageType.
-		if !isCompatibleWithBlockDeviceTag(s) {
-			return errors.New("Failed to set BlockDeviceTag. " +
-				"Invalid existing '" + string(mconfig.CASConfigKey) +
-				"' annotaion parameters or Provisioner name.")
-		}
-
-		config := "- name: BlockDeviceTag\n" +
-			"  value: \"" + bdLabelValue + "\"\n"
-
-		ok := writeOrAppendCASConfig(s, config)
-		if !ok {
-			return errors.New("Failed to set BlockDeviceTag" +
-				" parameter for Device.")
-		}
-		return nil
-	}
-}

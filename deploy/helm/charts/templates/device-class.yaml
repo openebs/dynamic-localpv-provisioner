@@ -12,9 +12,10 @@ metadata:
       - name: FSType
         value: "{{ .Values.deviceClass.fsType }}"
 {{- end }}
-{{- if .Values.deviceClass.blockDeviceTag }}
-      - name: BlockDeviceTag
-        value: "{{ .Values.deviceClass.blockDeviceTag }}"
+{{- if .Values.deviceClass.blockDeviceSelectors }}
+      - name: blockDeviceSelectors
+        data:
+{{ toYaml .Values.deviceClass.blockDeviceSelectors | indent 10 }}
 {{- end }}
 {{- if .Values.deviceClass.isDefaultClass }}
     storageclass.kubernetes.io/is-default-class: "true"

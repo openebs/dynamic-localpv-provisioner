@@ -47,7 +47,6 @@ func (p *Provisioner) ProvisionBlockDevice(ctx context.Context, opts pvControlle
 		name:         name,
 		capacity:     capacity.String(),
 		volumeMode:   *opts.PVC.Spec.VolumeMode,
-		bdTagValue:   volumeConfig.GetBDTagValue(),
 		bdSelectors:  volumeConfig.GetBlockDeviceSelectors(),
 	}
 

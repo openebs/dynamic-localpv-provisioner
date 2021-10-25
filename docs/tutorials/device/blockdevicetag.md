@@ -1,6 +1,6 @@
 # Use selected Blockdevices
 
-Blockdevice resources may be labelled with the label key `openebs.io/block-device-tag` and a unique value. StorageClasses with the BlockDeviceTag parameter set to the label's unique value, will only use volumes provisioned on Blockdevices with said label.
+Blockdevice resources may be labelled with several device attributes or with custom labels. StorageClasses with the BlockDeviceSelectors parameter set with BD labels, will only use volumes provisioned on Blockdevices with said labels.
 
 Sample kubectl command to label Blockdevices:
 ```console
@@ -18,8 +18,9 @@ metadata:
     cas.openebs.io/config: |
       - name: StorageType
         value: device
-      - name: BlockDeviceTag
-        value: "mongo"
+      - name: BlockDeviceSelectors
+        data:
+          ndm.io/driveType: "SSD"
 provisioner: openebs.io/local
 volumeBindingMode: WaitForFirstConsumer
 ```

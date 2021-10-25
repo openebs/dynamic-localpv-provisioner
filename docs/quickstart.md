@@ -144,7 +144,7 @@ openebs-ndm-vgdnv                       1/1     Running   0          6d6h
 openebs-ndm-operator-86b6dd687d-4lmpl   1/1     Running   0          6d7h
 ```
 
-You can provision LocalPV Hostpath volumes dynamically using the default `openebs-device` StorageClass.
+You can provision device LocalPV volumes dynamically using the default `openebs-device` StorageClass.
 
 <details>
   <summary>Click here if you want to configure your own custom StorageClass.</summary>
@@ -167,11 +167,11 @@ You can provision LocalPV Hostpath volumes dynamically using the default `openeb
        # type. Default is 'ext4'.
        #- name: FSType
        #  value: "xfs"
-       #Only blockdevices with the label
-       # openebs.io/block-device-tag=mongo
-       # will be used
-       #- name: BlockDeviceTag
-       #  value: "mongo"
+       #Only blockdevices with all the labels
+       # mentioned here will be used
+       #- name: BlockDeviceSelectors
+       #  data:
+       #    ndm.io/driveType: "SSD"
   provisioner: openebs.io/local
   reclaimPolicy: Delete
   #It is necessary to have volumeBindingMode as WaitForFirstConsumer

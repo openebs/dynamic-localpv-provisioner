@@ -49,8 +49,10 @@ const (
 	mockNodeAffinityLabelConfig = "- name: NodeAffinityLabel\n" +
 		"  value: \"openebs.io/mock\"\n"
 
-	mockBlockDeviceTagConfig = "- name: BlockDeviceTag\n" +
-		"  value: \"openebs.io/mock-ssd\"\n"
+	mockBlockDeviceSelectorsConfig = "- name: BlockDeviceSelectors\n" +
+		"  data:\n" +
+		"    " + "ndm.io/driveType: \"SSD\"\n" +
+		"    " + "ndm.io/fsType: \"ext4\"\n"
 )
 
 func TestBuildWithName(t *testing.T) {
@@ -212,7 +214,7 @@ func TestBuildWithHostpath(t *testing.T) {
 			storageClass: &storagev1.StorageClass{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
-						string(mconfig.CASConfigKey): mockBlockDeviceTagConfig,
+						string(mconfig.CASConfigKey): mockBlockDeviceSelectorsConfig,
 					},
 				},
 			},
@@ -345,7 +347,7 @@ func TestBuildWithXfsQuota(t *testing.T) {
 			storageClass: &storagev1.StorageClass{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
-						string(mconfig.CASConfigKey): mockBlockDeviceTagConfig,
+						string(mconfig.CASConfigKey): mockBlockDeviceSelectorsConfig,
 					},
 				},
 			},
@@ -455,7 +457,7 @@ func TestBuildWithDevice(t *testing.T) {
 			storageClass: &storagev1.StorageClass{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
-						string(mconfig.CASConfigKey): mockBlockDeviceTagConfig,
+						string(mconfig.CASConfigKey): mockBlockDeviceSelectorsConfig,
 					},
 				},
 			},
@@ -900,128 +902,6 @@ func TestBuildWithFSType(t *testing.T) {
 		mock := mock
 		t.Run(name, func(t *testing.T) {
 			opt := WithFSType(mock.fstype)
-			err := opt(mock.storageClass)
-
-			if mock.expectErr && err == nil {
-				t.Fatal("Test '" + name + "' failed: expected error to not be nil.")
-			}
-			if !mock.expectErr && err != nil {
-				t.Fatal("Test '" + name + "' failed: expected error to be nil.")
-			}
-		})
-	}
-}
-
-func TestBuildWithBlockDeviceTag(t *testing.T) {
-	tests := map[string]struct {
-		bdtag        string
-		storageClass *storagev1.StorageClass
-		expectErr    bool
-	}{
-		"Build with valid BlockDeviceTag": {
-			bdtag:        "openebs.io/my-fav-disk",
-			storageClass: &storagev1.StorageClass{},
-			expectErr:    false,
-		},
-		"Build with empty BlockDeviceTag": {
-			bdtag:        "",
-			storageClass: &storagev1.StorageClass{},
-			expectErr:    true,
-		},
-		"Build with valid '" + string(mconfig.CASTypeKey) + "' annotation": {
-			bdtag: "openebs.io/my-fav-disk",
-			storageClass: &storagev1.StorageClass{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{
-						string(mconfig.CASTypeKey): localPVcasTypeValue,
-					},
-				},
-			},
-			expectErr: false,
-		},
-		"Build with invalid '" + string(mconfig.CASTypeKey) + "' annotation": {
-			bdtag: "openebs.io/my-fav-disk",
-			storageClass: &storagev1.StorageClass{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{
-						string(mconfig.CASTypeKey): fakeCASTypeValue,
-					},
-				},
-			},
-			expectErr: true,
-		},
-		"Build with empty '" + string(mconfig.CASTypeKey) + "' annotation": {
-			bdtag: "openebs.io/my-fav-disk",
-			storageClass: &storagev1.StorageClass{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{
-						string(mconfig.CASTypeKey): "",
-					},
-				},
-			},
-			expectErr: false,
-		},
-		"Build with valid '" + string(mconfig.CASConfigKey) + "' annotation": {
-			bdtag: "openebs.io/my-fav-disk",
-			storageClass: &storagev1.StorageClass{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{
-						string(mconfig.CASConfigKey): mockDeviceConfig,
-					},
-				},
-			},
-			expectErr: false,
-		},
-		"Build with invalid '" + string(mconfig.CASConfigKey) + "' annotation": {
-			bdtag: "openebs.io/my-fav-disk",
-			storageClass: &storagev1.StorageClass{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{
-						string(mconfig.CASConfigKey): fakeCASConfigValue,
-					},
-				},
-			},
-			expectErr: true,
-		},
-		"Build with empty '" + string(mconfig.CASConfigKey) + "' annotation": {
-			bdtag: "openebs.io/my-fav-disk",
-			storageClass: &storagev1.StorageClass{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{
-						string(mconfig.CASConfigKey): "",
-					},
-				},
-			},
-			expectErr: false,
-		},
-		"Build with valid Provisioner name": {
-			bdtag: "openebs.io/my-fav-disk",
-			storageClass: &storagev1.StorageClass{
-				Provisioner: localPVprovisionerName,
-			},
-			expectErr: false,
-		},
-		"Build with invalid Provisioner name": {
-			bdtag: "openebs.io/my-fav-disk",
-			storageClass: &storagev1.StorageClass{
-				Provisioner: fakeProvisionerName,
-			},
-			expectErr: true,
-		},
-		"Build with empty Provisioner name": {
-			bdtag: "openebs.io/my-fav-disk",
-			storageClass: &storagev1.StorageClass{
-				Provisioner: "",
-			},
-			expectErr: false,
-		},
-	}
-
-	for name, mock := range tests {
-		name := name
-		mock := mock
-		t.Run(name, func(t *testing.T) {
-			opt := WithBlockDeviceTag(mock.bdtag)
 			err := opt(mock.storageClass)
 
 			if mock.expectErr && err == nil {

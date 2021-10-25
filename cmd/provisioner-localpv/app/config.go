@@ -48,38 +48,6 @@ const (
 	// and can be configured via the StorageClass annotations.
 	KeyPVFSType = "FSType"
 
-	//KeyBDTag defines the value for the Block Device Tag
-	//label selector configured via the StorageClass annotations.
-	//User can group block devices across nodes by setting the
-	//label on block devices as:
-	//  openebs.io/block-device-tag=<tag-value>
-	//
-	//The <tag-value> used above can be passsed to the
-	//Local PV device provisioner via the StorageClass
-	//CAS annotations, to specify that Local PV (device)
-	//should only make use of those block devices that
-	//tagged with the given <tag-value>.
-	//
-	//Example: Local PV device StorageClass for picking devices
-	//labeled as: openebs.io/block-device-tag=tag-x
-	//will be as follows
-	//
-	// kind: StorageClass
-	// metadata:
-	//   name: openebs-device-tag-x
-	//   annotations:
-	//     openebs.io/cas-type: local
-	//     cas.openebs.io/config: |
-	//       - name: StorageType
-	//         value: "device"
-	//       - name: BlockDeviceTag
-	//         value: "tag-x"
-	// provisioner: openebs.io/local
-	// volumeBindingMode: WaitForFirstConsumer
-	// reclaimPolicy: Delete
-	//
-	KeyBDTag = "BlockDeviceTag"
-
 	//KeyNodeAffinityLabel defines the label key that should be
 	//used in the nodeAffinitySpec. Default is to use "kubernetes.io/hostname"
 	//
@@ -245,20 +213,6 @@ func (c *VolumeConfig) GetFSType() string {
 		return ""
 	}
 	return fsType
-}
-
-//GetBDTagValue returns the block device tag
-//value configured in StorageClass.
-//
-//Default is "", no device tag will be set and any
-//available block device (without labelled with tag)
-//can be used for creating Local PV(device).
-func (c *VolumeConfig) GetBDTagValue() string {
-	bdTagValue := c.getValue(KeyBDTag)
-	if len(strings.TrimSpace(bdTagValue)) == 0 {
-		return ""
-	}
-	return bdTagValue
 }
 
 //GetNodeAffinityLabelKey returns the custom node affinity
