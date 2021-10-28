@@ -129,7 +129,7 @@ func RunCommand(cmd string) ([]byte, error) {
 	args := substring[1:]
 	stdout, err := exec.Command(name, args...).CombinedOutput() // #nosec G204
 	if err != nil {
-		return stdout, fmt.Errorf("run failed, cmd={%s}\nerror={%v}\noutput={%v}", cmd, err, stdout)
+		return stdout, fmt.Errorf("run failed, cmd={%s}, error={%v}, output={%s}", cmd, err, string(stdout))
 	}
 	return stdout, err
 }
