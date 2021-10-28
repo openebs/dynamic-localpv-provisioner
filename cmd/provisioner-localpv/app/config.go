@@ -80,6 +80,30 @@ const (
 	//
 	KeyBDTag = "BlockDeviceTag"
 
+	//KeyNodeAffinityLabel defines the label key that should be
+	//used in the nodeAffinitySpec. Default is to use "kubernetes.io/hostname"
+	//
+	//Example: Local PV device StorageClass for using a custom
+	//node label as: openebs.io/node-affinity-value
+	//will be as follows
+	//
+	// kind: StorageClass
+	// metadata:
+	//   name: openebs-device-tag-x
+	//   annotations:
+	//     openebs.io/cas-type: local
+	//     cas.openebs.io/config: |
+	//       - name: StorageType
+	//         value: "device"
+	//       - name: NodeAffinityLabel
+	//         value: "openebs.io/node-affinity-value"
+	// provisioner: openebs.io/local
+	// volumeBindingMode: WaitForFirstConsumer
+	// reclaimPolicy: Delete
+	//
+	// NOTE: This key should not be used as it is deprecated.
+	KeyNodeAffinityLabel = "NodeAffinityLabel"
+
 	//KeyNodeAffinityLabels defines the label keys that should be
 	//used in the nodeAffinitySpec.
 	//
@@ -95,7 +119,7 @@ const (
 	//     cas.openebs.io/config: |
 	//       - name: StorageType
 	//         value: "device"
-	//       - name: NodeAffinityLabel
+	//       - name: NodeAffinityLabels
 	//         list:
 	//           - "openebs.io/node-affinity-value-1"
 	//           - "openebs.io/node-affinity-value-2"
@@ -198,7 +222,7 @@ func (p *Provisioner) GetVolumeConfig(ctx context.Context, pvName string, pvc *c
 		scName:     *scName,
 		options:    pvConfigMap,
 		configData: dataPvConfigMap,
-		ListValues: listPvConfigMap,
+		configList: listPvConfigMap,
 	}
 	return c, nil
 }
@@ -239,15 +263,28 @@ func (c *VolumeConfig) GetBDTagValue() string {
 }
 
 //GetNodeAffinityLabelKey returns the custom node affinity
+//label key as configured in StorageClass.
+//Default is "", use the standard kubernetes.io/hostname label.
+// NOTE: This function should not be used, as NodeAffinityLabel has been deprecated.
+//       GetNodeAffinityLabelKeys() is the right function to use.
+func (c *VolumeConfig) GetNodeAffinityLabelKey() string {
+	nodeAffinityLabelKey := c.getValue(KeyNodeAffinityLabel)
+	if len(strings.TrimSpace(nodeAffinityLabelKey)) == 0 {
+		return ""
+	}
+	return nodeAffinityLabelKey
+}
+
+//GetNodeAffinityLabelKey returns the custom node affinity
 //label keys as configured in StorageClass.
 //
 //Default is nil.
 func (c *VolumeConfig) GetNodeAffinityLabelKeys() []string {
-	nodeAffinityLabels := c.getList(KeyNodeAffinityLabels)
-	if len(nodeAffinityLabels) == 0 {
+	nodeAffinityLabelKeys := c.getList(KeyNodeAffinityLabels)
+	if nodeAffinityLabelKeys == nil {
 		return nil
 	}
-	return nodeAffinityLabels
+	return nodeAffinityLabelKeys
 }
 
 //GetPath returns a valid PV path based on the configuration
@@ -353,7 +390,7 @@ func (c *VolumeConfig) getData(key string, dataKey string) string {
 //This is similar to getValue() and getEnabled().
 // This gets the list of values for the 'List' parameter.
 func (c *VolumeConfig) getList(key string) []string {
-	if listValues, ok := util.GetNestedField(c.ListValues, key).([]string); ok {
+	if listValues, ok := util.GetNestedField(c.configList, key).([]string); ok {
 		return listValues
 	}
 	//Default case
@@ -452,7 +489,7 @@ func listConfigToMap(pvConfig []mconfig.Config) (map[string]interface{}, error) 
 
 	for _, configObj := range pvConfig {
 		//No List Parameter
-		if configObj.List == nil || len(configObj.List) == 0 {
+		if len(configObj.List) == 0 {
 			continue
 		}
 

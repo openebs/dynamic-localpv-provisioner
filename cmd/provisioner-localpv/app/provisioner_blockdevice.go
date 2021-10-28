@@ -42,6 +42,15 @@ func (p *Provisioner) ProvisionBlockDevice(ctx context.Context, opts pvControlle
 	stgType := volumeConfig.GetStorageType()
 	fsType := volumeConfig.GetFSType()
 
+	nodeAffinityKey := volumeConfig.GetNodeAffinityLabelKey()
+	if len(nodeAffinityKey) != 0 {
+		klog.Infof("The 'NodeAffinityLabel' cas.openebs.io/config key has been deprecated in favor of the 'NodeAffinityLabels' key.\nSample config:\n" +
+			"\t\t" + "- name: NodeAffinityLabels\n" +
+			"\t\t" + "  list:\n" +
+			"\t\t" + "    - \"node-label-key\"\n")
+		return nil, pvController.ProvisioningFinished, errors.Errorf("")
+	}
+
 	// nodeAffinityLabels contains all the custom node affinity labels.
 	// This helps in cases where the hostname changes when the node is removed and
 	// added back.
