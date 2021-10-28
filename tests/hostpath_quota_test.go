@@ -148,15 +148,6 @@ var _ = Describe("TEST HOSTPATH XFS QUOTA LOCAL PV WITH NON-XFS FILESYSTEM", fun
 
 			By("verifying the pvc phase as pending")
 			Expect(createdPvc.Status.Phase).To(Equal(corev1.ClaimPending), "while verifying the pvc pending state")
-
-			By("verifying that the VolumeName is empty for the PVC")
-			pvName := ops.GetPVNameFromPVCName(namespaceObj.Name, pvcName)
-			Expect(pvName).To(
-				BeEmpty(),
-				"while getting Spec.VolumeName from PVC {%s} in namespace {%s}",
-				pvcName,
-				namespaceObj.Name,
-			)
 		})
 	})
 
@@ -179,6 +170,15 @@ var _ = Describe("TEST HOSTPATH XFS QUOTA LOCAL PV WITH NON-XFS FILESYSTEM", fun
 
 	When("pvc with storageclass "+scName+" is deleted", func() {
 		It("should delete the pvc", func() {
+			By("verifying that the VolumeName is empty for the PVC")
+			pvName := ops.GetPVNameFromPVCName(namespaceObj.Name, pvcName)
+			Expect(pvName).To(
+				BeEmpty(),
+				"while getting Spec.VolumeName from PVC {%s} in namespace {%s}",
+				pvcName,
+				namespaceObj.Name,
+			)
+
 			By("deleting above PVC")
 			err = ops.PVCClient.Delete(context.TODO(), pvcName, &metav1.DeleteOptions{})
 			Expect(err).To(
