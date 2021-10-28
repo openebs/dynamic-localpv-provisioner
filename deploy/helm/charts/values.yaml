@@ -106,13 +106,11 @@ hostpathClass:
   isDefaultClass: false
   # Path on the host where local volumes of this storage class are mounted under.
   basePath: "/var/openebs/local"
-  # Custom node affinity labels that will be used instead of hostnames
+  # Custom node affinity label for example "openebs.io/node-affinity-value" that will be
+  # used instead of hostnames
   # This helps in cases where the hostname changes when the node is removed and
   # added back with the disks still intact.
-  # example: nodeAffinityLabels:
-  #            - "openebs.io/node-affinity-value-1"
-  #            - "openebs.io/node-affinity-value-2"
-  nodeAffinityLabels: []
+  nodeAffinityLabel: ""
   # Prerequisite: XFS Quota requires an XFS filesystem mounted with
   # the 'pquota' or 'prjquota' mount option.
   xfsQuota:
