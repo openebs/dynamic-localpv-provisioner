@@ -80,27 +80,6 @@ const (
 	//
 	KeyBDTag = "BlockDeviceTag"
 
-	//KeyNodeAffinityLabel defines the label key that should be
-	//used in the nodeAffinitySpec. Default is to use "kubernetes.io/hostname"
-	//
-	//Example: Local PV device StorageClass for using a custom
-	//node label as: openebs.io/node-affinity-value
-	//will be as follows
-	//
-	// kind: StorageClass
-	// metadata:
-	//   name: openebs-device-tag-x
-	//   annotations:
-	//     openebs.io/cas-type: local
-	//     cas.openebs.io/config: |
-	//       - name: StorageType
-	//         value: "device"
-	//       - name: NodeAffinityLabel
-	//         value: "openebs.io/node-affinity-value"
-	// provisioner: openebs.io/local
-	// volumeBindingMode: WaitForFirstConsumer
-	// reclaimPolicy: Delete
-	//
 	// NOTE: This key should not be used as it is deprecated.
 	KeyNodeAffinityLabel = "NodeAffinityLabel"
 
@@ -262,11 +241,8 @@ func (c *VolumeConfig) GetBDTagValue() string {
 	return bdTagValue
 }
 
-//GetNodeAffinityLabelKey returns the custom node affinity
-//label key as configured in StorageClass.
-//Default is "", use the standard kubernetes.io/hostname label.
 // NOTE: This function should not be used, as NodeAffinityLabel has been deprecated.
-//       GetNodeAffinityLabelKeys() is the right function to use.
+// GetNodeAffinityLabelKeys() is the right function to use.
 func (c *VolumeConfig) GetNodeAffinityLabelKey() string {
 	nodeAffinityLabelKey := c.getValue(KeyNodeAffinityLabel)
 	if len(strings.TrimSpace(nodeAffinityLabelKey)) == 0 {
