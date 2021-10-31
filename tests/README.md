@@ -16,8 +16,8 @@ Local PV Provisioner BDD tests are developed using ginkgo & gomega libraries.
   ```bash
   $ #For Ubuntu/Debian
   $ sudo apt-get update && sudo apt-get install -y xfsprogs quota linux-image-extra-virtual
-  $ ##For custom OS images, the kernel module package name may be different
-  $ ##E.g.: linux-modules-extra-aws, linux-modules-extra-azure 
+  $ ##The kernel module package name may be different depending on the OS image
+  $ ##E.g.: linux-modules-extra-`uname -r`
   $ #For CentOS/RHEL
   $ sudo yum install -y xfsprogs quota
   ```
