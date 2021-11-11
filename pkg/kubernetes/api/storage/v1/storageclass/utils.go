@@ -283,6 +283,42 @@ func isValidFilesystem(filesystem string) bool {
 	}
 }
 
+func isCompatibleWithBlockDeviceTag(s *storagev1.StorageClass) bool {
+	if !isCompatibleWithLocalPVcasType(s) {
+		return false
+	}
+
+	if scCASConfigStr, ok := s.ObjectMeta.Annotations[string(mconfig.CASConfigKey)]; ok {
+		// Unmarshall to mconfig.Config
+		scCASConfig, err := cast.UnMarshallToConfig(scCASConfigStr)
+		if err != nil {
+			return false
+		}
+
+		// Check for invalid CAS config parameters
+		for _, config := range scCASConfig {
+			switch strings.TrimSpace(config.Name) {
+			case "StorageType":
+				if config.Value == "\"device\"" || config.Value == "device" {
+					continue
+				} else {
+					return false
+				}
+			case "FSType":
+				continue
+			default:
+				return false
+			}
+		}
+	}
+
+	if len(s.Provisioner) > 0 && s.Provisioner != localPVprovisionerName {
+		return false
+	}
+
+	return true
+}
+
 func writeOrAppendCASConfig(s *storagev1.StorageClass, config string) bool {
 	if s.ObjectMeta.Annotations == nil {
 		s.ObjectMeta.Annotations = map[string]string{

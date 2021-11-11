@@ -913,3 +913,163 @@ func TestBuildWithFSType(t *testing.T) {
 		})
 	}
 }
+
+func TestBuildWithBlockDeviceTag(t *testing.T) {
+	tests := map[string]struct {
+		bdSelectors  map[string]string
+		storageClass *storagev1.StorageClass
+		expectErr    bool
+	}{
+		"Build with valid BlockDeviceSelectors": {
+			bdSelectors: map[string]string{
+				"ndm.io/fake-driveType": "fake-type",
+				"ndm.io/fake-fsType":    "fake-fs",
+			},
+			storageClass: &storagev1.StorageClass{},
+			expectErr:    false,
+		},
+		"Build with invalid BlockDeviceSelectors": {
+			bdSelectors: map[string]string{
+				"ndm.io/fake-driveType": "",
+				"ndm.io/fake-fsType":    "",
+			},
+			storageClass: &storagev1.StorageClass{},
+			expectErr:    true,
+		},
+		"Build with empty BlockDeviceTag": {
+			bdSelectors:  map[string]string{},
+			storageClass: &storagev1.StorageClass{},
+			expectErr:    true,
+		},
+		"Build with valid '" + string(mconfig.CASTypeKey) + "' annotation": {
+			bdSelectors: map[string]string{
+				"ndm.io/fake-driveType": "fake-type",
+				"ndm.io/fake-fsType":    "fake-fs",
+			},
+			storageClass: &storagev1.StorageClass{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						string(mconfig.CASTypeKey): localPVcasTypeValue,
+					},
+				},
+			},
+			expectErr: false,
+		},
+		"Build with invalid '" + string(mconfig.CASTypeKey) + "' annotation": {
+			bdSelectors: map[string]string{
+				"ndm.io/fake-driveType": "fake-type",
+				"ndm.io/fake-fsType":    "fake-fs",
+			},
+			storageClass: &storagev1.StorageClass{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						string(mconfig.CASTypeKey): fakeCASTypeValue,
+					},
+				},
+			},
+			expectErr: true,
+		},
+		"Build with empty '" + string(mconfig.CASTypeKey) + "' annotation": {
+			bdSelectors: map[string]string{
+				"ndm.io/fake-driveType": "fake-type",
+				"ndm.io/fake-fsType":    "fake-fs",
+			},
+			storageClass: &storagev1.StorageClass{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						string(mconfig.CASTypeKey): "",
+					},
+				},
+			},
+			expectErr: false,
+		},
+		"Build with valid '" + string(mconfig.CASConfigKey) + "' annotation": {
+			bdSelectors: map[string]string{
+				"ndm.io/fake-driveType": "fake-type",
+				"ndm.io/fake-fsType":    "fake-fs",
+			},
+			storageClass: &storagev1.StorageClass{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						string(mconfig.CASConfigKey): mockDeviceConfig,
+					},
+				},
+			},
+			expectErr: false,
+		},
+		"Build with invalid '" + string(mconfig.CASConfigKey) + "' annotation": {
+			bdSelectors: map[string]string{
+				"ndm.io/fake-driveType": "fake-type",
+				"ndm.io/fake-fsType":    "fake-fs",
+			},
+			storageClass: &storagev1.StorageClass{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						string(mconfig.CASConfigKey): fakeCASConfigValue,
+					},
+				},
+			},
+			expectErr: true,
+		},
+		"Build with empty '" + string(mconfig.CASConfigKey) + "' annotation": {
+			bdSelectors: map[string]string{
+				"ndm.io/fake-driveType": "fake-type",
+				"ndm.io/fake-fsType":    "fake-fs",
+			},
+			storageClass: &storagev1.StorageClass{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						string(mconfig.CASConfigKey): "",
+					},
+				},
+			},
+			expectErr: false,
+		},
+		"Build with valid Provisioner name": {
+			bdSelectors: map[string]string{
+				"ndm.io/fake-driveType": "fake-type",
+				"ndm.io/fake-fsType":    "fake-fs",
+			},
+			storageClass: &storagev1.StorageClass{
+				Provisioner: localPVprovisionerName,
+			},
+			expectErr: false,
+		},
+		"Build with invalid Provisioner name": {
+			bdSelectors: map[string]string{
+				"ndm.io/fake-driveType": "fake-type",
+				"ndm.io/fake-fsType":    "fake-fs",
+			},
+			storageClass: &storagev1.StorageClass{
+				Provisioner: fakeProvisionerName,
+			},
+			expectErr: true,
+		},
+		"Build with empty Provisioner name": {
+			bdSelectors: map[string]string{
+				"ndm.io/fake-driveType": "fake-type",
+				"ndm.io/fake-fsType":    "fake-fs",
+			},
+			storageClass: &storagev1.StorageClass{
+				Provisioner: "",
+			},
+			expectErr: false,
+		},
+	}
+
+	for name, mock := range tests {
+		name := name
+		mock := mock
+		t.Run(name, func(t *testing.T) {
+			opt := WithBlockDeviceSelectors(mock.bdSelectors)
+			err := opt(mock.storageClass)
+
+			if mock.expectErr && err == nil {
+				t.Fatal("Test '" + name + "' failed: expected error to not be nil.")
+			}
+			if !mock.expectErr && err != nil {
+				t.Fatal("Test '" + name + "' failed: expected error to be nil.")
+			}
+		})
+	}
+}
