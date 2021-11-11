@@ -41,6 +41,16 @@ func (p *Provisioner) ProvisionBlockDevice(ctx context.Context, opts pvControlle
 	stgType := volumeConfig.GetStorageType()
 	fsType := volumeConfig.GetFSType()
 
+	bdTagValue := volumeConfig.GetBDTagValue()
+	if len(bdTagValue) > 0 {
+		klog.Infof("The 'BlockDeviceTag' cas.openebs.io/config key has been deprecated in favor of the 'BlockDeviceSelectors' key.\nSample config:\n" +
+			"\t\t" + "- name: BlockDeviceSelectors\n" +
+			"\t\t" + "  data:\n" +
+			"\t\t" + "    \"ndm.io/driveType\": \"SSD\"\n" +
+			"\t\t" + "    \"ndm.io/fsType\": \"none\"\n")
+		return nil, pvController.ProvisioningFinished, errors.Errorf("")
+	}
+
 	//Extract the details to create a Block Device Claim
 	blkDevOpts := &HelperBlockDeviceOptions{
 		nodeHostname: nodeHostname,

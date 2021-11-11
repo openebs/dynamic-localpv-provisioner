@@ -71,6 +71,9 @@ const (
 	//
 	KeyNodeAffinityLabel = "NodeAffinityLabel"
 
+	// NOTE: This key should not be used as it is deprecated.
+	KeyBDTag = "BlockDeviceTag"
+
 	//KeyBlockDeviceSelectors defines the value for the Block Device selectors
 	//during bdc to bd claim configured via the StorageClass annotations.
 	//
@@ -86,7 +89,7 @@ const (
 	//       - name: StorageType
 	//         value: "device"
 	//       - name: BlockDeviceSelectors
-	//         value: |-
+	//         data:
 	//           ndm.io/driveType: "SSD"
 	//           ndm.io/fsType: "none"
 	// provisioner: openebs.io/local
@@ -202,6 +205,16 @@ func (c *VolumeConfig) GetStorageType() string {
 func (c *VolumeConfig) GetBlockDeviceSelectors() map[string]string {
 	blockDeviceSelector := c.getData(KeyBlockDeviceSelectors)
 	return blockDeviceSelector
+}
+
+// NOTE: This function should not be used, as NodeAffinityLabel has been deprecated.
+//       GetBlockDeviceSelectors() is the right function to use.
+func (c *VolumeConfig) GetBDTagValue() string {
+	bdTagValue := c.getValue(KeyBDTag)
+	if len(strings.TrimSpace(bdTagValue)) == 0 {
+		return ""
+	}
+	return bdTagValue
 }
 
 //GetFSType returns the FSType value configured

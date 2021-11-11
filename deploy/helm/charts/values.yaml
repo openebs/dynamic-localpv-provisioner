@@ -89,13 +89,11 @@ deviceClass:
   # If true, sets the openebs-device StorageClass as the default StorageClass
   isDefaultClass: false
   fsType: "ext4"
-  # Mention those block device labels that you would like the openEBS localPV
-  # Provisioner to pick up that specific block devices available on the node.
+  # Label block devices in the cluster that you would like the openEBS localPV
+  # Provisioner to pick up those specific block devices available on the node.
   #
-  # Example: blockDeviceSelectors:
-  #            ndm.io/driveType: "SSD"
-  #            ndm.io/fsType: "none"
-  blockDeviceSelectors: {}
+  # To read more: https://docs.openebs.io/docs/next/uglocalpv-device.html#optional-block-device-tagging
+  blockDeviceTag: ""
 
 hostpathClass:
   # Name of the default hostpath StorageClass
