@@ -46,9 +46,8 @@ func (p *Provisioner) ProvisionBlockDevice(ctx context.Context, opts pvControlle
 		klog.Infof("The 'BlockDeviceTag' cas.openebs.io/config key has been deprecated in favor of the 'BlockDeviceSelectors' key.\nSample config:\n" +
 			"\t\t" + "- name: BlockDeviceSelectors\n" +
 			"\t\t" + "  data:\n" +
-			"\t\t" + "    \"ndm.io/driveType\": \"SSD\"\n" +
-			"\t\t" + "    \"ndm.io/fsType\": \"none\"\n")
-		return nil, pvController.ProvisioningFinished, errors.Errorf("")
+			"\t\t" + "    openebs.io/block-device-tag: \"mongo\"\n")
+		return nil, pvController.ProvisioningFinished, errors.Errorf("Cannot use deprecated \"BlockDeviceTag\" config option")
 	}
 
 	//Extract the details to create a Block Device Claim

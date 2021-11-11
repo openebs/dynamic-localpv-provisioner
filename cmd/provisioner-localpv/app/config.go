@@ -207,7 +207,7 @@ func (c *VolumeConfig) GetBlockDeviceSelectors() map[string]string {
 	return blockDeviceSelector
 }
 
-// NOTE: This function should not be used, as NodeAffinityLabel has been deprecated.
+// NOTE: This function should not be used, as KeyBDTag has been deprecated.
 //       GetBlockDeviceSelectors() is the right function to use.
 func (c *VolumeConfig) GetBDTagValue() string {
 	bdTagValue := c.getValue(KeyBDTag)
