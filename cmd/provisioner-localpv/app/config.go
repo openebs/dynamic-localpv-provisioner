@@ -72,6 +72,7 @@ const (
 	KeyNodeAffinityLabel = "NodeAffinityLabel"
 
 	// NOTE: This key should not be used as it is deprecated.
+	//        Instead use "KeyBlockDeviceSelectors" key
 	KeyBDTag = "BlockDeviceTag"
 
 	//KeyBlockDeviceSelectors defines the value for the Block Device selectors
