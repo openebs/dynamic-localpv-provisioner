@@ -85,6 +85,18 @@ var _ = Describe("TEST HOSTDEVICE LOCAL PV", func() {
 
 	When("PVC with StorageClass "+scName+" is created", func() {
 		It("should create a PVC ", func() {
+			By("verifying if NDM prerequisites are met")
+			Expect(ops.IsNdmPrerequisiteMet(
+				openebsNamespace,
+				ndmLabelSelector,
+				ndmOperatorLabelSelector,
+			)).To(
+				BeTrue(),
+				"when checking if NDM Pods are up and 1 "+
+					"Unclaimed and Active BlockDevice "+
+					"with no filesystem is present",
+			)
+
 			By("building a PVC")
 			pvcObj, err = pvc.NewBuilder().
 				WithName(pvcName).
@@ -189,11 +201,17 @@ var _ = Describe("TEST HOSTDEVICE LOCAL PV", func() {
 			err = ops.PodClient.WithNamespace(openebsNamespace).Delete(context.TODO(), podList.Items[0].Name, &metav1.DeleteOptions{})
 			Expect(err).To(BeNil())
 
+			podStatus := ops.IsPodDeletedEventually(openebsNamespace, podList.Items[0].Name)
+			Expect(podStatus).To(BeTrue(), "when checking if LocalPV Provisioner Pod was deleted")
+
+			podCount := ops.GetPodRunningCountEventually(openebsNamespace, LocalPVProvisionerLabelSelector, 1)
+			Expect(podCount).To(Equal(1))
+
 			Expect(ops.IsFinalizerExistsOnBDC(bdcName, localpv_app.LocalPVFinalizer)).To(BeTrue())
 		})
 	})
 	When("deployment is deleted", func() {
-		It("should not have any deployment or running pod", func() {
+		It("should not have any deployment or pod", func() {
 
 			By("deleting above deployment")
 			err = ops.DeployClient.WithNamespace(namespaceObj.Name).Delete(context.TODO(), deployName, &metav1.DeleteOptions{})
@@ -205,7 +223,7 @@ var _ = Describe("TEST HOSTDEVICE LOCAL PV", func() {
 			)
 
 			By("verifying pod count as 0")
-			podCount := ops.GetPodRunningCountEventually(namespaceObj.Name, label, 0)
+			podCount := ops.GetPodCountEventually(namespaceObj.Name, label, nil, 0)
 			Expect(podCount).To(Equal(0), "while verifying pod count")
 
 		})
@@ -213,11 +231,12 @@ var _ = Describe("TEST HOSTDEVICE LOCAL PV", func() {
 
 	When("PVC with StorageClass "+scName+" is deleted ", func() {
 		It("should delete the pvc", func() {
-			By("getting the PV name")
-			pvName := ops.GetPVNameFromPVCName(pvcName)
+			By("getting the PV name and the BD name")
+			pvName := ops.GetPVNameFromPVCName(namespaceObj.Name, pvcName)
+			bdName := ops.GetBDNameFromBDCName(bdcName, openebsNamespace)
 
 			By("deleting above pvc")
-			err = ops.PVCClient.Delete(context.TODO(), pvcName, &metav1.DeleteOptions{})
+			err = ops.PVCClient.WithNamespace(namespaceObj.Name).Delete(context.TODO(), pvcName, &metav1.DeleteOptions{})
 			Expect(err).To(
 				BeNil(),
 				"while deleting PVC {%s} in namespace {%s}",
@@ -241,8 +260,8 @@ var _ = Describe("TEST HOSTDEVICE LOCAL PV", func() {
 				pvcName,
 			)
 
-			By("verifying BDC is deleted")
-			status = ops.IsBDCDeletedEventually(bdcName, openebsNamespace)
+			By("verifying BD is cleaned up")
+			status = ops.IsBdCleanedUpEventually(openebsNamespace, bdName, bdcName)
 			Expect(status).To(
 				BeTrue(),
 				"when checking status of BDC {%s}, which should have been deleted",
@@ -262,6 +281,7 @@ var _ = Describe("TEST HOSTDEVICE LOCAL PV WITH VOLUMEMODE AS BLOCK", func() {
 		label         = "demo=hostdevice-deployment"
 		scNamePrefix  = "sc-hd-block"
 		scName        string
+		bdcName       string
 		pvcName       = "pvc-hd-block"
 		deployObj     *appsv1.Deployment
 		labelselector = map[string]string{
@@ -303,6 +323,18 @@ var _ = Describe("TEST HOSTDEVICE LOCAL PV WITH VOLUMEMODE AS BLOCK", func() {
 		It("should create a PVC ", func() {
 			var (
 				blockVolumeMode = corev1.PersistentVolumeBlock
+			)
+
+			By("verifying if NDM prerequisites are met")
+			Expect(ops.IsNdmPrerequisiteMet(
+				openebsNamespace,
+				ndmLabelSelector,
+				ndmOperatorLabelSelector,
+			)).To(
+				BeTrue(),
+				"when checking if NDM Pods are up and 1 "+
+					"Unclaimed and Active BlockDevice "+
+					"with no filesystem is present",
 			)
 
 			By("building a PVC")
@@ -395,7 +427,7 @@ var _ = Describe("TEST HOSTDEVICE LOCAL PV WITH VOLUMEMODE AS BLOCK", func() {
 
 	When("remove finalizer", func() {
 		It("finalizer should come back after provisioner restart", func() {
-			bdcName := "bdc-pvc-" + string(pvcObj.GetUID())
+			bdcName = "bdc-pvc-" + string(pvcObj.GetUID())
 			bdcObj, err := ops.BDCClient.WithNamespace(openebsNamespace).Get(context.TODO(), bdcName,
 				metav1.GetOptions{})
 			Expect(err).To(BeNil())
@@ -411,11 +443,17 @@ var _ = Describe("TEST HOSTDEVICE LOCAL PV WITH VOLUMEMODE AS BLOCK", func() {
 			err = ops.PodClient.WithNamespace(openebsNamespace).Delete(context.TODO(), podList.Items[0].Name, &metav1.DeleteOptions{})
 			Expect(err).To(BeNil())
 
+			podStatus := ops.IsPodDeletedEventually(openebsNamespace, podList.Items[0].Name)
+			Expect(podStatus).To(BeTrue(), "when checking if LocalPV Provisioner Pod was deleted")
+
+			podCount := ops.GetPodRunningCountEventually(openebsNamespace, LocalPVProvisionerLabelSelector, 1)
+			Expect(podCount).To(Equal(1))
+
 			Expect(ops.IsFinalizerExistsOnBDC(bdcName, localpv_app.LocalPVFinalizer)).To(BeTrue())
 		})
 	})
 	When("deployment is deleted", func() {
-		It("should not have any deployment or running pod", func() {
+		It("should not have any deployment or pod", func() {
 
 			By("deleting above deployment")
 			err = ops.DeployClient.WithNamespace(namespaceObj.Name).Delete(context.TODO(), deployName, &metav1.DeleteOptions{})
@@ -427,7 +465,7 @@ var _ = Describe("TEST HOSTDEVICE LOCAL PV WITH VOLUMEMODE AS BLOCK", func() {
 			)
 
 			By("verifying pod count as 0")
-			podCount := ops.GetPodRunningCountEventually(namespaceObj.Name, label, 0)
+			podCount := ops.GetPodCountEventually(namespaceObj.Name, label, nil, 0)
 			Expect(podCount).To(Equal(0), "while verifying pod count")
 
 		})
@@ -435,12 +473,12 @@ var _ = Describe("TEST HOSTDEVICE LOCAL PV WITH VOLUMEMODE AS BLOCK", func() {
 
 	When("PVC with StorageClass "+scName+" is deleted ", func() {
 		It("should delete the PVC", func() {
-			By("getting the PV name and the BDC name")
-			bdcName := "bdc-pvc-" + string(pvcObj.GetUID())
-			pvName := ops.GetPVNameFromPVCName(pvcName)
+			By("getting the PV name and the BD name")
+			pvName := ops.GetPVNameFromPVCName(namespaceObj.Name, pvcName)
+			bdName := ops.GetBDNameFromBDCName(bdcName, openebsNamespace)
 
 			By("deleting above pvc")
-			err = ops.PVCClient.Delete(context.TODO(), pvcName, &metav1.DeleteOptions{})
+			err = ops.PVCClient.WithNamespace(namespaceObj.Name).Delete(context.TODO(), pvcName, &metav1.DeleteOptions{})
 			Expect(err).To(
 				BeNil(),
 				"while deleting PVC {%s} in namespace {%s}",
@@ -464,8 +502,8 @@ var _ = Describe("TEST HOSTDEVICE LOCAL PV WITH VOLUMEMODE AS BLOCK", func() {
 				pvcName,
 			)
 
-			By("verifying BDC is deleted")
-			status = ops.IsBDCDeletedEventually(bdcName, openebsNamespace)
+			By("verifying BD is cleaned up")
+			status = ops.IsBdCleanedUpEventually(openebsNamespace, bdName, bdcName)
 			Expect(status).To(
 				BeTrue(),
 				"when checking status of BDC {%s}, which should have been deleted",
@@ -534,6 +572,17 @@ var _ = Describe("[-ve] TEST HOSTDEVICE LOCAL PV", func() {
 
 	When("existing PVC with StorageClass "+scName+" is created", func() {
 		It("should create a PVC", func() {
+			By("verifying if NDM prerequisites are met")
+			Expect(ops.IsNdmPrerequisiteMet(
+				openebsNamespace,
+				ndmLabelSelector,
+				ndmOperatorLabelSelector,
+			)).To(
+				BeTrue(),
+				"when checking if NDM Pods are up and 1 "+
+					"Unclaimed and Active BlockDevice "+
+					"with no filesystem is present",
+			)
 
 			By("building a pvc")
 			existingPVCObj, err = pvc.NewBuilder().
@@ -705,25 +754,19 @@ var _ = Describe("[-ve] TEST HOSTDEVICE LOCAL PV", func() {
 				namespaceObj.Name,
 			)
 
-			/*
-				By("checking if BDC gets deleted")
-				staleBDCName := "bdc-pvc-" + string(pvcObj.GetUID())
-				exitStatus := ops.GetBDCStatusAfterAge(staleBDCName, openebsNamespace, time.Duration(bdcTimeoutDuration+1)*time.Second)
-				Expect(exitStatus).To(
-					Equal(deleted),
-					"while checking if the stale BDC {%s} got deleted",
-					staleBDCName,
-				)
-			*/
+			By("verifying pod count as 1")
+			podCount := ops.GetPodCountEventually(namespaceObj.Name, existinglabel, nil, 1)
+			Expect(podCount).To(Equal(1), "while verifying running pod count")
 
-			By("verifying pod count as 0")
-			podCount := ops.GetPodRunningCountEventually(namespaceObj.Name, label, 0)
-			Expect(podCount).To(Equal(0), "while verifying pod count")
+			By("verifying running pod count as 0")
+			//Giving the check time till timeout to try to get a running pod
+			podRunningCount := ops.GetPodRunningCountEventually(namespaceObj.Name, label, 1)
+			Expect(podRunningCount).To(Equal(0), "while verifying pod count")
 		})
 	})
 
 	When("above deployment is deleted", func() {
-		It("should not have any deployment or running pod", func() {
+		It("should not have any deployment or pod", func() {
 
 			By("deleting above deployment")
 			err = ops.DeployClient.WithNamespace(namespaceObj.Name).Delete(context.TODO(), deployName, &metav1.DeleteOptions{})
@@ -735,7 +778,7 @@ var _ = Describe("[-ve] TEST HOSTDEVICE LOCAL PV", func() {
 			)
 
 			By("verifying pod count as 0")
-			podCount := ops.GetPodRunningCountEventually(namespaceObj.Name, label, 0)
+			podCount := ops.GetPodCountEventually(namespaceObj.Name, label, nil, 0)
 			Expect(podCount).To(Equal(0), "while verifying pod count")
 
 		})
@@ -743,9 +786,11 @@ var _ = Describe("[-ve] TEST HOSTDEVICE LOCAL PV", func() {
 
 	When("above PVC with StorageClass "+scName+" is deleted ", func() {
 		It("should delete the PVC", func() {
+			By("getting the BDC name")
+			bdcName := "bdc-pvc-" + string(pvcObj.GetUID())
 
 			By("deleting above PVC")
-			err = ops.PVCClient.Delete(context.TODO(), pvcName, &metav1.DeleteOptions{})
+			err = ops.PVCClient.WithNamespace(namespaceObj.Name).Delete(context.TODO(), pvcName, &metav1.DeleteOptions{})
 			Expect(err).To(
 				BeNil(),
 				"while deleting PVC {%s} in namespace {%s}",
@@ -760,11 +805,19 @@ var _ = Describe("[-ve] TEST HOSTDEVICE LOCAL PV", func() {
 				"when checking status of deleted PVC {%s}",
 				pvcName,
 			)
+
+			By("veryfying BDC is deleted")
+			status = ops.IsBDCDeletedEventually(bdcName, openebsNamespace)
+			Expect(status).To(
+				BeTrue(),
+				"when checking status of BDC {%s}, which should have been deleted",
+				bdcName,
+			)
 		})
 	})
 
 	When("existing deployment is deleted", func() {
-		It("should not have any deployment or running pod", func() {
+		It("should not have any deployment or pod", func() {
 
 			By("deleting above deployment")
 			err = ops.DeployClient.WithNamespace(namespaceObj.Name).
@@ -777,20 +830,20 @@ var _ = Describe("[-ve] TEST HOSTDEVICE LOCAL PV", func() {
 			)
 
 			By("verifying pod count as 0")
-			podCount := ops.GetPodRunningCountEventually(namespaceObj.Name, existinglabel, 1)
-			Expect(podCount).To(Equal(1), "while verifying pod count")
-
+			podCount := ops.GetPodCountEventually(namespaceObj.Name, existinglabel, nil, 0)
+			Expect(podCount).To(Equal(0), "while verifying pod count")
 		})
 	})
 
 	When("existing PVC with storageclass "+scName+" is deleted ", func() {
 		It("should delete the PVC", func() {
-			By("getting the PV name and the BDC name")
+			By("getting the PV name, BD name and the BDC name")
 			bdcName := "bdc-pvc-" + string(existingPVCObj.GetUID())
-			pvName := ops.GetPVNameFromPVCName(existingPVCName)
+			pvName := ops.GetPVNameFromPVCName(namespaceObj.Name, existingPVCName)
+			bdName := ops.GetBDNameFromBDCName(bdcName, openebsNamespace)
 
 			By("deleting above PVC")
-			err = ops.PVCClient.Delete(context.TODO(), existingPVCName, &metav1.DeleteOptions{})
+			err = ops.PVCClient.WithNamespace(namespaceObj.Name).Delete(context.TODO(), existingPVCName, &metav1.DeleteOptions{})
 			Expect(err).To(
 				BeNil(),
 				"while deleting PVC {%s} in namespace {%s}",
@@ -814,14 +867,13 @@ var _ = Describe("[-ve] TEST HOSTDEVICE LOCAL PV", func() {
 				existingPVCName,
 			)
 
-			By("verifying BDC is deleted")
-			status = ops.IsBDCDeletedEventually(bdcName, openebsNamespace)
+			By("verifying BD is cleaned up")
+			status = ops.IsBdCleanedUpEventually(openebsNamespace, bdName, bdcName)
 			Expect(status).To(
 				BeTrue(),
 				"when checking status of BDC {%s}, which should have been deleted",
 				bdcName,
 			)
-
 		})
 	})
 })
@@ -884,6 +936,17 @@ var _ = Describe("[-ve] TEST HOSTDEVICE LOCAL PV WITH VOLUMEMODE AS BLOCK ", fun
 
 	When("existing PVC with StorageClass "+scName+" is created", func() {
 		It("should create a PVC", func() {
+			By("verifying if NDM prerequisites are met")
+			Expect(ops.IsNdmPrerequisiteMet(
+				openebsNamespace,
+				ndmLabelSelector,
+				ndmOperatorLabelSelector,
+			)).To(
+				BeTrue(),
+				"when checking if NDM Pods are up and 1 "+
+					"Unclaimed and Active BlockDevice "+
+					"with no filesystem is present",
+			)
 
 			By("building a PVC")
 			existingPVCObj, err = pvc.NewBuilder().
@@ -966,17 +1029,22 @@ var _ = Describe("[-ve] TEST HOSTDEVICE LOCAL PV WITH VOLUMEMODE AS BLOCK ", fun
 			)
 
 			By("verifying PVC status as bound")
-			status := ops.IsPVCBoundEventually(existingPVCName)
+			status := ops.IsPVCBoundEventually(namespaceObj.Name, existingPVCName)
 			Expect(status).To(Equal(true), "while checking status equal to bound")
 
-			By("verifying pod count as 0")
-			podCount := ops.GetPodRunningCountEventually(namespaceObj.Name, existinglabel, 1)
-			Expect(podCount).To(Equal(0), "while verifying pod count")
+			By("verifying pod count as 1")
+			podCount := ops.GetPodCountEventually(namespaceObj.Name, existinglabel, nil, 1)
+			Expect(podCount).To(Equal(1), "while verifying running pod count")
+
+			By("verifying running pod count as 0")
+			//Giving the check time till timeout to try to get a running pod
+			runningPodCount := ops.GetPodRunningCountEventually(namespaceObj.Name, existinglabel, 1)
+			Expect(runningPodCount).To(Equal(0), "while verifying running pod count")
 
 		})
 	})
 	When("above deployment is deleted", func() {
-		It("should not have any deployment or running pod", func() {
+		It("should not have any deployment or pod", func() {
 
 			By("deleting above deployment")
 			err = ops.DeployClient.WithNamespace(namespaceObj.Name).Delete(context.TODO(), existingDeployName, &metav1.DeleteOptions{})
@@ -988,7 +1056,7 @@ var _ = Describe("[-ve] TEST HOSTDEVICE LOCAL PV WITH VOLUMEMODE AS BLOCK ", fun
 			)
 
 			By("verifying pod count as 0")
-			podCount := ops.GetPodRunningCountEventually(namespaceObj.Name, existinglabel, 0)
+			podCount := ops.GetPodCountEventually(namespaceObj.Name, existinglabel, nil, 0)
 			Expect(podCount).To(Equal(0), "while verifying pod count")
 
 		})
@@ -996,9 +1064,13 @@ var _ = Describe("[-ve] TEST HOSTDEVICE LOCAL PV WITH VOLUMEMODE AS BLOCK ", fun
 
 	When("existing PVC with storageclass "+scName+" is deleted ", func() {
 		It("should delete the PVC", func() {
+			By("getting the PV name, BD name and the BDC name")
+			bdcName := "bdc-pvc-" + string(existingPVCObj.GetUID())
+			pvName := ops.GetPVNameFromPVCName(namespaceObj.Name, existingPVCName)
+			bdName := ops.GetBDNameFromBDCName(bdcName, openebsNamespace)
 
 			By("deleting above PVC")
-			err = ops.PVCClient.Delete(context.TODO(), existingPVCName, &metav1.DeleteOptions{})
+			err = ops.PVCClient.WithNamespace(namespaceObj.Name).Delete(context.TODO(), existingPVCName, &metav1.DeleteOptions{})
 			Expect(err).To(
 				BeNil(),
 				"while deleting PVC {%s} in namespace {%s}",
@@ -1006,14 +1078,29 @@ var _ = Describe("[-ve] TEST HOSTDEVICE LOCAL PV WITH VOLUMEMODE AS BLOCK ", fun
 				namespaceObj.Name,
 			)
 
+			By("having the Provisioner delete the PV")
+			status := ops.IsPVDeletedEventually(pvName)
+			Expect(status).To(
+				BeTrue(),
+				"while waiting for the Provisioner to delete PV {%s}",
+				pvName,
+			)
+
 			By("verifying PVC is deleted")
-			status := ops.IsPVCDeletedEventually(existingPVCName, namespaceObj.Name)
+			status = ops.IsPVCDeletedEventually(existingPVCName, namespaceObj.Name)
 			Expect(status).To(
 				BeTrue(),
 				"when checking status of deleted PVC {%s}",
 				existingPVCName,
 			)
 
+			By("verifying BD is cleaned up")
+			status = ops.IsBdCleanedUpEventually(openebsNamespace, bdName, bdcName)
+			Expect(status).To(
+				BeTrue(),
+				"when checking status of BDC {%s}, which should have been deleted",
+				bdcName,
+			)
 		})
 	})
 })

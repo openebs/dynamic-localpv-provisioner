@@ -142,17 +142,17 @@ testv: format
 # Requires KUBECONFIG env and Ginkgo binary
 .PHONY: integration-test
 integration-test:
-	@cd tests && ginkgo -v
+	@cd tests && sudo -E env "PATH=${PATH}" ginkgo -v -failFast
 
 # Requires KUBECONFIG env and Ginkgo binary
 .PHONY: device-integration-test
 device-integration-test:
-	@cd tests && ginkgo -v -skip="TEST HOSTPATH.*"
+	@cd tests && sudo -E env "PATH=${PATH}" ginkgo -v -failFast -skip="TEST HOSTPATH.*"
 
 # Requires KUBECONFIG env and Ginkgo binary
 .PHONY: hostpath-integration-test
 hostpath-integration-test:
-	@cd tests && ginkgo -v -focus="TEST HOSTPATH.*"
+	@cd tests && sudo -E env "PATH=${PATH}" ginkgo -v -failFast -focus="TEST HOSTPATH.*"
 
 .PHONY: format
 format:
