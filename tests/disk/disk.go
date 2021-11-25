@@ -32,8 +32,9 @@ import (
 
 const (
 	// DiskImageSize is the default file size(1GB) used while creating backing image
-	DiskImageSize       = 1073741824
-	DiskImageNamePrefix = "openebs-disk-xfs_quota"
+	DiskImageSize               = 1073741824
+	DiskImageNamePrefix         = "openebs-disk"
+	XfsQuotaDiskImageNamePrefix = DiskImageNamePrefix + "-xfs_quota"
 )
 
 // Disk has the attributes of a virtual disk which is emulated for integration
@@ -64,7 +65,7 @@ func NewDisk(size int64) Disk {
 }
 
 func (disk *Disk) createDiskImage(imgDir string) error {
-	f, err := ioutil.TempFile(imgDir, DiskImageNamePrefix+"-*.img")
+	f, err := ioutil.TempFile(imgDir, XfsQuotaDiskImageNamePrefix+"-*.img")
 	if err != nil {
 		return fmt.Errorf("error creating disk image. Error : %v", err)
 	}
@@ -192,18 +193,6 @@ func (disk *Disk) Wipefs() error {
 	return nil
 }
 
-func MkdirAll(paths ...string) error {
-	createMkdirCommand := "mkdir -p"
-	for _, path := range paths {
-		createMkdirCommand += " " + path
-	}
-	_, err := RunCommand(createMkdirCommand)
-	if err != nil {
-		return fmt.Errorf("error creating directory. Error : %v", err)
-	}
-	return nil
-}
-
 func (disk *Disk) PrjquotaMount(mountpoint string) error {
 	createMountCommand := "mount -o rw,prjquota " + disk.DiskPath + " " + mountpoint
 	_, err := RunCommand(createMountCommand)
@@ -258,9 +247,13 @@ func (disk *Disk) DetachAndDeleteDisk() error {
 func PrepareDisk(imgDir, hostPath string) (Disk, error) {
 	physicalDisk := NewDisk(DiskImageSize)
 
-	err := MkdirAll(imgDir, hostPath)
+	err := os.MkdirAll(imgDir, 0775)
 	if err != nil {
-		return physicalDisk, errors.Wrapf(err, "while making a new directory at {%s}, {%s}", imgDir, hostPath)
+		return physicalDisk, errors.Wrapf(err, "while making a new directory at {%s}", imgDir)
+	}
+	err = os.MkdirAll(hostPath, 0775)
+	if err != nil {
+		return physicalDisk, errors.Wrapf(err, "while making a new directory at {%s}", hostPath)
 	}
 
 	err = physicalDisk.CreateLoopDevice(imgDir)
