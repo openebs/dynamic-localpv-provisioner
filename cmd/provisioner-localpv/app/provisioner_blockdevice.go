@@ -48,7 +48,7 @@ func (p *Provisioner) ProvisionBlockDevice(ctx context.Context, opts pvControlle
 			"\t\t" + "- name: NodeAffinityLabels\n" +
 			"\t\t" + "  list:\n" +
 			"\t\t" + "    - \"node-label-key\"\n")
-		return nil, pvController.ProvisioningFinished, errors.Errorf("")
+		return nil, pvController.ProvisioningFinished, errors.Errorf("Cannot use deprecated \"NodeAffinityLabel\" config option")
 	}
 
 	// nodeAffinityLabels contains all the custom node affinity labels.
