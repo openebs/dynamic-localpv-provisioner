@@ -247,11 +247,11 @@ func (disk *Disk) DetachAndDeleteDisk() error {
 func PrepareDisk(imgDir, hostPath string) (Disk, error) {
 	physicalDisk := NewDisk(DiskImageSize)
 
-	err := os.MkdirAll(imgDir, 0775)
+	err := os.MkdirAll(imgDir, 0750)
 	if err != nil {
 		return physicalDisk, errors.Wrapf(err, "while making a new directory at {%s}", imgDir)
 	}
-	err = os.MkdirAll(hostPath, 0775)
+	err = os.MkdirAll(hostPath, 0750)
 	if err != nil {
 		return physicalDisk, errors.Wrapf(err, "while making a new directory at {%s}", hostPath)
 	}
