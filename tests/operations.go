@@ -23,9 +23,11 @@ import (
 
 	//"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	. "github.com/onsi/gomega"
+	ndm "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
 	bd "github.com/openebs/maya/pkg/blockdevice/v1alpha2"
 	bdc "github.com/openebs/maya/pkg/blockdeviceclaim/v1alpha1"
 	kubeclient "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
@@ -34,30 +36,38 @@ import (
 	svc "github.com/openebs/maya/pkg/kubernetes/service/v1alpha1"
 	templatefuncs "github.com/openebs/maya/pkg/templatefuncs/v1alpha1"
 	unstruct "github.com/openebs/maya/pkg/unstruct/v1alpha2"
-	result "github.com/openebs/maya/pkg/upgrade/result/v1alpha1"
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	k8stypes "k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/json"
+	"k8s.io/apimachinery/pkg/util/strategicpatch"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/remotecommand"
 
 	deploy "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/apps/v1/deployment"
 	container "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/container"
+	event "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/event"
 	pv "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/persistentvolume"
 	pvc "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/persistentvolumeclaim"
 	pod "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/pod"
 	pts "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/podtemplatespec"
 	k8svolume "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/volume"
 	sc "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/storage/v1/storageclass"
+	ndmconfig "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/ndmconfig"
 )
 
 const (
-	maxRetry = 90
+	maxRetry                  = 18
+	APPEND   PathFilterOption = "Append"
+	REMOVE   PathFilterOption = "Remove"
 )
 
+/*
 type bdcExitStatus string
 
 const (
@@ -66,7 +76,7 @@ const (
 	bound   bdcExitStatus = "bound"
 	invalid bdcExitStatus = "invalid"
 )
-
+*/
 /*
 type SortBDC struct {
 	bdcList *apis.BlockDeviceClaimList
@@ -93,17 +103,20 @@ type Options struct {
 	cmd       []string
 }
 
+// NDM Path-Filter options
+type PathFilterOption string
+
 // Operations provides clients amd methods to perform operations
 type Operations struct {
 	KubeClient     *kubeclient.Client
 	NodeClient     *node.Kubeclient
+	EventClient    *event.KubeClient
 	PodClient      *pod.KubeClient
 	PVCClient      *pvc.Kubeclient
 	PVClient       *pv.Kubeclient
 	SCClient       *sc.Kubeclient
 	NSClient       *ns.Kubeclient
 	SVCClient      *svc.Kubeclient
-	URClient       *result.Kubeclient
 	UnstructClient *unstruct.Kubeclient
 	DeployClient   *deploy.Kubeclient
 	BDClient       *bd.Kubeclient
@@ -111,27 +124,6 @@ type Operations struct {
 	KubeConfigPath string
 	NameSpace      string
 	Config         interface{}
-}
-
-// SPCConfig provides config to create cstor pools
-type SPCConfig struct {
-	Name      string
-	DiskType  string
-	PoolType  string
-	PoolCount int
-	// OverProvisioning field is deprecated and not honoured
-	IsOverProvisioning bool
-
-	IsThickProvisioning bool
-}
-
-// PVCConfig provides config to create PersistentVolumeClaim
-type PVCConfig struct {
-	Name        string
-	Namespace   string
-	SCName      string
-	Capacity    string
-	AccessModes []corev1.PersistentVolumeAccessMode
 }
 
 // OperationsOptions abstracts creating an
@@ -195,6 +187,9 @@ func (ops *Operations) withDefaults() {
 	if ops.NSClient == nil {
 		ops.NSClient = ns.NewKubeClient(ns.WithKubeConfigPath(ops.KubeConfigPath))
 	}
+	if ops.EventClient == nil {
+		ops.EventClient = event.NewKubeClient(event.WithKubeConfigPath(ops.KubeConfigPath))
+	}
 	if ops.PodClient == nil {
 		ops.PodClient = pod.NewKubeClient(pod.WithKubeConfigPath(ops.KubeConfigPath))
 	}
@@ -206,9 +201,6 @@ func (ops *Operations) withDefaults() {
 	}
 	if ops.SCClient == nil {
 		ops.SCClient = sc.NewKubeClient(sc.WithKubeConfigPath(ops.KubeConfigPath))
-	}
-	if ops.URClient == nil {
-		ops.URClient = result.NewKubeClient(result.WithKubeConfigPath(ops.KubeConfigPath))
 	}
 	if ops.UnstructClient == nil {
 		ops.UnstructClient = unstruct.NewKubeClient(unstruct.WithKubeConfigPath(ops.KubeConfigPath))
@@ -231,18 +223,20 @@ func (ops *Operations) withDefaults() {
 }
 
 // CheckPodStatusEventually gives the phase of the pod eventually
-func (ops *Operations) CheckPodStatusEventually(namespace, podName string, expectedPodPhase corev1.PodPhase) bool {
+func (ops *Operations) CheckPodStatusEventually(namespace, podName string, expectedPodPhase corev1.PodPhase) corev1.PodPhase {
+	var pod *corev1.Pod
+	var err error
 	for i := 0; i < maxRetry; i++ {
-		pod, err := ops.PodClient.
+		pod, err = ops.PodClient.
 			WithNamespace(namespace).
 			Get(context.TODO(), podName, metav1.GetOptions{})
 		Expect(err).ShouldNot(HaveOccurred())
 		if pod.Status.Phase == expectedPodPhase {
-			return true
+			return pod.Status.Phase
 		}
 		time.Sleep(5 * time.Second)
 	}
-	return false
+	return pod.Status.Phase
 }
 
 // GetPodRunningCountEventually gives the number of pods running eventually
@@ -297,36 +291,36 @@ func (ops *Operations) GetReadyNodes() *corev1.NodeList {
 }
 
 // IsPVCBound checks if the pvc is bound or not
-func (ops *Operations) IsPVCBound(pvcName string) bool {
-	volume, err := ops.PVCClient.
+func (ops *Operations) IsPVCBound(namespace, pvcName string) bool {
+	volume, err := ops.PVCClient.WithNamespace(namespace).
 		Get(context.TODO(), pvcName, metav1.GetOptions{})
 	Expect(err).ShouldNot(HaveOccurred())
 	return pvc.NewForAPIObject(volume).IsBound()
 }
 
 // IsPVCBoundEventually checks if the pvc is bound or not eventually
-func (ops *Operations) IsPVCBoundEventually(pvcName string) bool {
+func (ops *Operations) IsPVCBoundEventually(namespace string, pvcName string) bool {
 	return Eventually(func() bool {
-		volume, err := ops.PVCClient.
+		volume, err := ops.PVCClient.WithNamespace(namespace).
 			Get(context.TODO(), pvcName, metav1.GetOptions{})
 		Expect(err).ShouldNot(HaveOccurred())
 		return pvc.NewForAPIObject(volume).IsBound()
 	},
-		450, 5).
+		90, 5).
 		Should(BeTrue())
 }
 
 // VerifyCapacity checks if the pvc capacity has been updated
-func (ops *Operations) VerifyCapacity(pvcName, capacity string) bool {
+func (ops *Operations) VerifyCapacity(namespace, pvcName, capacity string) bool {
 	return Eventually(func() bool {
-		volume, err := ops.PVCClient.
+		volume, err := ops.PVCClient.WithNamespace(namespace).
 			Get(context.TODO(), pvcName, metav1.GetOptions{})
 		Expect(err).ShouldNot(HaveOccurred())
 		actualCapacity := volume.Status.Capacity[corev1.ResourceStorage]
 		desiredCapacity, _ := resource.ParseQuantity(capacity)
 		return (desiredCapacity.Cmp(actualCapacity) == 0)
 	},
-		450, 5).
+		90, 5).
 		Should(BeTrue())
 }
 
@@ -350,7 +344,7 @@ func (ops *Operations) IsPodRunningEventually(namespace, podName string) bool {
 		return pod.NewForAPIObject(p).
 			IsRunning()
 	},
-		450, 5).
+		90, 5).
 		Should(BeTrue())
 }
 
@@ -419,38 +413,6 @@ func (ops *Operations) ExecuteCMDEventually(
 	return ""
 }
 
-// RestartPodEventually restarts the pod and return
-func (ops *Operations) RestartPodEventually(podObj *corev1.Pod) error {
-	status := ops.IsPodRunningEventually(podObj.Namespace, podObj.Name)
-	if !status {
-		return errors.Errorf(
-			"while checking the status of pod {%s} in namespace {%s} before restarting",
-			podObj.Name,
-			podObj.Namespace,
-		)
-	}
-
-	err := ops.PodClient.WithNamespace(podObj.Namespace).
-		Delete(context.TODO(), podObj.Name, &metav1.DeleteOptions{})
-	if err != nil {
-		return errors.Wrapf(err,
-			"failed to delete pod {%s} in namespace {%s}",
-			podObj.Name,
-			podObj.Namespace,
-		)
-	}
-
-	status = ops.IsPodDeletedEventually(podObj.Namespace, podObj.Name)
-	if !status {
-		return errors.Errorf(
-			"while checking termination of pod {%s} in namespace {%s}",
-			podObj.Name,
-			podObj.Namespace,
-		)
-	}
-	return nil
-}
-
 // IsPVCDeleted tries to get the deleted pvc
 // and returns true if pvc is not found
 // else returns false
@@ -469,7 +431,7 @@ func (ops *Operations) IsPVCDeletedEventually(pvcName, namespace string) bool {
 			Get(context.TODO(), pvcName, metav1.GetOptions{})
 		return isNotFound(err)
 	},
-		450, 5).
+		90, 5).
 		Should(BeTrue())
 }
 
@@ -491,7 +453,7 @@ func (ops *Operations) IsPVDeletedEventually(pvName string) bool {
 			Get(context.TODO(), pvName, metav1.GetOptions{})
 		return isNotFound(err)
 	},
-		450, 5).
+		90, 5).
 		Should(BeTrue())
 }
 
@@ -503,14 +465,13 @@ func (ops *Operations) IsPodDeletedEventually(namespace, podName string) bool {
 			Get(context.TODO(), podName, metav1.GetOptions{})
 		return isNotFound(err)
 	},
-		450, 5).
+		90, 5).
 		Should(BeTrue())
 }
 
 // GetPVNameFromPVCName gives the pv name for the given pvc
-func (ops *Operations) GetPVNameFromPVCName(pvcName string) string {
-	p, err := ops.PVCClient.
-		Get(context.TODO(), pvcName, metav1.GetOptions{})
+func (ops *Operations) GetPVNameFromPVCName(namespace, pvcName string) string {
+	p, err := ops.PVCClient.WithNamespace(namespace).Get(context.TODO(), pvcName, metav1.GetOptions{})
 	Expect(err).ShouldNot(HaveOccurred())
 	return p.Spec.VolumeName
 }
@@ -528,6 +489,75 @@ func isNotFound(err error) bool {
 	}
 }
 
+// IsBdCleanedUpEventually tries to get the deleted BDC
+// and returns true if BDC is not found
+// else returns false
+func (ops *Operations) IsBdCleanedUpEventually(namespace, bdName, bdcName string) bool {
+	bdcDeleted := ops.IsBDCDeletedEventually(bdcName, namespace)
+
+	if !bdcDeleted {
+		return false
+	}
+	// Filters for BDs with the correct name
+	fieldSelector := "involvedObject.kind=BlockDevice" + "," +
+		"involvedObject.name=" + bdName
+
+	for i := 0; i < maxRetry; i++ {
+		// Get list of events from openebs namespace
+		// for the given BD name (using filter created above)
+		bdEventsApiList, err := ops.EventClient.WithNamespace(namespace).
+			List(context.TODO(), metav1.ListOptions{FieldSelector: fieldSelector})
+		Expect(err).To(BeNil(), "when getting BlockDevice events from %s namespace", namespace)
+
+		// Sorting events based on timestamp
+		// More recent events are earlier on the list
+		bdEventsList := event.ListBuilderFromAPIList(bdEventsApiList).List().LatestFirstSort()
+
+		// Variable to count "Cleanup Completed" events
+		cleanupCompleteCount := 0
+
+		// Do one pass of all of the sorted events
+		// in search of "Cleanup Completed"
+		for _, event := range bdEventsList.Items {
+			// Loop termination condition
+			// ------------------------
+			// Hitting this condtiions means that we have counted
+			// all the way up to the Event which says -- BDC has
+			// been deleted and BD has been released.
+			// This means that there is no hope for finding a
+			// "Cleanup Completed" Event beyond this Event.
+			if event.Object.Reason == "BlockDeviceCleanUpInProgress" &&
+				strings.Contains(event.Object.Message, bdcName) {
+				break
+			}
+
+			// "Cleanup Completed" Events don't specify which BDC it's
+			// talking about.
+			// This means that if we find a "Cleanup Completed", and then
+			// we find a BD Claim Event after it... then this cleanup is
+			// for that Claim Event. It is not the one we are looking for
+			if event.Object.Reason == "BlockDeviceClaimed" {
+				// Resetting the counter
+				cleanupCompleteCount = 0
+				continue
+			}
+
+			// This is the "Cleanup Completed" Event check.
+			// ------------------------
+			// If we find one, we increment the counter.
+			if event.Object.Reason == "BlockDeviceReleased" {
+				cleanupCompleteCount++
+				continue
+			}
+		}
+		if cleanupCompleteCount > 0 {
+			return true
+		}
+		time.Sleep(5 * time.Second)
+	}
+	return false
+}
+
 // IsBDCDeletedEventually tries to get the deleted BDC
 // and returns true if BDC is not found
 // else returns false
@@ -537,7 +567,7 @@ func (ops *Operations) IsBDCDeletedEventually(bdcName, namespace string) bool {
 			Get(context.TODO(), bdcName, metav1.GetOptions{})
 		return isNotFound(err)
 	},
-		450, 5).
+		90, 5).
 		Should(BeTrue())
 }
 
@@ -559,7 +589,7 @@ func (ops *Operations) GetLatestCreatedBDCName(namespace string) string {
 	return sortableBDCList.bdcList.Items[0].ObjectMeta.Name
 }
 */
-/*
+
 func (ops *Operations) GetBDNameFromBDCName(bdcName, namespace string) string {
 	bdcObj, err := ops.BDCClient.WithNamespace(namespace).
 		Get(context.TODO(), bdcName, metav1.GetOptions{})
@@ -569,13 +599,250 @@ func (ops *Operations) GetBDNameFromBDCName(bdcName, namespace string) string {
 		bdcName,
 	)
 	Expect(bdcObj.Status.Phase).To(
-		Equal(apis.BlockDeviceClaimStatusDone),
+		Equal(ndm.BlockDeviceClaimStatusDone),
 		"when trying to check if a BD is bound to BDC {%s}",
 		bdcName,
 	)
 	return bdcObj.Spec.BlockDeviceName
 }
-*/
+
+func (ops *Operations) GetNdmConfigMap(
+	clientset *kubernetes.Clientset,
+	namespace string,
+	ndmConfigLabelSelector string,
+) (*corev1.ConfigMap, error) {
+	configMapList, err := clientset.CoreV1().ConfigMaps(namespace).
+		List(context.TODO(), metav1.ListOptions{
+			LabelSelector: ndmConfigLabelSelector,
+		})
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to list ConfigMaps in {%s} namespace", namespace)
+	}
+
+	cmLength := len(configMapList.Items)
+	if cmLength != 1 {
+		return nil, errors.Errorf("expected 1 ConfigMap with LabelSelector {%s} in namespace {%s}, but got {%v}",
+			ndmConfigLabelSelector, namespace, cmLength)
+	}
+
+	return &(configMapList.Items[0]), nil
+}
+
+func (ops *Operations) PathFilterExclude(
+	option PathFilterOption,
+	namespace string,
+	ndmConfigLabelSelector string,
+	ndmLabelSelector string,
+	diskPath string,
+) error {
+	// Generating new clientset
+	clientset, err := ops.KubeClient.Clientset()
+	if err != nil {
+		return errors.Wrap(err, "failed to get a clientset")
+	}
+
+	// Getting the NDM ConfigMap
+	// TODO: Needs a lock on the ConfigMap resource
+	// TODO: ConfigMap utility methods
+	var oldNdmConfigMap *corev1.ConfigMap
+	oldNdmConfigMap, err = ops.GetNdmConfigMap(clientset, namespace, ndmConfigLabelSelector)
+	if err != nil {
+		return errors.Wrapf(err, "failed get NDM ConfigMap from namespace {%s}", namespace)
+	}
+
+	// Unmarshaling the NDM config
+	var ndmConfig *ndmconfig.Config
+	ndmConfig, err = ndmconfig.NewConfigFromAPIConfigMap(oldNdmConfigMap)
+	if err != nil {
+		return errors.Wrap(err, "failed to generate ndmconfig.Config")
+	}
+
+	if option == APPEND {
+		// Adding the diskpath to the path-filter exclude list
+		err = ndmConfig.AppendToPathFilter(ndmconfig.Exclude, diskPath)
+		if err != nil {
+			return errors.Wrapf(err, "failed to append {%s} to the path-filter exclude list", diskPath)
+		}
+	} else if option == REMOVE {
+		// Adding the diskpath to the path-filter exclude list
+		err = ndmConfig.RemoveFromPathFilter(ndmconfig.Exclude, diskPath)
+		if err != nil {
+			return errors.Wrapf(err, "failed to remove {%s} from the path-filter exclude list", diskPath)
+		}
+	} else {
+		return errors.Errorf("{%s} is an invalid PathFilterOption", option)
+	}
+
+	// Marshaling the NDM config to YAML
+	var configYml string
+	configYml, err = ndmConfig.GetConfigYaml()
+	if err != nil {
+		return errors.Wrap(err, "failed to get YAML from NDM Config")
+	}
+
+	// Creating and applying patch
+	var (
+		oldJson, newJson []byte
+		patch            []byte
+	)
+	newNdmConfigMap := oldNdmConfigMap.DeepCopy()
+	newNdmConfigMap.Data["node-disk-manager.config"] = configYml
+
+	oldJson, _ = json.Marshal(oldNdmConfigMap)
+	newJson, _ = json.Marshal(newNdmConfigMap)
+	//Generate patch
+	patch, err = strategicpatch.CreateTwoWayMergePatch(oldJson, newJson, corev1.ConfigMap{})
+	if err != nil {
+		return errors.Wrap(err, "failed to create two-way merge patch from NDM config JSONs")
+	}
+	//Apply patch
+	_, err = clientset.CoreV1().ConfigMaps(namespace).Patch(
+		context.TODO(),
+		oldNdmConfigMap.Name,
+		k8stypes.MergePatchType,
+		patch,
+		metav1.PatchOptions{},
+	)
+	if err != nil {
+		return errors.Wrap(err, "failed to apply NDM config patch")
+	}
+
+	//Restart openebs-ndm DaemonSet Pods
+	var podList *corev1.PodList
+	podList, err = clientset.CoreV1().Pods(namespace).List(
+		context.TODO(),
+		metav1.ListOptions{LabelSelector: ndmLabelSelector},
+	)
+	if err != nil {
+		return errors.Wrap(err, "failed to list openebs-ndm DaemonSet Pods")
+	}
+
+	err = clientset.CoreV1().Pods(namespace).Delete(
+		context.TODO(),
+		podList.Items[0].Name,
+		metav1.DeleteOptions{},
+	)
+	if err != nil {
+		return errors.Wrap(err, "failed to delete openebs-ndm DaemonSet Pod")
+	}
+
+	if !ops.IsPodDeletedEventually(namespace, podList.Items[0].Name) ||
+		ops.GetPodRunningCountEventually(namespace, ndmLabelSelector, 1) == 0 {
+		return errors.New("Failed to get a running pod after restarting openebs-ndm Pod(s)")
+	}
+
+	return nil
+}
+
+//This function returns true if:
+// 1. The Pod count for the NDM Daemonset Pod, the NDM Operator are greater than 1
+// 2. Only a single blockdevice without a filesystem in Unclaimed and Active state
+// is available
+func (ops *Operations) IsNdmPrerequisiteMet(
+	namespace string,
+	ndmLabelSelector string,
+	ndmOperatorLabelSelector string,
+) bool {
+	signalCount := 2
+	ch := make(chan bool, signalCount)
+	ctx, cancel := context.WithCancel(context.TODO())
+
+	// Checks if exactly one running openebs-ndm daemonset pod exists
+	go func() {
+		for i := 0; i < maxRetry; i++ {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				podList, err := ops.PodClient.WithNamespace(namespace).List(ctx, metav1.ListOptions{LabelSelector: ndmLabelSelector})
+				Expect(err).To(BeNil())
+				podCount := pod.ListBuilderForAPIList(podList).WithFilter(pod.IsRunning()).List().Len()
+				if podCount == 0 {
+					time.Sleep(5 * time.Second)
+					break
+				}
+				if podCount == 1 {
+					ch <- true
+					return
+				}
+				// More than one daemonset pod --> more than one node
+				cancel()
+			}
+		}
+		//No daemonset pods
+		cancel()
+	}()
+
+	// Checks if at least one running openebs-ndm-operator Pod exists
+	go func() {
+		for i := 0; i < maxRetry; i++ {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				podList, err := ops.PodClient.WithNamespace(namespace).List(ctx, metav1.ListOptions{LabelSelector: ndmOperatorLabelSelector})
+				Expect(err).To(BeNil())
+				podCount := pod.ListBuilderForAPIList(podList).WithFilter(pod.IsRunning()).List().Len()
+				if podCount == 0 {
+					time.Sleep(5 * time.Second)
+					break
+				}
+				ch <- true
+				return
+			}
+		}
+		// No ndm-operator Pods
+		cancel()
+	}()
+
+	for i := 0; i < signalCount; i++ {
+		select {
+		case <-ctx.Done():
+			return false
+		case <-ch:
+			continue
+		}
+	}
+
+	// Now that the Pods are up, let's check for the CRD and
+	// if we have exactly one single Unclaimed and Active BD
+	var bdApiList *ndm.BlockDeviceList
+	var err error
+	for i := 0; i < maxRetry; i++ {
+		bdApiList, err = ops.BDClient.WithNamespace(namespace).List(metav1.ListOptions{})
+		// Expecting the err due to absence of CRD
+		// Waiting for the CRD to get created
+		// OR,
+		// Waiting for the NDM probes to build the list of BlockDevices
+		if err != nil || len(bdApiList.Items) == 0 {
+			time.Sleep(5 * time.Second)
+			continue
+		}
+		break
+	}
+	if err != nil || len(bdApiList.Items) == 0 {
+		return false
+	}
+
+	bdList := bd.ListBuilderFromAPIList(bdApiList).List().Filter(bd.IsActive(), bd.IsUnclaimed())
+	// Checking for Unclaimed and Active
+	if bdList.Len() == 0 {
+		return false
+	}
+
+	// Checking for no Filesystem
+	bdCount := 0
+	for _, bd := range bdList.ObjectList.Items {
+		if len(bd.Spec.FileSystem.Type) == 0 {
+			bdCount++
+		}
+	}
+
+	//Checking for BlockDevice count
+	// All prerequisite conditions for NDM are met
+	return bdCount == 1
+}
+
 // GetBDCCountEventually gets BDC resource count based on provided list option.
 func (ops *Operations) GetBDCCountEventually(listOptions metav1.ListOptions, expectedBDCCount int, namespace string) int {
 	var bdcCount int
@@ -606,6 +873,7 @@ func (ops *Operations) IsFinalizerExistsOnBDC(bdcName, finalizer string) bool {
 	return false
 }
 
+/*
 func (ops *Operations) GetBDCStatusAfterAge(bdcName string, namespace string, untilAge time.Duration) bdcExitStatus {
 	bdcObj, err := ops.BDCClient.WithNamespace(namespace).Get(context.TODO(), bdcName, metav1.GetOptions{})
 	Expect(err).To(
@@ -630,7 +898,7 @@ func (ops *Operations) GetBDCStatusAfterAge(bdcName string, namespace string, un
 		return invalid
 	}
 }
-
+*/
 // ExecPod executes arbitrary command inside the pod
 func (ops *Operations) ExecPod(opts *Options) (string, string, error) {
 	var (
@@ -736,22 +1004,6 @@ func (ops *Operations) GetPodCountEventually(
 	return podCount
 }
 
-// VerifyUpgradeResultTasksIsNotFail checks whether all the tasks in upgraderesult
-// have success
-func (ops *Operations) VerifyUpgradeResultTasksIsNotFail(namespace, lselector string) bool {
-	urList, err := ops.URClient.
-		WithNamespace(namespace).
-		List(metav1.ListOptions{LabelSelector: lselector})
-	Expect(err).ShouldNot(HaveOccurred())
-	for _, task := range urList.Items[0].Tasks {
-		if task.Status == "Fail" {
-			fmt.Printf("task : %v\n", task)
-			return false
-		}
-	}
-	return true
-}
-
 // GetBDCCount gets BDC resource count based on provided label selector
 func (ops *Operations) GetBDCCount(lSelector, namespace string) int {
 	bdcList, err := ops.BDCClient.
@@ -759,31 +1011,6 @@ func (ops *Operations) GetBDCCount(lSelector, namespace string) int {
 		List(context.TODO(), metav1.ListOptions{LabelSelector: lSelector})
 	Expect(err).ShouldNot(HaveOccurred())
 	return len(bdcList.Items)
-}
-
-// BuildAndCreatePVC builds and creates PersistentVolumeClaim in cluster
-func (ops *Operations) BuildAndCreatePVC() *corev1.PersistentVolumeClaim {
-	pvcConfig := ops.Config.(*PVCConfig)
-	pvcObj, err := pvc.NewBuilder().
-		WithName(pvcConfig.Name).
-		WithNamespace(pvcConfig.Namespace).
-		WithStorageClass(pvcConfig.SCName).
-		WithAccessModes(pvcConfig.AccessModes).
-		WithCapacity(pvcConfig.Capacity).Build()
-	Expect(err).ShouldNot(
-		HaveOccurred(),
-		"while building pvc {%s} in namespace {%s}",
-		pvcConfig.Name,
-		pvcConfig.Namespace,
-	)
-	pvcObj, err = ops.PVCClient.WithNamespace(pvcConfig.Namespace).Create(context.TODO(), pvcObj)
-	Expect(err).To(
-		BeNil(),
-		"while creating pvc {%s} in namespace {%s}",
-		pvcConfig.Name,
-		pvcConfig.Namespace,
-	)
-	return pvcObj
 }
 
 // DeletePersistentVolumeClaim deletes PVC from cluster based on provided
@@ -869,4 +1096,52 @@ func (ops *Operations) BuildAndDeployBusyBoxPod(
 		return nil, errors.Wrapf(err, "failed to create busybox %s deployment in namespace %s", appName, namespace)
 	}
 	return appDeployment, nil
+}
+
+// BuildPersistentVolumeClaim builds the PVC object
+func BuildPersistentVolumeClaim(namespace, pvcName, scName, capacity string, accessModes []corev1.PersistentVolumeAccessMode) (*corev1.PersistentVolumeClaim, error) {
+	return pvc.NewBuilder().
+		WithName(pvcName).
+		WithNamespace(namespace).
+		WithStorageClass(scName).
+		WithAccessModes(accessModes).
+		WithCapacity(capacity).Build()
+}
+
+// BuildPod builds the pod object
+func BuildPod(namespace, podName, pvcName string, labelselector map[string]string) (*corev1.Pod, error) {
+	return pod.NewBuilder().
+		WithName(podName).
+		WithNamespace(namespace).
+		WithLabels(labelselector).
+		WithContainerBuilder(
+			container.NewBuilder().
+				WithName("busybox").
+				WithImage("busybox").
+				WithCommandNew(
+					[]string{
+						"/bin/sh",
+					},
+				).
+				WithArgumentsNew(
+					[]string{
+						"-c",
+						"sleep 3600",
+					},
+				).
+				WithVolumeMountsNew(
+					[]corev1.VolumeMount{
+						{
+							Name:      "demo-vol1",
+							MountPath: "/mnt/store1",
+						},
+					},
+				),
+		).
+		WithVolumeBuilder(
+			k8svolume.NewBuilder().
+				WithName("demo-vol1").
+				WithPVCSource(pvcName),
+		).
+		Build()
 }

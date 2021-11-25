@@ -6,12 +6,21 @@ Local PV Provisioner BDD tests are developed using ginkgo & gomega libraries.
 
 ### Pre-requisites
 
-- These tests are meant to be run in a single-node Kubernetes
-  cluster with one single available blockdevice (not mounted).
+- These tests are meant to be run in a single-node Kubernetes (v1.16+)
+  cluster with one single available blockdevice with no filesystem on
+  it (should not be mounted).
 
-- Some of the tests test features exclusive to the XFS filesystem.
-  To run the XFS tests, you will require the 'xfsprogs' package
-  installed on your node.
+- Some of the tests require the 'xfsprogs' and 'quota' packages to run.
+  For Ubuntu, you may need to install the quota_v2 kernel module. Install
+  the 'linux-image-extra-virtual' package to install the kernel module.
+  ```bash
+  $ #For Ubuntu/Debian
+  $ sudo apt-get update && sudo apt-get install -y xfsprogs quota linux-image-extra-virtual
+  $ ##The kernel module package name may be different depending on the OS image
+  $ ##E.g.: linux-modules-extra-`uname -r`
+  $ #For CentOS/RHEL
+  $ sudo yum install -y xfsprogs quota
+  ```
 
 - You will require the Ginkgo binary to be able to run the tests.
   Install the latest Ginkgo binary using the following command:
@@ -40,18 +49,21 @@ Local PV Provisioner BDD tests are developed using ginkgo & gomega libraries.
 ### Run tests
 
 Run the tests by being in the localpv tests folder. 
-  ```bash
-  $ cd <repo-directory>/tests
-  $ ginkgo -v
- ```
-  In case the KUBECONFIG env is not configured, you can run:
- ```bash
-  $ ginkgo -v -- -kubeconfig=/path/to/kubeconfig
- ```
+>**Note:** The tests require privileges to create loop devices and to create
+directories in the '/var' directory.
+  
+```bash
+$ cd <repo-directory>/tests
+$ sudo -E env "PATH=$PATH" ginkgo -v
+```
+In case the KUBECONFIG env is not configured, you can run:
+```bash
+$ sudo -E env "PATH=$PATH" ginkgo -v -kubeconfig=/path/to/kubeconfig
+```
 
-  If your OpenEBS LocalPV components are in a different Kubernetes namespace than 'openebs', you may use the '-openebs-namespace' flag:
- ```bash
-  $ ginkgo -v -- -openebs-namespace=<your-namespace>
- ```
+If your OpenEBS LocalPV components are in a different Kubernetes namespace than 'openebs', you may use the '-openebs-namespace' flag:
+```bash
+$ sudo -E env "PATH=$PATH" ginkgo -v -openebs-namespace=<your-namespace>
+```
 
- > **Tip:** Raising a pull request to this repo's 'develop' branch (or any one of the release branches) will automatically run the BDD tests in GitHub Actions. You can verify your code changes by moving to the 'Checks' tab in your pull request page, and checking the results of the 'integration-test' check.
+>**Tip:** Raising a pull request to this repo's 'develop' branch (or any one of the release branches) will automatically run the BDD tests in GitHub Actions. You can verify your code changes by moving to the 'Checks' tab in your pull request page, and checking the results of the 'integration-test' check.
