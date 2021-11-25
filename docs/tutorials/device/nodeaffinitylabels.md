@@ -1,6 +1,6 @@
 # Use Node-Selector labels
 
-Device LocalPV uses the Kubernetes Node label(s) (For example: `kubernetes.io/hostname=<node-name>`) to uniquely identifly a node.
+Device LocalPV uses the Kubernetes Node label(s) (For example: `kubernetes.io/hostname=<node-name>`) to uniquely identify a node.
 
 In some cases, this label (`hostname`) is not unique across all the nodes in the cluster. This was seen on clusters provisioned with [Bosh](https://bosh.io/docs/) across different fault domains.
 
