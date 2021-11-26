@@ -166,29 +166,42 @@ func (b *Builder) WithNodeAffinityHostname(nodeName string) *Builder {
 	return b
 }
 
-// WithNodeAffinity sets the NodeAffinity field of PV with provided node label and key
-func (b *Builder) WithNodeAffinity(key, value string) *Builder {
-	if len(key) == 0 || len(value) == 0 {
-		b.errs = append(b.errs, errors.New("failed to build PV object: missing PV node label key or value"))
+// WithNodeAffinity sets the NodeAffinity field of PV with provided node labels
+func (b *Builder) WithNodeAffinity(labels map[string]string) *Builder {
+	if len(labels) == 0 {
+		b.errs = append(b.errs, errors.New("failed to build PV object: missing PV node labels"))
 		return b
 	}
+
+	var MatchExpressions []corev1.NodeSelectorRequirement
+
+	for key, value := range labels {
+		if value != "" {
+			MatchExpressions = append(MatchExpressions, corev1.NodeSelectorRequirement{
+				Key:      key,
+				Operator: corev1.NodeSelectorOpIn,
+				Values: []string{
+					value,
+				},
+			})
+		}
+	}
+
+	if len(MatchExpressions) == 0 {
+		b.errs = append(b.errs, errors.New("failed to build PV object: missing PV node label values"))
+		return b
+	}
+
 	nodeAffinity := &corev1.VolumeNodeAffinity{
 		Required: &corev1.NodeSelector{
-			NodeSelectorTerms: []corev1.NodeSelectorTerm{
-				{
-					MatchExpressions: []corev1.NodeSelectorRequirement{
-						{
-							Key:      key,
-							Operator: corev1.NodeSelectorOpIn,
-							Values: []string{
-								value,
-							},
-						},
-					},
-				},
-			},
+			NodeSelectorTerms: []corev1.NodeSelectorTerm{},
 		},
 	}
+
+	var NodeSelector corev1.NodeSelectorTerm
+	NodeSelector.MatchExpressions = MatchExpressions
+
+	nodeAffinity.Required.NodeSelectorTerms = append(nodeAffinity.Required.NodeSelectorTerms, NodeSelector)
 	b.pv.object.Spec.NodeAffinity = nodeAffinity
 	return b
 }

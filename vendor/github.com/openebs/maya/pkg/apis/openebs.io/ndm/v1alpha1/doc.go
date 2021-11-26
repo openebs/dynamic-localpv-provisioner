@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 // The API files in this package are APIs used by NDM and is copied from
-// https://github.com/openebs/node-disk-manager/tree/master/pkg/apis/openebs/v1alpha1.
+// https://github.com/openebs/node-disk-manager/tree/HEAD/pkg/apis/openebs/v1alpha1.
 //
 // All *_types.go from the above directory is copied into this package and code is
 // generated. For all resource and resourceList, it should be added to register.go

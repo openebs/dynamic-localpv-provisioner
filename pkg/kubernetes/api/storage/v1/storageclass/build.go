@@ -262,25 +262,38 @@ func WithAllowedTopologies(allowedTopologies map[string][]string) StorageClassOp
 	}
 }
 
-func WithNodeAffinityLabel(nodeLabelKey string) StorageClassOption {
+func WithNodeAffinityLabels(nodeLabelKeys []string) StorageClassOption {
 	return func(s *storagev1.StorageClass) error {
-		if len(nodeLabelKey) == 0 {
+		if len(nodeLabelKeys) == 0 {
 			return errors.New("Failed to set NodeLabelKey. " +
 				"Input is invalid.")
 		}
 
 		// Check if the existing parameters and Provisioner name
 		// are usable with NodeAffnityLabel.
-		// NodeAffinityLabel is only compatible with
-		// Hostpath StorageType.
 		if !isCompatibleWithNodeAffinityLabel(s) {
 			return errors.New("Failed to set NodeAffinityLabel. " +
 				"Invalid existing '" + string(mconfig.CASConfigKey) +
 				"' annotaion parameters or Provisioner name.")
 		}
 
-		config := "- name: NodeAffinityLabel\n" +
-			"  value: \"" + nodeLabelKey + "\"\n"
+		// labelKeys stores all the node label keys in a yaml list format
+		labelKeys := ""
+
+		for _, nodeLabelKey := range nodeLabelKeys {
+			if len(nodeLabelKey) != 0 {
+				labelKeys = labelKeys + "    - \"" + nodeLabelKey + "\"\n"
+			}
+		}
+
+		if labelKeys == "" {
+			return errors.New("Failed to set NodeLabelKey. " +
+				"Input is invalid.")
+		}
+
+		config := "- name: NodeAffinityLabels\n" +
+			"  list:\n" +
+			labelKeys
 
 		ok := writeOrAppendCASConfig(s, config)
 		if !ok {

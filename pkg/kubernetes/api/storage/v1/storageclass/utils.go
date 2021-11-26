@@ -176,7 +176,7 @@ func isCompatibleWithNodeAffinityLabel(s *storagev1.StorageClass) bool {
 		for _, config := range scCASConfig {
 			switch strings.TrimSpace(config.Name) {
 			case "StorageType":
-				if config.Value == "\"hostpath\"" || config.Value == "hostpath" {
+				if config.Value == "\"hostpath\"" || config.Value == "hostpath" || config.Value == "\"device\"" || config.Value == "device" {
 					continue
 				} else {
 					return false

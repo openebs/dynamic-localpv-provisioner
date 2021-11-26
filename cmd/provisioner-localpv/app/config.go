@@ -48,32 +48,34 @@ const (
 	// and can be configured via the StorageClass annotations.
 	KeyPVFSType = "FSType"
 
-	//KeyNodeAffinityLabel defines the label key that should be
-	//used in the nodeAffinitySpec. Default is to use "kubernetes.io/hostname"
+	// NOTE: This key should not be used as it is deprecated.
+	//        Instead use "KeyBlockDeviceSelectors" key
+	KeyBDTag = "BlockDeviceTag"
+
+	//KeyBlockDeviceSelectors defines the value for the Block Device selectors
+	//during bdc to bd claim configured via the StorageClass annotations.
+	// NOTE: This key should not be used as it is deprecated.
+	KeyNodeAffinityLabel = "NodeAffinityLabel"
+
+	//KeyNodeAffinityLabels defines the label keys that should be
+	//used in the nodeAffinitySpec.
 	//
-	//Example: Local PV device StorageClass for using a custom
-	//node label as: openebs.io/node-affinity-value
-	//will be as follows
+	//Example: Local PV device StorageClass for selecting devices
+	//of SSD type and no filesystem present on it will be as follows
 	//
 	// kind: StorageClass
 	// metadata:
-	//   name: openebs-device-tag-x
+	//   name: local-device
 	//   annotations:
 	//     openebs.io/cas-type: local
 	//     cas.openebs.io/config: |
 	//       - name: StorageType
 	//         value: "device"
-	//       - name: NodeAffinityLabel
-	//         value: "openebs.io/node-affinity-value"
-	// provisioner: openebs.io/local
-	// volumeBindingMode: WaitForFirstConsumer
-	// reclaimPolicy: Delete
-	//
-	KeyNodeAffinityLabel = "NodeAffinityLabel"
-
-	// NOTE: This key should not be used as it is deprecated.
-	//        Instead use "KeyBlockDeviceSelectors" key
-	KeyBDTag = "BlockDeviceTag"
+	//       - name: NodeAffinityLabels
+	//         list:
+	//           - "openebs.io/node-affinity-value-1"
+	//           - "openebs.io/node-affinity-value-2"
+	KeyNodeAffinityLabels = "NodeAffinityLabels"
 
 	//KeyBlockDeviceSelectors defines the value for the Block Device selectors
 	//during bdc to bd claim configured via the StorageClass annotations.
@@ -98,6 +100,7 @@ const (
 	// reclaimPolicy: Delete
 	//
 	KeyBlockDeviceSelectors = "BlockDeviceSelectors"
+
 
 	//KeyPVRelativePath defines the alternate folder name under the BasePath
 	// By default, the pv name will be used as the folder name.
@@ -181,12 +184,18 @@ func (p *Provisioner) GetVolumeConfig(ctx context.Context, pvName string, pvc *c
 		return nil, errors.Wrapf(err, "unable to read volume config: pvc {%v}", pvc.ObjectMeta.Name)
 	}
 
+	listPvConfigMap, err := listConfigToMap(pvConfig)
+	if err != nil {
+		return nil, errors.Wrapf(err, "unable to read volume config: pvc {%v}", pvc.ObjectMeta.Name)
+	}
+
 	c := &VolumeConfig{
 		pvName:     pvName,
 		pvcName:    pvc.ObjectMeta.Name,
 		scName:     *scName,
 		options:    pvConfigMap,
 		configData: dataPvConfigMap,
+		configList: listPvConfigMap,
 	}
 	return c, nil
 }
@@ -229,16 +238,26 @@ func (c *VolumeConfig) GetFSType() string {
 	return fsType
 }
 
-//GetNodeAffinityLabelKey returns the custom node affinity
-//label key as configured in StorageClass.
-//
-//Default is "", use the standard kubernetes.io/hostname label.
+// NOTE: This function should not be used, as NodeAffinityLabel has been deprecated.
+// GetNodeAffinityLabelKeys() is the right function to use.
 func (c *VolumeConfig) GetNodeAffinityLabelKey() string {
 	nodeAffinityLabelKey := c.getValue(KeyNodeAffinityLabel)
 	if len(strings.TrimSpace(nodeAffinityLabelKey)) == 0 {
 		return ""
 	}
 	return nodeAffinityLabelKey
+}
+
+//GetNodeAffinityLabelKey returns the custom node affinity
+//label keys as configured in StorageClass.
+//
+//Default is nil.
+func (c *VolumeConfig) GetNodeAffinityLabelKeys() []string {
+	nodeAffinityLabelKeys := c.getList(KeyNodeAffinityLabels)
+	if nodeAffinityLabelKeys == nil {
+		return nil
+	}
+	return nodeAffinityLabelKeys
 }
 
 //GetPath returns a valid PV path based on the configuration
@@ -351,6 +370,15 @@ func (c *VolumeConfig) getData(key string) map[string]string {
 	return nil
 }
 
+// This gets the list of values for the 'List' parameter.
+func (c *VolumeConfig) getList(key string) []string {
+	if listValues, ok := util.GetNestedField(c.configList, key).([]string); ok {
+		return listValues
+	}
+	//Default case
+	return nil
+}
+
 // GetStorageClassName extracts the StorageClass name from PVC
 func GetStorageClassName(pvc *corev1.PersistentVolumeClaim) *string {
 	// Use beta annotation first
@@ -432,6 +460,28 @@ func dataConfigToMap(pvConfig []mconfig.Config) (map[string]interface{}, error) 
 		isMerged := util.MergeMapOfObjects(m, confHierarchy)
 		if !isMerged {
 			return nil, errors.Errorf("failed to transform cas config 'Data' for configName '%s' to map: failed to merge: %s", configName, configObj)
+		}
+	}
+
+	return m, nil
+}
+
+func listConfigToMap(pvConfig []mconfig.Config) (map[string]interface{}, error) {
+	m := map[string]interface{}{}
+
+	for _, configObj := range pvConfig {
+		//No List Parameter
+		if len(configObj.List) == 0 {
+			continue
+		}
+
+		configName := strings.TrimSpace(configObj.Name)
+		confHierarchy := map[string]interface{}{
+			configName: configObj.List,
+		}
+		isMerged := util.MergeMapOfObjects(m, confHierarchy)
+		if !isMerged {
+			return nil, errors.Errorf("failed to transform cas config 'List' for configName '%s' to map: failed to merge: %s", configName, configObj)
 		}
 	}
 

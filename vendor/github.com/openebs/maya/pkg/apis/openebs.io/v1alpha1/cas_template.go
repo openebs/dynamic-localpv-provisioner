@@ -78,6 +78,8 @@ type Config struct {
 	Value string `json:"value"`
 	// Data represents an arbitrary map of key value pairs
 	Data map[string]string `json:"data"`
+	// List represents a JSON(YAML) array
+	List []string `json:"list"`
 }
 
 // RunTasks contains fields to run a set of
