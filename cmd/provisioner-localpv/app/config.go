@@ -101,7 +101,6 @@ const (
 	//
 	KeyBlockDeviceSelectors = "BlockDeviceSelectors"
 
-
 	//KeyPVRelativePath defines the alternate folder name under the BasePath
 	// By default, the pv name will be used as the folder name.
 	// KeyPVBasePath can be useful for providing the same underlying folder
