@@ -76,11 +76,12 @@ func (p *Provisioner) ProvisionBlockDevice(ctx context.Context, opts pvControlle
 
 	//Extract the details to create a Block Device Claim
 	blkDevOpts := &HelperBlockDeviceOptions{
-		nodeHostname: nodeHostname,
-		name:         name,
-		capacity:     capacity.String(),
-		volumeMode:   *opts.PVC.Spec.VolumeMode,
-		bdSelectors:  volumeConfig.GetBlockDeviceSelectors(),
+		nodeHostname:       nodeHostname,
+		name:               name,
+		nodeAffinityLabels: nodeAffinityLabels,
+		capacity:           capacity.String(),
+		volumeMode:         *opts.PVC.Spec.VolumeMode,
+		bdSelectors:        volumeConfig.GetBlockDeviceSelectors(),
 	}
 
 	path, blkPath, err := p.getBlockDevicePath(ctx, blkDevOpts)
