@@ -56,7 +56,7 @@ func isCompatibleWithLocalPVcasType(s *storagev1.StorageClass) bool {
 // Used to check if the cas.openebs.io/config value string
 // has valid parameters for hostpath or not
 // e.g.
-// Parameters like 'BlockDeviceTag', already existing 'StorageType'
+// Parameters like 'BlockDeviceSelectors', already existing 'StorageType'
 // are incompatible.
 func isCompatibleWithHostpath(s *storagev1.StorageClass) bool {
 	if !isCompatibleWithLocalPVcasType(s) {
@@ -219,7 +219,7 @@ func isCompatibleWithDevice(s *storagev1.StorageClass) bool {
 		// Check for invalid CAS config parameters
 		for _, config := range scCASConfig {
 			switch strings.TrimSpace(config.Name) {
-			case "BlockDeviceTag":
+			case "BlockDeviceSelectors":
 				continue
 			case "FSType":
 				continue
@@ -257,7 +257,7 @@ func isCompatibleWithFSType(s *storagev1.StorageClass) bool {
 				} else {
 					return false
 				}
-			case "BlockDeviceTag":
+			case "BlockDeviceSelectors":
 				continue
 			default:
 				return false

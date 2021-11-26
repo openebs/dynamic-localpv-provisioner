@@ -42,6 +42,15 @@ func (p *Provisioner) ProvisionBlockDevice(ctx context.Context, opts pvControlle
 	stgType := volumeConfig.GetStorageType()
 	fsType := volumeConfig.GetFSType()
 
+	bdTagValue := volumeConfig.GetBDTagValue()
+	if len(bdTagValue) > 0 {
+		klog.Infof("The 'BlockDeviceTag' cas.openebs.io/config key has been deprecated in favor of the 'BlockDeviceSelectors' key.\nSample config:\n" +
+			"\t\t" + "- name: BlockDeviceSelectors\n" +
+			"\t\t" + "  data:\n" +
+			"\t\t" + "    openebs.io/block-device-tag: \"mongo\"\n")
+		return nil, pvController.ProvisioningFinished, errors.Errorf("Cannot use deprecated \"BlockDeviceTag\" config option")
+	}
+
 	nodeAffinityKey := volumeConfig.GetNodeAffinityLabelKey()
 	if len(nodeAffinityKey) != 0 {
 		klog.Infof("The 'NodeAffinityLabel' cas.openebs.io/config key has been deprecated in favor of the 'NodeAffinityLabels' key.\nSample config:\n" +
@@ -72,7 +81,7 @@ func (p *Provisioner) ProvisionBlockDevice(ctx context.Context, opts pvControlle
 		nodeAffinityLabels: nodeAffinityLabels,
 		capacity:           capacity.String(),
 		volumeMode:         *opts.PVC.Spec.VolumeMode,
-		bdTagValue:         volumeConfig.GetBDTagValue(),
+		bdSelectors:        volumeConfig.GetBlockDeviceSelectors(),
 	}
 
 	path, blkPath, err := p.getBlockDevicePath(ctx, blkDevOpts)

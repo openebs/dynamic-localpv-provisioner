@@ -69,10 +69,13 @@ type HelperBlockDeviceOptions struct {
 	//  volumeMode of PVC
 	volumeMode corev1.PersistentVolumeMode
 
-	//bdTagValue is the value passed for
-	// BlockDeviceTag via StorageClass config
-	bdTagValue string
+	// bdSelectors stores the different fields
+	// used for selecting a block device
+	bdSelectors map[string]string
 }
+
+// BlockDeviceSelectorFields stores the block device selectors
+type BlockDeviceSelectorFields map[string]string
 
 // validate checks that the required fields to create BDC
 // are available
@@ -135,9 +138,9 @@ func (p *Provisioner) createBlockDeviceClaim(ctx context.Context, blkDevOpts *He
 		WithFinalizer(LocalPVFinalizer).
 		WithBlockVolumeMode(blkDevOpts.volumeMode)
 
-	// If bdTagValue is configure, set it on the BDC
-	if len(blkDevOpts.bdTagValue) > 0 {
-		bdcObjBuilder.WithBlockDeviceTag(blkDevOpts.bdTagValue)
+	// if block device selectors are present, set it on the BDC
+	if blkDevOpts.bdSelectors != nil {
+		bdcObjBuilder.WithSelector(blkDevOpts.bdSelectors)
 	}
 
 	bdcObj, err := bdcObjBuilder.Build()

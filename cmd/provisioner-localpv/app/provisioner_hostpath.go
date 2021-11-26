@@ -99,8 +99,8 @@ func (p *Provisioner) ProvisionHostPath(ctx context.Context, opts pvController.P
 	}
 
 	if volumeConfig.IsXfsQuotaEnabled() {
-		softLimitGrace := volumeConfig.getData(KeyXFSQuota, KeyXfsQuotaSoftLimit)
-		hardLimitGrace := volumeConfig.getData(KeyXFSQuota, KeyXfsQuotaHardLimit)
+		softLimitGrace := volumeConfig.getDataField(KeyXFSQuota, KeyXfsQuotaSoftLimit)
+		hardLimitGrace := volumeConfig.getDataField(KeyXFSQuota, KeyXfsQuotaHardLimit)
 		pvcStorage := opts.PVC.Spec.Resources.Requests.Storage().Value()
 
 		podOpts := &HelperPodOptions{

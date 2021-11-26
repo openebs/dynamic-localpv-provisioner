@@ -50,8 +50,10 @@ const (
 		"  list: \n" +
 		"    - \"openebs.io/mock\"\n"
 
-	mockBlockDeviceTagConfig = "- name: BlockDeviceTag\n" +
-		"  value: \"openebs.io/mock-ssd\"\n"
+	mockBlockDeviceSelectorsConfig = "- name: BlockDeviceSelectors\n" +
+		"  data:\n" +
+		"    " + "ndm.io/driveType: \"SSD\"\n" +
+		"    " + "ndm.io/fsType: \"ext4\"\n"
 )
 
 func TestBuildWithName(t *testing.T) {
@@ -213,7 +215,7 @@ func TestBuildWithHostpath(t *testing.T) {
 			storageClass: &storagev1.StorageClass{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
-						string(mconfig.CASConfigKey): mockBlockDeviceTagConfig,
+						string(mconfig.CASConfigKey): mockBlockDeviceSelectorsConfig,
 					},
 				},
 			},
@@ -346,7 +348,7 @@ func TestBuildWithXfsQuota(t *testing.T) {
 			storageClass: &storagev1.StorageClass{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
-						string(mconfig.CASConfigKey): mockBlockDeviceTagConfig,
+						string(mconfig.CASConfigKey): mockBlockDeviceSelectorsConfig,
 					},
 				},
 			},
@@ -456,7 +458,7 @@ func TestBuildWithDevice(t *testing.T) {
 			storageClass: &storagev1.StorageClass{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
-						string(mconfig.CASConfigKey): mockBlockDeviceTagConfig,
+						string(mconfig.CASConfigKey): mockBlockDeviceSelectorsConfig,
 					},
 				},
 			},
@@ -915,22 +917,36 @@ func TestBuildWithFSType(t *testing.T) {
 
 func TestBuildWithBlockDeviceTag(t *testing.T) {
 	tests := map[string]struct {
-		bdtag        string
+		bdSelectors  map[string]string
 		storageClass *storagev1.StorageClass
 		expectErr    bool
 	}{
-		"Build with valid BlockDeviceTag": {
-			bdtag:        "openebs.io/my-fav-disk",
+		"Build with valid BlockDeviceSelectors": {
+			bdSelectors: map[string]string{
+				"ndm.io/fake-driveType": "fake-type",
+				"ndm.io/fake-fsType":    "fake-fs",
+			},
 			storageClass: &storagev1.StorageClass{},
 			expectErr:    false,
 		},
+		"Build with invalid BlockDeviceSelectors": {
+			bdSelectors: map[string]string{
+				"ndm.io/fake-driveType": "",
+				"ndm.io/fake-fsType":    "",
+			},
+			storageClass: &storagev1.StorageClass{},
+			expectErr:    true,
+		},
 		"Build with empty BlockDeviceTag": {
-			bdtag:        "",
+			bdSelectors:  map[string]string{},
 			storageClass: &storagev1.StorageClass{},
 			expectErr:    true,
 		},
 		"Build with valid '" + string(mconfig.CASTypeKey) + "' annotation": {
-			bdtag: "openebs.io/my-fav-disk",
+			bdSelectors: map[string]string{
+				"ndm.io/fake-driveType": "fake-type",
+				"ndm.io/fake-fsType":    "fake-fs",
+			},
 			storageClass: &storagev1.StorageClass{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
@@ -941,7 +957,10 @@ func TestBuildWithBlockDeviceTag(t *testing.T) {
 			expectErr: false,
 		},
 		"Build with invalid '" + string(mconfig.CASTypeKey) + "' annotation": {
-			bdtag: "openebs.io/my-fav-disk",
+			bdSelectors: map[string]string{
+				"ndm.io/fake-driveType": "fake-type",
+				"ndm.io/fake-fsType":    "fake-fs",
+			},
 			storageClass: &storagev1.StorageClass{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
@@ -952,7 +971,10 @@ func TestBuildWithBlockDeviceTag(t *testing.T) {
 			expectErr: true,
 		},
 		"Build with empty '" + string(mconfig.CASTypeKey) + "' annotation": {
-			bdtag: "openebs.io/my-fav-disk",
+			bdSelectors: map[string]string{
+				"ndm.io/fake-driveType": "fake-type",
+				"ndm.io/fake-fsType":    "fake-fs",
+			},
 			storageClass: &storagev1.StorageClass{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
@@ -963,7 +985,10 @@ func TestBuildWithBlockDeviceTag(t *testing.T) {
 			expectErr: false,
 		},
 		"Build with valid '" + string(mconfig.CASConfigKey) + "' annotation": {
-			bdtag: "openebs.io/my-fav-disk",
+			bdSelectors: map[string]string{
+				"ndm.io/fake-driveType": "fake-type",
+				"ndm.io/fake-fsType":    "fake-fs",
+			},
 			storageClass: &storagev1.StorageClass{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
@@ -974,7 +999,10 @@ func TestBuildWithBlockDeviceTag(t *testing.T) {
 			expectErr: false,
 		},
 		"Build with invalid '" + string(mconfig.CASConfigKey) + "' annotation": {
-			bdtag: "openebs.io/my-fav-disk",
+			bdSelectors: map[string]string{
+				"ndm.io/fake-driveType": "fake-type",
+				"ndm.io/fake-fsType":    "fake-fs",
+			},
 			storageClass: &storagev1.StorageClass{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
@@ -985,7 +1013,10 @@ func TestBuildWithBlockDeviceTag(t *testing.T) {
 			expectErr: true,
 		},
 		"Build with empty '" + string(mconfig.CASConfigKey) + "' annotation": {
-			bdtag: "openebs.io/my-fav-disk",
+			bdSelectors: map[string]string{
+				"ndm.io/fake-driveType": "fake-type",
+				"ndm.io/fake-fsType":    "fake-fs",
+			},
 			storageClass: &storagev1.StorageClass{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
@@ -996,21 +1027,30 @@ func TestBuildWithBlockDeviceTag(t *testing.T) {
 			expectErr: false,
 		},
 		"Build with valid Provisioner name": {
-			bdtag: "openebs.io/my-fav-disk",
+			bdSelectors: map[string]string{
+				"ndm.io/fake-driveType": "fake-type",
+				"ndm.io/fake-fsType":    "fake-fs",
+			},
 			storageClass: &storagev1.StorageClass{
 				Provisioner: localPVprovisionerName,
 			},
 			expectErr: false,
 		},
 		"Build with invalid Provisioner name": {
-			bdtag: "openebs.io/my-fav-disk",
+			bdSelectors: map[string]string{
+				"ndm.io/fake-driveType": "fake-type",
+				"ndm.io/fake-fsType":    "fake-fs",
+			},
 			storageClass: &storagev1.StorageClass{
 				Provisioner: fakeProvisionerName,
 			},
 			expectErr: true,
 		},
 		"Build with empty Provisioner name": {
-			bdtag: "openebs.io/my-fav-disk",
+			bdSelectors: map[string]string{
+				"ndm.io/fake-driveType": "fake-type",
+				"ndm.io/fake-fsType":    "fake-fs",
+			},
 			storageClass: &storagev1.StorageClass{
 				Provisioner: "",
 			},
@@ -1022,7 +1062,7 @@ func TestBuildWithBlockDeviceTag(t *testing.T) {
 		name := name
 		mock := mock
 		t.Run(name, func(t *testing.T) {
-			opt := WithBlockDeviceTag(mock.bdtag)
+			opt := WithBlockDeviceSelectors(mock.bdSelectors)
 			err := opt(mock.storageClass)
 
 			if mock.expectErr && err == nil {

@@ -48,51 +48,24 @@ const (
 	// and can be configured via the StorageClass annotations.
 	KeyPVFSType = "FSType"
 
-	//KeyBDTag defines the value for the Block Device Tag
-	//label selector configured via the StorageClass annotations.
-	//User can group block devices across nodes by setting the
-	//label on block devices as:
-	//  openebs.io/block-device-tag=<tag-value>
-	//
-	//The <tag-value> used above can be passsed to the
-	//Local PV device provisioner via the StorageClass
-	//CAS annotations, to specify that Local PV (device)
-	//should only make use of those block devices that
-	//tagged with the given <tag-value>.
-	//
-	//Example: Local PV device StorageClass for picking devices
-	//labeled as: openebs.io/block-device-tag=tag-x
-	//will be as follows
-	//
-	// kind: StorageClass
-	// metadata:
-	//   name: openebs-device-tag-x
-	//   annotations:
-	//     openebs.io/cas-type: local
-	//     cas.openebs.io/config: |
-	//       - name: StorageType
-	//         value: "device"
-	//       - name: BlockDeviceTag
-	//         value: "tag-x"
-	// provisioner: openebs.io/local
-	// volumeBindingMode: WaitForFirstConsumer
-	// reclaimPolicy: Delete
-	//
+	// NOTE: This key should not be used as it is deprecated.
+	//        Instead use "KeyBlockDeviceSelectors" key
 	KeyBDTag = "BlockDeviceTag"
 
+	//KeyBlockDeviceSelectors defines the value for the Block Device selectors
+	//during bdc to bd claim configured via the StorageClass annotations.
 	// NOTE: This key should not be used as it is deprecated.
 	KeyNodeAffinityLabel = "NodeAffinityLabel"
 
 	//KeyNodeAffinityLabels defines the label keys that should be
 	//used in the nodeAffinitySpec.
 	//
-	//Example: Local PV device StorageClass for using a custom
-	//node label as: openebs.io/node-affinity-value
-	//will be as follows
+	//Example: Local PV device StorageClass for selecting devices
+	//of SSD type and no filesystem present on it will be as follows
 	//
 	// kind: StorageClass
 	// metadata:
-	//   name: openebs-device-tag-x
+	//   name: local-device
 	//   annotations:
 	//     openebs.io/cas-type: local
 	//     cas.openebs.io/config: |
@@ -102,11 +75,31 @@ const (
 	//         list:
 	//           - "openebs.io/node-affinity-value-1"
 	//           - "openebs.io/node-affinity-value-2"
+	KeyNodeAffinityLabels = "NodeAffinityLabels"
+
+	//KeyBlockDeviceSelectors defines the value for the Block Device selectors
+	//during bdc to bd claim configured via the StorageClass annotations.
+	//
+	//Example: Local PV device StorageClass for selecting devices
+	//of SSD type and no filesystem present on it will be as follows
+	//
+	// kind: StorageClass
+	// metadata:
+	//   name: local-device
+	//   annotations:
+	//     openebs.io/cas-type: local
+	//     cas.openebs.io/config: |
+	//       - name: StorageType
+	//         value: "device"
+	//       - name: BlockDeviceSelectors
+	//         data:
+	//           ndm.io/driveType: "SSD"
+	//           ndm.io/fsType: "none"
 	// provisioner: openebs.io/local
 	// volumeBindingMode: WaitForFirstConsumer
 	// reclaimPolicy: Delete
 	//
-	KeyNodeAffinityLabels = "NodeAffinityLabels"
+	KeyBlockDeviceSelectors = "BlockDeviceSelectors"
 
 	//KeyPVRelativePath defines the alternate folder name under the BasePath
 	// By default, the pv name will be used as the folder name.
@@ -216,6 +209,23 @@ func (c *VolumeConfig) GetStorageType() string {
 	return stgType
 }
 
+//GetBlockDeviceSelectors returns the BlockDeviceSelectors data configured
+// in StorageClass. Default is nil
+func (c *VolumeConfig) GetBlockDeviceSelectors() map[string]string {
+	blockDeviceSelector := c.getData(KeyBlockDeviceSelectors)
+	return blockDeviceSelector
+}
+
+// NOTE: This function should not be used, as KeyBDTag has been deprecated.
+//       GetBlockDeviceSelectors() is the right function to use.
+func (c *VolumeConfig) GetBDTagValue() string {
+	bdTagValue := c.getValue(KeyBDTag)
+	if len(strings.TrimSpace(bdTagValue)) == 0 {
+		return ""
+	}
+	return bdTagValue
+}
+
 //GetFSType returns the FSType value configured
 // in StorageClass. Default is "", auto-determined
 // by Local PV
@@ -225,20 +235,6 @@ func (c *VolumeConfig) GetFSType() string {
 		return ""
 	}
 	return fsType
-}
-
-//GetBDTagValue returns the block device tag
-//value configured in StorageClass.
-//
-//Default is "", no device tag will be set and any
-//available block device (without labelled with tag)
-//can be used for creating Local PV(device).
-func (c *VolumeConfig) GetBDTagValue() string {
-	bdTagValue := c.getValue(KeyBDTag)
-	if len(strings.TrimSpace(bdTagValue)) == 0 {
-		return ""
-	}
-	return bdTagValue
 }
 
 // NOTE: This function should not be used, as NodeAffinityLabel has been deprecated.
@@ -353,7 +349,7 @@ func (c *VolumeConfig) getEnabled(key string) string {
 //This is similar to getValue() and getEnabled().
 // This gets the value for a specific
 // 'Data' parameter key-value pair.
-func (c *VolumeConfig) getData(key string, dataKey string) string {
+func (c *VolumeConfig) getDataField(key string, dataKey string) string {
 	if configData, ok := util.GetNestedField(c.configData, key).(map[string]string); ok {
 		if val, p := configData[dataKey]; p {
 			return val
@@ -364,6 +360,15 @@ func (c *VolumeConfig) getData(key string, dataKey string) string {
 }
 
 //This is similar to getValue() and getEnabled().
+// This returns the value of the `Data` parameter
+func (c *VolumeConfig) getData(key string) map[string]string {
+	if configData, ok := util.GetNestedField(c.configData, key).(map[string]string); ok {
+		return configData
+	}
+	//Default case
+	return nil
+}
+
 // This gets the list of values for the 'List' parameter.
 func (c *VolumeConfig) getList(key string) []string {
 	if listValues, ok := util.GetNestedField(c.configList, key).([]string); ok {
