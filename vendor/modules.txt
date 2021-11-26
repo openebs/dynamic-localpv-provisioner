@@ -117,7 +117,7 @@ github.com/onsi/gomega/matchers/support/goraph/edge
 github.com/onsi/gomega/matchers/support/goraph/node
 github.com/onsi/gomega/matchers/support/goraph/util
 github.com/onsi/gomega/types
-# github.com/openebs/maya v1.12.1-0.20210804061224-4363acfbf185
+# github.com/openebs/maya v1.12.1-0.20211022052259-bd98908028af
 ## explicit
 github.com/openebs/maya/pkg/alertlog
 github.com/openebs/maya/pkg/algorithm/cstorpoolselect/v1alpha1
@@ -163,7 +163,6 @@ github.com/openebs/maya/pkg/kubernetes/deployment/extnv1beta1/v1alpha1
 github.com/openebs/maya/pkg/kubernetes/namespace/v1alpha1
 github.com/openebs/maya/pkg/kubernetes/node/v1alpha1
 github.com/openebs/maya/pkg/kubernetes/patch/v1alpha1
-github.com/openebs/maya/pkg/kubernetes/persistentvolume/v1alpha1
 github.com/openebs/maya/pkg/kubernetes/pod/v1alpha1
 github.com/openebs/maya/pkg/kubernetes/podexec/v1alpha1
 github.com/openebs/maya/pkg/kubernetes/podtemplatespec/v1alpha1

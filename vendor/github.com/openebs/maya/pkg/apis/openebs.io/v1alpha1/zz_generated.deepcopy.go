@@ -1003,6 +1003,11 @@ func (in *Config) DeepCopyInto(out *Config) {
 			(*out)[key] = val
 		}
 	}
+	if in.List != nil {
+		in, out := &in.List, &out.List
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	return
 }
 

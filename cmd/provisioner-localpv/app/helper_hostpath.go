@@ -57,11 +57,8 @@ var (
 // to execute a command (cmdsForPath) on a given
 // volume path (path)
 type HelperPodOptions struct {
-	//nodeAffinityLabelKey represents the label key of the node where pod should be launched.
-	nodeAffinityLabelKey string
-
-	//nodeAffinityLabelValue represents the label value of the node where pod should be launched.
-	nodeAffinityLabelValue string
+	//nodeAffinityLabels represents the labels of the node where pod should be launched.
+	nodeAffinityLabels map[string]string
 
 	//name is the name of the PV for which the pod is being launched
 	name string
@@ -97,8 +94,8 @@ type HelperPodOptions struct {
 func (pOpts *HelperPodOptions) validate() error {
 	if pOpts.name == "" ||
 		pOpts.path == "" ||
-		pOpts.nodeAffinityLabelKey == "" ||
-		pOpts.nodeAffinityLabelValue == "" ||
+		pOpts.nodeAffinityLabels == nil ||
+		len(pOpts.nodeAffinityLabels) == 0 ||
 		pOpts.serviceAccountName == "" {
 		return errors.Errorf("invalid empty name or hostpath or hostname or service account name")
 	}
@@ -316,10 +313,10 @@ func (p *Provisioner) launchPod(ctx context.Context, config podConfig) (*corev1.
 	privileged := true
 
 	helperPod, err := pod.NewBuilder().
-		WithName(config.podName+"-"+config.pOpts.name).
+		WithName(config.podName + "-" + config.pOpts.name).
 		WithRestartPolicy(corev1.RestartPolicyNever).
 		//WithNodeSelectorHostnameNew(config.pOpts.nodeHostname).
-		WithNodeAffinityNew(config.pOpts.nodeAffinityLabelKey, config.pOpts.nodeAffinityLabelValue).
+		WithNodeAffinityNew(config.pOpts.nodeAffinityLabels).
 		WithServiceAccountName(config.pOpts.serviceAccountName).
 		WithTolerationsForTaints(config.taints...).
 		WithContainerBuilder(

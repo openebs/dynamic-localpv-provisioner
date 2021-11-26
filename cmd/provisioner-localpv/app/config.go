@@ -80,8 +80,11 @@ const (
 	//
 	KeyBDTag = "BlockDeviceTag"
 
-	//KeyNodeAffinityLabel defines the label key that should be
-	//used in the nodeAffinitySpec. Default is to use "kubernetes.io/hostname"
+	// NOTE: This key should not be used as it is deprecated.
+	KeyNodeAffinityLabel = "NodeAffinityLabel"
+
+	//KeyNodeAffinityLabels defines the label keys that should be
+	//used in the nodeAffinitySpec.
 	//
 	//Example: Local PV device StorageClass for using a custom
 	//node label as: openebs.io/node-affinity-value
@@ -95,13 +98,15 @@ const (
 	//     cas.openebs.io/config: |
 	//       - name: StorageType
 	//         value: "device"
-	//       - name: NodeAffinityLabel
-	//         value: "openebs.io/node-affinity-value"
+	//       - name: NodeAffinityLabels
+	//         list:
+	//           - "openebs.io/node-affinity-value-1"
+	//           - "openebs.io/node-affinity-value-2"
 	// provisioner: openebs.io/local
 	// volumeBindingMode: WaitForFirstConsumer
 	// reclaimPolicy: Delete
 	//
-	KeyNodeAffinityLabel = "NodeAffinityLabel"
+	KeyNodeAffinityLabels = "NodeAffinityLabels"
 
 	//KeyPVRelativePath defines the alternate folder name under the BasePath
 	// By default, the pv name will be used as the folder name.
@@ -185,12 +190,18 @@ func (p *Provisioner) GetVolumeConfig(ctx context.Context, pvName string, pvc *c
 		return nil, errors.Wrapf(err, "unable to read volume config: pvc {%v}", pvc.ObjectMeta.Name)
 	}
 
+	listPvConfigMap, err := listConfigToMap(pvConfig)
+	if err != nil {
+		return nil, errors.Wrapf(err, "unable to read volume config: pvc {%v}", pvc.ObjectMeta.Name)
+	}
+
 	c := &VolumeConfig{
 		pvName:     pvName,
 		pvcName:    pvc.ObjectMeta.Name,
 		scName:     *scName,
 		options:    pvConfigMap,
 		configData: dataPvConfigMap,
+		configList: listPvConfigMap,
 	}
 	return c, nil
 }
@@ -230,16 +241,26 @@ func (c *VolumeConfig) GetBDTagValue() string {
 	return bdTagValue
 }
 
-//GetNodeAffinityLabelKey returns the custom node affinity
-//label key as configured in StorageClass.
-//
-//Default is "", use the standard kubernetes.io/hostname label.
+// NOTE: This function should not be used, as NodeAffinityLabel has been deprecated.
+// GetNodeAffinityLabelKeys() is the right function to use.
 func (c *VolumeConfig) GetNodeAffinityLabelKey() string {
 	nodeAffinityLabelKey := c.getValue(KeyNodeAffinityLabel)
 	if len(strings.TrimSpace(nodeAffinityLabelKey)) == 0 {
 		return ""
 	}
 	return nodeAffinityLabelKey
+}
+
+//GetNodeAffinityLabelKey returns the custom node affinity
+//label keys as configured in StorageClass.
+//
+//Default is nil.
+func (c *VolumeConfig) GetNodeAffinityLabelKeys() []string {
+	nodeAffinityLabelKeys := c.getList(KeyNodeAffinityLabels)
+	if nodeAffinityLabelKeys == nil {
+		return nil
+	}
+	return nodeAffinityLabelKeys
 }
 
 //GetPath returns a valid PV path based on the configuration
@@ -342,6 +363,16 @@ func (c *VolumeConfig) getData(key string, dataKey string) string {
 	return ""
 }
 
+//This is similar to getValue() and getEnabled().
+// This gets the list of values for the 'List' parameter.
+func (c *VolumeConfig) getList(key string) []string {
+	if listValues, ok := util.GetNestedField(c.configList, key).([]string); ok {
+		return listValues
+	}
+	//Default case
+	return nil
+}
+
 // GetStorageClassName extracts the StorageClass name from PVC
 func GetStorageClassName(pvc *corev1.PersistentVolumeClaim) *string {
 	// Use beta annotation first
@@ -423,6 +454,28 @@ func dataConfigToMap(pvConfig []mconfig.Config) (map[string]interface{}, error) 
 		isMerged := util.MergeMapOfObjects(m, confHierarchy)
 		if !isMerged {
 			return nil, errors.Errorf("failed to transform cas config 'Data' for configName '%s' to map: failed to merge: %s", configName, configObj)
+		}
+	}
+
+	return m, nil
+}
+
+func listConfigToMap(pvConfig []mconfig.Config) (map[string]interface{}, error) {
+	m := map[string]interface{}{}
+
+	for _, configObj := range pvConfig {
+		//No List Parameter
+		if len(configObj.List) == 0 {
+			continue
+		}
+
+		configName := strings.TrimSpace(configObj.Name)
+		confHierarchy := map[string]interface{}{
+			configName: configObj.List,
+		}
+		isMerged := util.MergeMapOfObjects(m, confHierarchy)
+		if !isMerged {
+			return nil, errors.Errorf("failed to transform cas config 'List' for configName '%s' to map: failed to merge: %s", configName, configObj)
 		}
 	}
 

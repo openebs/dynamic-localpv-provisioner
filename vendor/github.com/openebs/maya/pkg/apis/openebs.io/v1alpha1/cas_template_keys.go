@@ -230,6 +230,12 @@ const (
 	//  The corresponding value will be accessed as
 	// {{ .Policy.<PolicyName>.data }}
 	DataPTP PolicyTLPProperty = "data"
+
+	// ListPTP is the data property of the policy
+	// NOTE:
+	//  The corresponding value will be accessed as
+	// {{ .Policy.<PolicyName>.list }}
+	ListPTP PolicyTLPProperty = "list"
 )
 
 const (

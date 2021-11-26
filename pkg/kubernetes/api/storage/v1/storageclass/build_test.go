@@ -47,7 +47,8 @@ const (
 		"  value: \"device\"\n"
 
 	mockNodeAffinityLabelConfig = "- name: NodeAffinityLabel\n" +
-		"  value: \"openebs.io/mock\"\n"
+		"  list: \n" +
+		"    - \"openebs.io/mock\"\n"
 
 	mockBlockDeviceTagConfig = "- name: BlockDeviceTag\n" +
 		"  value: \"openebs.io/mock-ssd\"\n"
@@ -665,22 +666,22 @@ func TestBuildWithAllowedTopologies(t *testing.T) {
 
 func TestBuildWithNodeAffinityLabel(t *testing.T) {
 	tests := map[string]struct {
-		nodeAffinityLabel string
+		nodeAffinityLabel []string
 		storageClass      *storagev1.StorageClass
 		expectErr         bool
 	}{
 		"Build with valid NodeAffinityLabel": {
-			nodeAffinityLabel: "openebs.io/my-fav-node",
+			nodeAffinityLabel: []string{"openebs.io/my-fav-node"},
 			storageClass:      &storagev1.StorageClass{},
 			expectErr:         false,
 		},
 		"Build with invalid/empty NodeAffinityLabel": {
-			nodeAffinityLabel: "",
+			nodeAffinityLabel: []string{},
 			storageClass:      &storagev1.StorageClass{},
 			expectErr:         true,
 		},
 		"Build with valid '" + string(mconfig.CASTypeKey) + "' annotation": {
-			nodeAffinityLabel: "openebs.io/my-fav-node",
+			nodeAffinityLabel: []string{"openebs.io/my-fav-node"},
 			storageClass: &storagev1.StorageClass{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
@@ -691,7 +692,7 @@ func TestBuildWithNodeAffinityLabel(t *testing.T) {
 			expectErr: false,
 		},
 		"Build with invalid '" + string(mconfig.CASTypeKey) + "' annotation": {
-			nodeAffinityLabel: "openebs.io/my-fav-node",
+			nodeAffinityLabel: []string{"openebs.io/my-fav-node"},
 			storageClass: &storagev1.StorageClass{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
@@ -702,7 +703,7 @@ func TestBuildWithNodeAffinityLabel(t *testing.T) {
 			expectErr: true,
 		},
 		"Build with empty '" + string(mconfig.CASTypeKey) + "' annotation": {
-			nodeAffinityLabel: "openebs.io/my-fav-node",
+			nodeAffinityLabel: []string{"openebs.io/my-fav-node"},
 			storageClass: &storagev1.StorageClass{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
@@ -713,7 +714,7 @@ func TestBuildWithNodeAffinityLabel(t *testing.T) {
 			expectErr: false,
 		},
 		"Build with valid '" + string(mconfig.CASConfigKey) + "' annotation": {
-			nodeAffinityLabel: "openebs.io/my-fav-node",
+			nodeAffinityLabel: []string{"openebs.io/my-fav-node"},
 			storageClass: &storagev1.StorageClass{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
@@ -724,7 +725,7 @@ func TestBuildWithNodeAffinityLabel(t *testing.T) {
 			expectErr: false,
 		},
 		"Build with invalid '" + string(mconfig.CASConfigKey) + "' annotation": {
-			nodeAffinityLabel: "openebs.io/my-fav-node",
+			nodeAffinityLabel: []string{"openebs.io/my-fav-node"},
 			storageClass: &storagev1.StorageClass{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
@@ -735,7 +736,7 @@ func TestBuildWithNodeAffinityLabel(t *testing.T) {
 			expectErr: true,
 		},
 		"Build with empty '" + string(mconfig.CASConfigKey) + "' annotation": {
-			nodeAffinityLabel: "openebs.io/my-fav-node",
+			nodeAffinityLabel: []string{"openebs.io/my-fav-node"},
 			storageClass: &storagev1.StorageClass{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
@@ -746,21 +747,21 @@ func TestBuildWithNodeAffinityLabel(t *testing.T) {
 			expectErr: false,
 		},
 		"Build with valid Provisioner name": {
-			nodeAffinityLabel: "openebs.io/my-fav-node",
+			nodeAffinityLabel: []string{"openebs.io/my-fav-node"},
 			storageClass: &storagev1.StorageClass{
 				Provisioner: localPVprovisionerName,
 			},
 			expectErr: false,
 		},
 		"Build with invalid Provisioner name": {
-			nodeAffinityLabel: "openebs.io/my-fav-node",
+			nodeAffinityLabel: []string{"openebs.io/my-fav-node"},
 			storageClass: &storagev1.StorageClass{
 				Provisioner: fakeProvisionerName,
 			},
 			expectErr: true,
 		},
 		"Build with empty Provisioner name": {
-			nodeAffinityLabel: "openebs.io/my-fav-node",
+			nodeAffinityLabel: []string{"openebs.io/my-fav-node"},
 			storageClass: &storagev1.StorageClass{
 				Provisioner: "",
 			},
@@ -772,14 +773,14 @@ func TestBuildWithNodeAffinityLabel(t *testing.T) {
 		name := name
 		mock := mock
 		t.Run(name, func(t *testing.T) {
-			opt := WithNodeAffinityLabel(mock.nodeAffinityLabel)
+			opt := WithNodeAffinityLabels(mock.nodeAffinityLabel)
 			err := opt(mock.storageClass)
 
 			if mock.expectErr && err == nil {
 				t.Fatal("Test '" + name + "' failed: expected error to not be nil.")
 			}
 			if !mock.expectErr && err != nil {
-				t.Fatal("Test '" + name + "' failed: expected error to be nil.")
+				t.Fatalf("Test '"+name+"' failed: expected error to be nil. Error: {%v}", err)
 			}
 		})
 	}

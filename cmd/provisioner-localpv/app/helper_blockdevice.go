@@ -59,7 +59,11 @@ var WaitForBDTimeoutCounts int
 type HelperBlockDeviceOptions struct {
 	nodeHostname string
 	name         string
-	capacity     string
+
+	//nodeAffinityLabels represents the labels of the node where pod should be launched.
+	nodeAffinityLabels map[string]string
+
+	capacity string
 	//	deviceType string
 	bdcName string
 	//  volumeMode of PVC
@@ -126,7 +130,7 @@ func (p *Provisioner) createBlockDeviceClaim(ctx context.Context, blkDevOpts *He
 	bdcObjBuilder := blockdeviceclaim.NewBuilder().
 		WithNamespace(p.namespace).
 		WithName(bdcName).
-		WithHostName(blkDevOpts.nodeHostname).
+		WithSelector(blkDevOpts.nodeAffinityLabels).
 		WithCapacity(blkDevOpts.capacity).
 		WithFinalizer(LocalPVFinalizer).
 		WithBlockVolumeMode(blkDevOpts.volumeMode)

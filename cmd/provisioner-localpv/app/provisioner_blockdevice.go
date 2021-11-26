@@ -26,8 +26,9 @@ import (
 	pvController "sigs.k8s.io/sig-storage-lib-external-provisioner/v7/controller"
 	//pvController "github.com/kubernetes-sigs/sig-storage-lib-external-provisioner/controller"
 	mconfig "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	mPV "github.com/openebs/maya/pkg/kubernetes/persistentvolume/v1alpha1"
 	v1 "k8s.io/api/core/v1"
+
+	mPV "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/persistentvolume"
 	//metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -41,13 +42,37 @@ func (p *Provisioner) ProvisionBlockDevice(ctx context.Context, opts pvControlle
 	stgType := volumeConfig.GetStorageType()
 	fsType := volumeConfig.GetFSType()
 
+	nodeAffinityKey := volumeConfig.GetNodeAffinityLabelKey()
+	if len(nodeAffinityKey) != 0 {
+		klog.Infof("The 'NodeAffinityLabel' cas.openebs.io/config key has been deprecated in favor of the 'NodeAffinityLabels' key.\nSample config:\n" +
+			"\t\t" + "- name: NodeAffinityLabels\n" +
+			"\t\t" + "  list:\n" +
+			"\t\t" + "    - \"node-label-key\"\n")
+		return nil, pvController.ProvisioningFinished, errors.Errorf("Cannot use deprecated \"NodeAffinityLabel\" config option")
+	}
+
+	// nodeAffinityLabels contains all the custom node affinity labels.
+	// This helps in cases where the hostname changes when the node is removed and
+	// added back.
+	nodeAffinityLabels := make(map[string]string)
+
+	nodeAffinityKeys := volumeConfig.GetNodeAffinityLabelKeys()
+	if nodeAffinityKeys == nil {
+		nodeAffinityLabels[k8sNodeLabelKeyHostname] = GetNodeLabelValue(opts.SelectedNode, k8sNodeLabelKeyHostname)
+	} else {
+		for _, nodeAffinityKey := range nodeAffinityKeys {
+			nodeAffinityLabels[nodeAffinityKey] = GetNodeLabelValue(opts.SelectedNode, nodeAffinityKey)
+		}
+	}
+
 	//Extract the details to create a Block Device Claim
 	blkDevOpts := &HelperBlockDeviceOptions{
-		nodeHostname: nodeHostname,
-		name:         name,
-		capacity:     capacity.String(),
-		volumeMode:   *opts.PVC.Spec.VolumeMode,
-		bdTagValue:   volumeConfig.GetBDTagValue(),
+		nodeHostname:       nodeHostname,
+		name:               name,
+		nodeAffinityLabels: nodeAffinityLabels,
+		capacity:           capacity.String(),
+		volumeMode:         *opts.PVC.Spec.VolumeMode,
+		bdTagValue:         volumeConfig.GetBDTagValue(),
 	}
 
 	path, blkPath, err := p.getBlockDevicePath(ctx, blkDevOpts)
@@ -93,7 +118,7 @@ func (p *Provisioner) ProvisionBlockDevice(ctx context.Context, opts pvControlle
 		WithAccessModes(pvc.Spec.AccessModes).
 		WithCapacityQty(pvc.Spec.Resources.Requests[v1.ResourceName(v1.ResourceStorage)]).
 		WithLocalHostPathFormat(path, fsType).
-		WithNodeAffinity(nodeHostname)
+		WithNodeAffinity(nodeAffinityLabels)
 
 	// If volumeMode set to "Block", then provide the appropriate volumeMode, to pvObj
 	if *opts.PVC.Spec.VolumeMode == v1.PersistentVolumeBlock {
