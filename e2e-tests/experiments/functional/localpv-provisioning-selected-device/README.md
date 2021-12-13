@@ -29,7 +29,7 @@ For positive test case first we label the block devices and then provision the v
 
 - The storage class spec will be built as follows:
 
-  ```
+  ```yaml
   apiVersion: storage.k8s.io/v1
   kind: StorageClass
   metadata:
@@ -39,8 +39,9 @@ For positive test case first we label the block devices and then provision the v
       cas.openebs.io/config: |
         - name: StorageType
           value: "device"
-        - name: BlockDeviceTag
-          value: "<tag_value>"
+      - name: BlockDeviceSelectors
+        data:
+          openebs.io/block-device-tag: "{{ device_tag }}"
   provisioner: openebs.io/local
   volumeBindingMode: WaitForFirstConsumer
   reclaimPolicy: Delete

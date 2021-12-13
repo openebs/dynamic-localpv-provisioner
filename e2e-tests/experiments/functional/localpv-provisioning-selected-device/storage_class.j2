@@ -8,8 +8,9 @@ metadata:
     cas.openebs.io/config: |
       - name: StorageType
         value: "device"
-      - name: BlockDeviceTag
-        value: "{{ device_tag }}"
+      - name: BlockDeviceSelectors
+        data:
+          openebs.io/block-device-tag: "{{ device_tag }}"
 provisioner: openebs.io/local
 volumeBindingMode: WaitForFirstConsumer
 reclaimPolicy: Delete
