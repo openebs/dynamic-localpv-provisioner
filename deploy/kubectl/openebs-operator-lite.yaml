@@ -753,7 +753,7 @@ metadata:
   name: openebs-ndm-cluster-exporter-service
   namespace: openebs
   labels:
-    name: openebs-ndm-clsuter-exporter-service
+    name: openebs-ndm-cluster-exporter-service
     openebs.io/component-name: ndm-cluster-exporter
     app: openebs-ndm-exporter
 spec:
