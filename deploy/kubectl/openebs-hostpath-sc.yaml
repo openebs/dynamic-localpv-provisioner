@@ -22,8 +22,9 @@ metadata:
       #Specify the node affinity label 
       # to be added to the PV
       #Default: kubernetes.io/hostname
-      #- name: NodeAffinityLabel
-      #  value: "openebs.io/stg-node-name"
+      #- name: NodeAffinityLabels
+      #  list:
+      #    - "openebs.io/stg-node-name"
 provisioner: openebs.io/local
 volumeBindingMode: WaitForFirstConsumer
 reclaimPolicy: Delete

@@ -40,6 +40,9 @@ git remote add upstream https://github.com/openebs/dynamic-localpv-provisioner
 # Never push to upstream develop
 git remote set-url --push upstream no_push
 
+# Set the URL of your 'origin' to your remote fork
+git remote set-url origin git@github.com:$user/dynamic-localpv-provisioner
+
 # Confirm that your remotes make sense
 git remote -v
 ```
@@ -68,10 +71,10 @@ $ cd path/to/directory/dynamic-localpv-provisioner_fork
 
  ```sh
  $ git remote -v
- origin   https://github.com/$user/dynamic-localpv-provisioner (fetch)
- origin   https://github.com/$user/dynamic-localpv-provisioner (push)
- upstream https://github.com/openebs/dynamic-localpv-provisioner (fetch)
- upstream no_push (push)
+ origin	git@github.com:$user/dynamic-localpv-provisioner (fetch)
+ origin	git@github.com:$user/dynamic-localpv-provisioner (push)
+ upstream	https://github.com/openebs/dynamic-localpv-provisioner (fetch)
+ upstream	no_push (push)
  ```
 
  If the upstream is missing, add it by using below command.
@@ -119,14 +122,13 @@ $ cd path/to/directory/dynamic-localpv-provisioner_fork
 
  ```sh
  $ git push origin develop
- Username for 'https://github.com': $user
- Password for 'https://$user@github.com':
  Counting objects: 223, done.
  Compressing objects: 100% (38/38), done.
  Writing objects: 100% (69/69), 8.76 KiB | 0 bytes/s, done.
  Total 69 (delta 53), reused 47 (delta 31)
- To https://github.com/$user/dynamic-localpv-provisioner.git
- 8e107a9..5035fa1  develop -> develop
+ remote: Resolving deltas: 100% (3/3), completed with 3 local objects.
+ To github.com:$user/charts
+    8e107a9..5035fa1  develop -> develop
  ```
 
 ### Create a new feature branch to work on your issue

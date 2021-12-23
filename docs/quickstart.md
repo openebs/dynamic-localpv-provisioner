@@ -4,15 +4,14 @@
 
 A Kubernetes cluster with Kubernetes v1.16 or above. 
 
-For more platform-specific installation instructions, [click here](https://github.com/openebs/dynamic-localpv-provisioner/tree/develop/docs/installation/platforms/).
+For more platform-specific installation instructions, [click here](./installation/platforms/).
 
 ## Install using Helm chart
 Install OpenEBS Dynamic LocalPV Provisioner using the openebs helm chart. Sample command:
 ```console
 #helm repo add openebs https://openebs.github.io/charts
 #helm repo update
-helm install openebs openebs/openebs -n openebs --create-namespace \
-	--set legacy.enabled=false
+helm install openebs openebs/openebs -n openebs --create-namespace
 ```
 	
 <details>
@@ -26,28 +25,25 @@ helm install openebs openebs/openebs -n openebs --create-namespace \
 
 ```console
 helm install openebs openebs/openebs -n openebs --create-namespace \
-	--set legacy.enabled=false \
 	--set ndm.enabled=false \
 	--set ndmOperator.enabled=false
 ```
   2. Install OpenEBS Dynamic LocalPV Provisioner for Hostpath volumes only
 ```console
 helm install openebs openebs/openebs -n openebs --create-namespace \
-	--set legacy.enabled=false \
 	--set ndm.enabled=false \
 	--set ndmOperator.enabled=false \
-	--set localprovisioner.enableDeviceClass=false
+	--set localprovisioner.deviceClass.enabled=false
 ```
   3. Install OpenEBS Dynamic LocalPV Provisioner with a custom hostpath directory. 
      This will change the `BasePath` value for the 'openebs-hostpath' StorageClass.
 ```console
 helm install openebs openebs/openebs -n openebs --create-namespace \
-	--set legacy.enabled=false \
 	--set localprovisioner.basePath=<custom-hostpath>
 ```
 </details>
 
-[Click here](https://github.com/openebs/dynamic-localpv-provisioner/blob/master/deploy/helm/charts/README.md) for detailed instructions on using the Helm chart.
+[Click here](../deploy/helm/charts/README.md) for detailed instructions on using the Helm chart.
 
 ## Install using operator YAML
 Install the OpenEBS Dynamic LocalPV Provisioner using the following command:
@@ -59,12 +55,16 @@ You are ready to provision LocalPV volumes once the pods in 'openebs' namespace 
 ```console
 $ kubectl get pods -n openebs
 
-NAME                                           READY   STATUS    RESTARTS   AGE
-openebs-localpv-provisioner-5696c4f884-mvfvz   1/1     Running   0          7s
-openebs-ndm-ctn5d                              1/1     Running   0          8s
-openebs-ndm-lpf86                              1/1     Running   0          8s
-openebs-ndm-operator-6b86bbc48-7lf7r           1/1     Running   0          8s
-openebs-ndm-pqr2v                              1/1     Running   0          8s
+NAME                                            READY   STATUS    RESTARTS   AGE
+openebs-localpv-provisioner-6599766b76-kg5z9    1/1     Running   0          67s
+openebs-ndm-cluster-exporter-5c985f8b77-5lp9l   1/1     Running   0          70s
+openebs-ndm-nkk4t                               1/1     Running   0          71s
+openebs-ndm-ctn5d                               1/1     Running   0          71s
+openebs-ndm-node-exporter-bjt9m                 1/1     Running   0          69s
+openebs-ndm-node-exporter-gctb7                 1/1     Running   0          70s
+openebs-ndm-operator-9bdd87f58-mqd9b            1/1     Running   0          71s
+openebs-ndm-lpf86                               1/1     Running   0          70s
+openebs-ndm-node-exporter-vgdnv                 1/1     Running   0          71s
 ```
 
 ## Provisioning LocalPV Hostpath Persistent Volume
@@ -105,7 +105,8 @@ You can provision LocalPV hostpath StorageType volumes dynamically using the def
   #     - worker-2
   ```
 </details><br>
-For more advanced tutorials, visit [tutorials/hostpath](./tutorials/hostpath).
+
+For more advanced tutorials, visit [./tutorials/hostpath](./tutorials/hostpath).
 
 Create a PVC with the StorageClass.
 ```yaml
@@ -134,13 +135,17 @@ localpv-vol   Pending                                      openebs-hostpath   21
 
 You must have NDM installed to be able to use LocalPV Device. Use the following command to check if NDM pods are present:
 ```console
-$ kubectl -n openebs get pods  -l 'openebs.io/component-name in (ndm, ndm-operator)'
+$ kubectl -n openebs get pods  -l 'openebs.io/component-name in (ndm, ndm-operator, cluster-exporter, ndm-node-exporter)'
 
-NAME                                    READY   STATUS    RESTARTS   AGE
-openebs-ndm-gctb7                       1/1     Running   0          6d7h
-openebs-ndm-sfczv                       1/1     Running   0          6d7h
-openebs-ndm-vgdnv                       1/1     Running   0          6d6h
-openebs-ndm-operator-86b6dd687d-4lmpl   1/1     Running   0          6d7h
+NAME                                            READY   STATUS    RESTARTS   AGE
+openebs-ndm-cluster-exporter-5c985f8b77-5lp9l   1/1     Running   0          70s
+openebs-ndm-nkk4t                               1/1     Running   0          71s
+openebs-ndm-ctn5d                               1/1     Running   0          71s
+openebs-ndm-node-exporter-bjt9m                 1/1     Running   0          69s
+openebs-ndm-node-exporter-gctb7                 1/1     Running   0          70s
+openebs-ndm-operator-9bdd87f58-mqd9b            1/1     Running   0          71s
+openebs-ndm-lpf86                               1/1     Running   0          70s
+openebs-ndm-node-exporter-vgdnv                 1/1     Running   0          71s
 ```
 
 You can provision LocalPV device StorageType volumes dynamically using the default `openebs-device` StorageClass.
@@ -166,11 +171,12 @@ You can provision LocalPV device StorageType volumes dynamically using the defau
        # type. Default is 'ext4'.
        #- name: FSType
        #  value: "xfs"
-       #Only blockdevices with all the labels
-       # mentioned here will be used
+       #Only BlockDevices with all the labels
+       # mentioned here will be used.
        #- name: BlockDeviceSelectors
        #  data:
        #    ndm.io/driveType: "SSD"
+       #    ndm.io/fsType: "ext4"
   provisioner: openebs.io/local
   reclaimPolicy: Delete
   #It is necessary to have volumeBindingMode as WaitForFirstConsumer
@@ -184,7 +190,8 @@ You can provision LocalPV device StorageType volumes dynamically using the defau
   #     - worker-2
   ```
 </details><br>
-For more advanced tutorials, visit [tutorials/device](./tutorials/device).
+
+For more advanced tutorials, visit [./tutorials/device](./tutorials/device)
 
 Create a PVC with the StorageClass.
 ```yaml

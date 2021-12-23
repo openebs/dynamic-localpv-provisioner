@@ -9,4 +9,4 @@ Get started with the Dynamic LocalPV Provisioner Quickstart guide at:
 https://github.com/openebs/dynamic-localpv-provisioner/blob/develop/docs/quickstart.md
 
 For more information, visit our Slack at https://openebs.io/community or view 
-the OpenEBS documentation online at https://docs.openebs.io.
+the OpenEBS documentation online at https://openebs.io/docs

@@ -2,7 +2,7 @@
 
 Device LocalPV uses the Kubernetes Node label(s) (For example: `kubernetes.io/hostname=<node-name>`) to uniquely identify a node.
 
-In some cases, this label (`hostname`) is not unique across all the nodes in the cluster. This was seen on clusters provisioned with [Bosh](https://bosh.io/docs/) across different fault domains.
+In some cases, this label (`hostname`) is not unique across all the nodes in the cluster. This was seen on clusters provisioned with the cloud provider [Bosh](https://bosh.io/docs/) across different fault domains.
 
 A unique Node label (or set of labels) may be used instead of the above mentioned Kubernetes default label to uniquely identify a node. This label(s) may be set by you, the administrator.
 This label(s) can be set when defining a StorageClass. One such sample StorageClass is given below...
@@ -23,3 +23,5 @@ metadata:
 provisioner: openebs.io/local
 volumeBindingMode: WaitForFirstConsumer
 ```
+
+**NOTE**: Using NodeAffinityLabels does not influence scheduling of the application Pod. You may use [allowedTopologies](./allowedtopologies.md) for that.

@@ -27,4 +27,5 @@ allowedTopologies:
     - worker-5
 ```
 
-**Note:** The [openebs/device-localpv](https://github.com/openebs/device-localpv) project supports scheduling schemes bases on storage availability.
+
+**NOTE:** The [openebs/device-localpv](https://github.com/openebs/device-localpv) project supports scheduling schemes bases on storage availability.

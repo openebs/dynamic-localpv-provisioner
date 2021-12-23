@@ -8,13 +8,14 @@ metadata:
     cas.openebs.io/config: |
       - name: StorageType
         value: "hostpath"
-{{- if .Values.hostpathClass.basePath }}
+{{- if or .Values.localpv.basePath .Values.hostpathClass.basePath }}
       - name: BasePath
-        value: "{{ .Values.hostpathClass.basePath }}"
+        value: {{ .Values.hostpathClass.basePath | default .Values.localpv.basePath | quote }}
 {{- end }}
-{{- if .Values.hostpathClass.nodeAffinityLabel }}
-      - name: NodeAffinityLabel
-        value: "{{ .Values.hostpathClass.nodeAffinityLabel }}"
+{{- if .Values.hostpathClass.nodeAffinityLabels }}
+      - name: NodeAffinityLabels
+        list:
+{{ toYaml .Values.hostpathClass.nodeAffinityLabels | indent 10 }}
 {{- end }}
 {{- if .Values.hostpathClass.xfsQuota.enabled }}
       - name: XFSQuota

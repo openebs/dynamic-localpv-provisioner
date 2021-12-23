@@ -46,7 +46,7 @@ By default this chart installs additional, dependent charts:
 
 | Repository | Name | Version |
 |------------|------|---------|
-| https://openebs.github.io/node-disk-manager | openebs-ndm | 1.7.1 |
+| https://openebs.github.io/node-disk-manager | openebs-ndm | 1.8.0 |
 
 **Note:** Find detailed Node Disk Manager Helm chart configuration options [here](https://github.com/openebs/node-disk-manager/blob/master/deploy/helm/charts/README.md).
 
@@ -90,24 +90,38 @@ helm install openebs-localpv openebs-localpv/localpv-provisioner --namespace ope
 	--set openebs-ndm.featureGates.UseOSDisk.enabled=true
 ```
 
+Sample command to install the provisioner with nodeAffinityLabels "openebs.io/node-affinity-key-1" and "openebs.io/node-affinity-key-2" on the hostpath StorageClass:
+```console
+helm install openebs-localpv openebs-localpv/localpv-provisioner --namespace openebs --create-namespace \
+	--set-string hostpathClass.nodeAffinityLabels="{openebs.io/node-affinity-key-1,openebs.io/node-affinity-key-2}"
+```
+
+Sample command to install the provisioner with blockDeviceSelectors "openebs.io/block-device-tag=mongo" and "ndm.io/fsType=ext4":
+```console
+helm install openebs-localpv openebs-localpv/localpv-provisioner --namespace openebs --create-namespace \
+	--set-string deviceClass.blockDeviceSelectors."openebs\.io/block-device-tag"="mongo" \
+	--set-string deviceClass.blockDeviceSelectors."ndm\.io/fsType"="ext4"
+```
+
 | Parameter                                   | Description                                   | Default                                   |
 | ------------------------------------------- | --------------------------------------------- | ----------------------------------------- |
-| `release.version`                           | LocalPV Provisioner release version               | `3.0.0`                        |
+| `release.version`                           | LocalPV Provisioner release version               | `3.1.0`                        |
 | `analytics.enabled`                         | Enable sending stats to Google Analytics          | `true`                          |
 | `analytics.pingInterval`                    | Duration(hours) between sending ping stat         | `24h`                           |
-| `deviceClass.blockDeviceTag`                | Value of `openebs.io/block-device-tag` BD label   | `""`                            |
+| `deviceClass.blockDeviceSelectors`          | Label key value pairs based on which BlockDevices on the node will be selected for provisioning   | `{}`                         |
 | `deviceClass.enabled`                       | Enables creation of default Device StorageClass   | `true`                          |
 | `deviceClass.fsType`                        | Filesystem type for openebs-device StorageClass   | `"ext4"`                        |
 | `deviceClass.isDefaultClass`                | Make openebs-device the default StorageClass      | `"false"`                       |
+| `deviceClass.nodeAffinityLabels`          | Custom node label(or labels) key to uniquely identify nodes. `kubernetes.io/hostname` is the default label key for node selection. | `[]` |
 | `deviceClass.reclaimPolicy`                 | ReclaimPolicy for Device PVs                      | `"Delete"`                      |
 | `helperPod.image.registry`                  | Registry for helper image                         | `""`                            |
 | `helperPod.image.repository`                | Image for helper pod                              | `"openebs/linux-utils"`         |
 | `helperPod.image.pullPolicy`                | Pull policy for helper pod                        | `"IfNotPresent"`                |
-| `helperPod.image.tag`                       | Image tag for helper image                        | `3.0.0`                         |
+| `helperPod.image.tag`                       | Image tag for helper image                        | `3.1.0`                         |
 | `hostpathClass.basePath`                    | BasePath for openebs-hostpath StorageClass        | `"/var/openebs/local"`          |
 | `hostpathClass.enabled`                     | Enables creation of default Hostpath StorageClass | `true`                          |
 | `hostpathClass.isDefaultClass`              | Make openebs-hostpath the default StorageClass    | `"false"`                       |
-| `hostpathClass.nodeAffinityLabel`           | Custom node label key to uniquely identify nodes. `kubernetes.io/hostname` is the default label key for node selection. | `""` |
+| `hostpathClass.nodeAffinityLabels`          | Custom node label(or labels) key to uniquely identify nodes. `kubernetes.io/hostname` is the default label key for node selection. | `[]` |
 | `hostpathClass.xfsQuota.enabled`            | Enable XFS Quota (requires XFS filesystem)        | `false`                         |
 | `hostpathClass.reclaimPolicy`               | ReclaimPolicy for Hostpath PVs                    | `"Delete"`                      |
 | `imagePullSecrets`                          | Provides image pull secrect                       | `""`                            |
@@ -115,7 +129,7 @@ helm install openebs-localpv openebs-localpv/localpv-provisioner --namespace ope
 | `localpv.image.registry`                    | Registry for LocalPV Provisioner image            | `""`                            |
 | `localpv.image.repository`                  | Image repository for LocalPV Provisioner          | `openebs/localpv-provisioner`   |
 | `localpv.image.pullPolicy`                  | Image pull policy for LocalPV Provisioner         | `IfNotPresent`                  |
-| `localpv.image.tag`                         | Image tag for LocalPV Provisioner                 | `3.0.0`                        |
+| `localpv.image.tag`                         | Image tag for LocalPV Provisioner                 | `3.1.0`                        |
 | `localpv.updateStrategy.type`               | Update strategy for LocalPV Provisioner           | `RollingUpdate`                 |
 | `localpv.annotations`                       | Annotations for LocalPV Provisioner metadata      | `""`                            |
 | `localpv.podAnnotations`                    | Annotations for LocalPV Provisioner pods metadata | `""`                            |

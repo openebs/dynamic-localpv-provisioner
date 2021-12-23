@@ -52,12 +52,12 @@ differences include:
 
 ## Kubernetes Compatibity Matrix
 
-|                               | Kubernetes <= 1.15 | Kubernetes 1.16 | Kubernetes 1.17 | Kubernetes 1.18 | Kubernetes 1.19 | Kubernetes 1.20 | Kubernetes 1.21 | Kubernetes 1.22 |
-|-------------------------------|-----------------|-----------------|-----------------|-----------------|-----------------|-----------------|-----------------|-----------------|
-| `localpv-provisioner-2.11.x`/`v2.11.x` | ✕              | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               |
-| `localpv-provisioner-2.12.x`/`v2.12.x` | ✕              | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               |
-| `localpv-provisioner-3.0.x`/`v3.0.x` | ✕              | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               |
-| `HEAD`                                 | ✕              | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               |
+|                               | Kubernetes <= 1.15 | Kubernetes 1.16 | Kubernetes 1.17 | Kubernetes 1.18 | Kubernetes 1.19 | Kubernetes 1.20 | Kubernetes 1.21 | Kubernetes 1.22 | Kubernetes 1.23 |
+|-------------------------------|-----------------|-----------------|-----------------|-----------------|-----------------|-----------------|-----------------|-----------------|-----------------|
+| `v2.12.x` | ✕              | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               |
+| `v3.0.x`  | ✕              | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               |
+| `v3.1.x`  | ✕              | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               |
+| `HEAD`    | ✕              | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               |
 
 
 ## Install
@@ -66,7 +66,7 @@ Please refer to our [Quickstart](https://github.com/openebs/dynamic-localpv-prov
 
 ## Contributing
 
-Head over to the [CONTRIBUTING.md](./CONTRIBUTING.md).
+Head over to the [CONTRIBUTING.md](./CONTRIBUTING.md) page.
 
 ## Roadmap
 
