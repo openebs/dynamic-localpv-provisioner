@@ -1,4 +1,4 @@
-v3.1.0 / 2022-01-03
+v3.1.0 / 2022-01-06
 ========================
 * add support for multiple Node Affinity Labels for both hostpath and device volumes. ([#102](https://github.com/openebs/dynamic-localpv-provisioner/pull/102),[@Ab-hishek](https://https://github.com/Ab-hishek))
 * add support for BlockDevice label selectors with device volumes. ([#106](https://github.com/openebs/dynamic-localpv-provisioner/pull/106),[@Ab-hishek](https://https://github.com/Ab-hishek))
