@@ -92,12 +92,12 @@ deviceClass:
   # that will be used instead of hostnames
   # This helps in cases where the hostname changes when the node is removed and
   # added back with the disks still intact.
-  # Example: 
+  # Example:
   #          nodeAffinityLabels:
   #            - "openebs.io/node-affinity-key-1"
   #            - "openebs.io/node-affinity-key-2"
   nodeAffinityLabels: []
-  # Sets the filesystem to be written to the blockdevice before 
+  # Sets the filesystem to be written to the blockdevice before
   # mounting (filesystem volumes)
   # This is only usable if the selected BlockDevice does not already
   # have a filesystem
@@ -131,7 +131,7 @@ hostpathClass:
   # that will be used instead of hostnames
   # This helps in cases where the hostname changes when the node is removed and
   # added back with the disks still intact.
-  # Example: 
+  # Example:
   #          nodeAffinityLabels:
   #            - "openebs.io/node-affinity-key-1"
   #            - "openebs.io/node-affinity-key-2"
