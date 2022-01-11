@@ -3,7 +3,7 @@
 # Declare variables to be passed into your templates.
 
 release:
-  version: "3.0.0"
+  version: "3.1.0"
 
 rbac:
   # rbac.create: `true` if rbac resources should be created
@@ -23,7 +23,7 @@ localpv:
     # For example : quay.io/ is a correct value here and quay.io is incorrect
     registry:
     repository: openebs/provisioner-localpv
-    tag: 3.0.0
+    tag: 3.1.0
     pullPolicy: IfNotPresent
   updateStrategy:
     type: RollingUpdate
@@ -88,12 +88,32 @@ deviceClass:
   reclaimPolicy: Delete
   # If true, sets the openebs-device StorageClass as the default StorageClass
   isDefaultClass: false
+  # Custom node affinity label(s) for example "openebs.io/node-affinity-value"
+  # that will be used instead of hostnames
+  # This helps in cases where the hostname changes when the node is removed and
+  # added back with the disks still intact.
+  # Example:
+  #          nodeAffinityLabels:
+  #            - "openebs.io/node-affinity-key-1"
+  #            - "openebs.io/node-affinity-key-2"
+  nodeAffinityLabels: []
+  # Sets the filesystem to be written to the blockdevice before
+  # mounting (filesystem volumes)
+  # This is only usable if the selected BlockDevice does not already
+  # have a filesystem
+  # Valid values: "ext4", "xfs"
   fsType: "ext4"
   # Label block devices in the cluster that you would like the openEBS localPV
   # Provisioner to pick up those specific block devices available on the node.
+  # Set the label key and value as shown in the example below.
   #
-  # To read more: https://docs.openebs.io/docs/next/uglocalpv-device.html#optional-block-device-tagging
-  blockDeviceTag: ""
+  # To read more: https://github.com/openebs/dynamic-localpv-provisioner/blob/develop/docs/tutorials/device/blockdeviceselectors.md
+  #
+  # Example:
+  #          blockDeviceSelectors:
+  #            ndm.io/driveType: "SSD"
+  #            ndm.io/fsType: "none"
+  blockDeviceSelectors: {}
 
 hostpathClass:
   # Name of the default hostpath StorageClass
@@ -105,12 +125,17 @@ hostpathClass:
   # If true, sets the openebs-hostpath StorageClass as the default StorageClass
   isDefaultClass: false
   # Path on the host where local volumes of this storage class are mounted under.
-  basePath: "/var/openebs/local"
-  # Custom node affinity label for example "openebs.io/node-affinity-value" that will be
-  # used instead of hostnames
+  # NOTE: If not specified, this defaults to the value of localpv.basePath.
+  basePath: ""
+  # Custom node affinity label(s) for example "openebs.io/node-affinity-value"
+  # that will be used instead of hostnames
   # This helps in cases where the hostname changes when the node is removed and
   # added back with the disks still intact.
-  nodeAffinityLabel: ""
+  # Example:
+  #          nodeAffinityLabels:
+  #            - "openebs.io/node-affinity-key-1"
+  #            - "openebs.io/node-affinity-key-2"
+  nodeAffinityLabels: []
   # Prerequisite: XFS Quota requires an XFS filesystem mounted with
   # the 'pquota' or 'prjquota' mount option.
   xfsQuota:
@@ -128,7 +153,7 @@ helperPod:
     repository: openebs/linux-utils
     pullPolicy: IfNotPresent
     # Overrides the image tag whose default is the chart appVersion.
-    tag: 3.0.0
+    tag: 3.1.0
 
 analytics:
   enabled: true

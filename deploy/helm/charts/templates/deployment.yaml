@@ -53,10 +53,10 @@ spec:
         # This is supported for openebs provisioner version 0.5.2 onwards
         #- name: OPENEBS_IO_KUBE_CONFIG
         #  value: "/home/ubuntu/.kube/config"
-        #  This sets the number of times the provisioner should try
-        #  with a polling interval of 5 seconds, to get the Blockdevice
-        #  Name from a BlockDeviceClaim, before the BlockDeviceClaim
-        #  is deleted. E.g. 12 * 5 seconds = 60 seconds timeout
+        # This sets the number of times the provisioner should try
+        # with a polling interval of 5 seconds, to get the Blockdevice
+        # Name from a BlockDeviceClaim, before the BlockDeviceClaim
+        # is deleted. E.g. 12 * 5 seconds = 60 seconds timeout
         - name: BDC_BD_BIND_RETRIES
           value: "{{ .Values.localpv.waitForBDBindTimeoutRetryCount }}"
         - name: OPENEBS_NAMESPACE

@@ -57,7 +57,7 @@ You can change the soft and/or hard limit of an existing hostpath volume with XF
 Execute the following commands on the node where the hostpath volume exists.
 
 Make a note of the Project ID.
-```command
+```console
 $ sudo xfs_quota -x -c 'report -h' /var/openebs/local
 
 Project quota on /var/openebs/local (/dev/nvme1n1)
@@ -69,7 +69,7 @@ Project ID   Used   Soft   Hard Warn/Grace
 ```
 
 Modify the limits as desired using the following command. The values of bhard and bsoft must be in B/KB/MB/GB (not KiB/MiB/GiB). The sample command below sets the soft limit at 3G and the hard limit at 5G for project ID=1.
-```command
+```console
 $ sudo xfs_quota -x -c 'limit -p bsoft=3G bhard=5G 1' /var/openebs/local
 ```
 
@@ -90,7 +90,7 @@ Project ID   Used   Soft   Hard Warn/Grace
 Execute the following commands on the node where the hostpath volume exists.
 
 Make a note of the Project ID.
-```command
+```console
 $ sudo xfs_quota -x -c 'report -h' /var/openebs/local
 
 Project quota on /var/openebs/local (/dev/nvme1n1)
@@ -102,7 +102,7 @@ Project ID   Used   Soft   Hard Warn/Grace
 ```
 
 Set the project limits to 0. The following sample command is for a project ID=1 at directory path '/var/openebs/local'.
-```command
+```console
 $ sudo xfs_quota -x -c 'limit -p bsoft=0 bhard=0 1' /var/openebs/local
 ```
 

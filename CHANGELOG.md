@@ -1,3 +1,9 @@
+v3.1.0 / 2022-01-06
+========================
+* add support for multiple Node Affinity Labels for both hostpath and device volumes. ([#102](https://github.com/openebs/dynamic-localpv-provisioner/pull/102),[@Ab-hishek](https://https://github.com/Ab-hishek))
+* add support for BlockDevice label selectors with device volumes. ([#106](https://github.com/openebs/dynamic-localpv-provisioner/pull/106),[@Ab-hishek](https://https://github.com/Ab-hishek))
+
+
 v3.0.0 / 2021-09-22
 ========================
 * add support for enabling XFS project quota in hostpath volumes. ([#78](https://github.com/openebs/dynamic-localpv-provisioner/pull/78),[@almas33](https://github.com/almas33))

@@ -23,3 +23,5 @@ metadata:
 provisioner: openebs.io/local
 volumeBindingMode: WaitForFirstConsumer
 ```
+
+**NOTE**: Using NodeAffinityLabels does not influence scheduling of the application Pod. You may use [allowedTopologies](./allowedtopologies.md) for that.
