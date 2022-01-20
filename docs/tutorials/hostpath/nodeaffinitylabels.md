@@ -16,7 +16,7 @@ metadata:
     openebs.io/cas-type: local
     cas.openebs.io/config: |
       - name: StorageType
-      - value: "hostpath"
+        value: "hostpath"
       - name: NodeAffinityLabels
         list:
           - "openebs.io/custom-node-unique-id"
