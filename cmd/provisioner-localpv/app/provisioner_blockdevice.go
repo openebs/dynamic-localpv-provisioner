@@ -23,13 +23,11 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/klog/v2"
 
-	pvController "sigs.k8s.io/sig-storage-lib-external-provisioner/v7/controller"
-	//pvController "github.com/kubernetes-sigs/sig-storage-lib-external-provisioner/controller"
 	mconfig "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	v1 "k8s.io/api/core/v1"
+	pvController "sigs.k8s.io/sig-storage-lib-external-provisioner/v7/controller"
 
-	mPV "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/persistentvolume"
-	//metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	pv "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/persistentvolume"
 )
 
 // ProvisionBlockDevice is invoked by the Provisioner to create a Local PV
@@ -119,7 +117,7 @@ func (p *Provisioner) ProvisionBlockDevice(ctx context.Context, opts pvControlle
 	//labels[string(v1alpha1.StorageClassKey)] = *className
 
 	//TODO Change the following to a builder pattern
-	pvObjBuilder := mPV.NewBuilder().
+	pvObjBuilder := pv.NewBuilder().
 		WithName(name).
 		WithLabels(labels).
 		WithAnnotations(volAnnotations).

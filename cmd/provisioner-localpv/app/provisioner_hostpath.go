@@ -20,15 +20,15 @@ import (
 	"context"
 
 	"github.com/openebs/maya/pkg/alertlog"
+	mconfig "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/klog/v2"
+	pvController "sigs.k8s.io/sig-storage-lib-external-provisioner/v7/controller"
 
 	"github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/persistentvolume"
-	mconfig "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	pvController "sigs.k8s.io/sig-storage-lib-external-provisioner/v7/controller"
 )
 
 const (

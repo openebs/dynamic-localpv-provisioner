@@ -22,15 +22,13 @@ import (
 	"strings"
 
 	menv "github.com/openebs/maya/pkg/env/v1alpha1"
+	mKube "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
 	analytics "github.com/openebs/maya/pkg/usage"
+	"github.com/openebs/maya/pkg/util"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-
 	"k8s.io/klog/v2"
-
-	mKube "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
-	"github.com/openebs/maya/pkg/util"
 	pvController "sigs.k8s.io/sig-storage-lib-external-provisioner/v7/controller"
 )
 

@@ -20,28 +20,16 @@ and modified to work with the configuration options used by OpenEBS
 package app
 
 import (
-	"github.com/openebs/maya/pkg/util"
-	//"fmt"
-	//"path/filepath"
-	//"strings"
 	"context"
 	"time"
 
-	"k8s.io/klog/v2"
-	//"github.com/pkg/errors"
-	errors "github.com/pkg/errors"
-
-	//hostpath "github.com/openebs/maya/pkg/hostpath/v1alpha1"
-
-	//container "github.com/openebs/maya/pkg/kubernetes/container/v1alpha1"
-	//pod "github.com/openebs/maya/pkg/kubernetes/pod/v1alpha1"
-	//volume "github.com/openebs/maya/pkg/kubernetes/volume/v1alpha1"
 	blockdevice "github.com/openebs/maya/pkg/blockdevice/v1alpha2"
 	blockdeviceclaim "github.com/openebs/maya/pkg/blockdeviceclaim/v1alpha1"
+	"github.com/openebs/maya/pkg/util"
+	errors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
-
-	//ndmv1alpha1 "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/klog/v2"
 )
 
 const (

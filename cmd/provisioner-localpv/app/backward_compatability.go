@@ -19,11 +19,9 @@ package app
 import (
 	"context"
 
-	"github.com/pkg/errors"
-
-	blockdeviceclaim "github.com/openebs/maya/pkg/blockdeviceclaim/v1alpha1"
-
 	mconfig "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	blockdeviceclaim "github.com/openebs/maya/pkg/blockdeviceclaim/v1alpha1"
+	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"

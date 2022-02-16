@@ -36,21 +36,16 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/pkg/errors"
-	"k8s.io/klog/v2"
-	pvController "sigs.k8s.io/sig-storage-lib-external-provisioner/v7/controller"
-
-	//pvController "github.com/kubernetes-sigs/sig-storage-lib-external-provisioner/controller"
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
-
-	//metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clientset "k8s.io/client-go/kubernetes"
-
 	"github.com/openebs/maya/pkg/alertlog"
 	mconfig "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	menv "github.com/openebs/maya/pkg/env/v1alpha1"
 	analytics "github.com/openebs/maya/pkg/usage"
+	"github.com/pkg/errors"
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
+	clientset "k8s.io/client-go/kubernetes"
+	"k8s.io/klog/v2"
+	pvController "sigs.k8s.io/sig-storage-lib-external-provisioner/v7/controller"
 )
 
 // NewProvisioner will create a new Provisioner object and initialize

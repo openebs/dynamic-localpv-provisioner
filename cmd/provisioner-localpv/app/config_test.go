@@ -22,7 +22,6 @@ import (
 	"testing"
 
 	mconfig "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-
 	corev1 "k8s.io/api/core/v1"
 )
 
