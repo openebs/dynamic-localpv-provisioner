@@ -18,7 +18,6 @@ package app
 
 import (
 	"context"
-	"flag"
 	"os"
 	"strings"
 
@@ -27,7 +26,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	klog "k8s.io/klog/v2"
+
+	"k8s.io/klog/v2"
 
 	mKube "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
@@ -57,15 +57,14 @@ func StartProvisioner() (*cobra.Command, error) {
 		},
 	}
 
-	cmd.Flags().IntVar(&WaitForBDTimeoutCounts, "bd-time-out", 12,
-		"WaitForBDTimeoutCounts specifies the duration to wait for BDC to be associated with a BD.")
+	flags := cmd.Flags()
 
-	// add the default command line flags as global flags to cobra command
-	// flagset
-	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
+	// Add flags to the cobra command's FlagSet
+	flags.IntVar(&WaitForBDTimeoutCounts, "bd-time-out", 12,
+		"Specifies the no. of 5s intervals to wait for BDC to be associated with a BD")
 
-	// Hack: Without the following line, the logs will be prefixed with Error
-	_ = flag.CommandLine.Parse([]string{})
+	// Merge all flags from this Cobra Command to the global FlagSet
+	pflag.CommandLine.AddFlagSet(flags)
 
 	return cmd, nil
 }

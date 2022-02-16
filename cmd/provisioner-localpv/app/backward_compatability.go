@@ -26,7 +26,7 @@ import (
 	mconfig "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"
-	klog "k8s.io/klog/v2"
+	"k8s.io/klog/v2"
 )
 
 // This function performs the preupgrade related tasks for 1.0 to 1.1

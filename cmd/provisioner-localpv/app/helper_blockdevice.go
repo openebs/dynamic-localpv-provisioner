@@ -27,7 +27,7 @@ import (
 	"context"
 	"time"
 
-	klog "k8s.io/klog/v2"
+	"k8s.io/klog/v2"
 	//"github.com/pkg/errors"
 	errors "github.com/pkg/errors"
 

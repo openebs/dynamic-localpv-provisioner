@@ -37,7 +37,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	klog "k8s.io/klog/v2"
+	"k8s.io/klog/v2"
 	pvController "sigs.k8s.io/sig-storage-lib-external-provisioner/v7/controller"
 
 	//pvController "github.com/kubernetes-sigs/sig-storage-lib-external-provisioner/controller"

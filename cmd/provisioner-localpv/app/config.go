@@ -26,7 +26,7 @@ import (
 	cast "github.com/openebs/maya/pkg/castemplate/v1alpha1"
 	hostpath "github.com/openebs/maya/pkg/hostpath/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
-	klog "k8s.io/klog/v2"
+	"k8s.io/klog/v2"
 
 	//"github.com/pkg/errors"
 	errors "github.com/pkg/errors"

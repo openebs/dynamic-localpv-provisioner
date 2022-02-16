@@ -28,7 +28,7 @@ import (
 	"time"
 
 	errors "github.com/pkg/errors"
-	klog "k8s.io/klog/v2"
+	"k8s.io/klog/v2"
 
 	hostpath "github.com/openebs/maya/pkg/hostpath/v1alpha1"
 
