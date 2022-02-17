@@ -37,6 +37,8 @@ func init() {
 	//       klog flags to write logs to a file or directory. Disabling
 	//       this flag will disable logging to stderr (while
 	//	 --logtostderr=false is set).
+	// Ref: https://github.com/kubernetes/klog/issues/60
+	// User flags will be honored at Parse time.
 	flag.CommandLine.Set("logtostderr", "false")
 	flag.CommandLine.Set("alsologtostderr", "true")
 
