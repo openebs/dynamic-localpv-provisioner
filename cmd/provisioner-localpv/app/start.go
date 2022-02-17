@@ -27,7 +27,6 @@ import (
 	"github.com/openebs/maya/pkg/util"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 	"k8s.io/klog/v2"
 	pvController "sigs.k8s.io/sig-storage-lib-external-provisioner/v7/controller"
 )
@@ -55,14 +54,9 @@ func StartProvisioner() (*cobra.Command, error) {
 		},
 	}
 
-	flags := cmd.Flags()
-
 	// Add flags to the cobra command's FlagSet
-	flags.IntVar(&WaitForBDTimeoutCounts, "bd-time-out", 12,
+	cmd.Flags().IntVar(&WaitForBDTimeoutCounts, "bd-time-out", 12,
 		"Specifies the no. of 5s intervals to wait for BDC to be associated with a BD")
-
-	// Merge all flags from this Cobra Command to the global FlagSet
-	pflag.CommandLine.AddFlagSet(flags)
 
 	return cmd, nil
 }

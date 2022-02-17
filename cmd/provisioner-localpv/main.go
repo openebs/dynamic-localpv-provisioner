@@ -61,6 +61,8 @@ func run() error {
 		return err
 	}
 
+	// Merge all flags from the Cobra Command to the global FlagSet
+	pflag.CommandLine.AddFlagSet(cmd.Flags())
 	// Parse all flags
 	pflag.Parse()
 
