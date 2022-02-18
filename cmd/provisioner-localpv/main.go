@@ -43,6 +43,10 @@ func init() {
 	flag.CommandLine.Set("alsologtostderr", "true")
 
 	// Merge klog CLI flags to the global flagset
+	// The pflag.Commandline FlagSet will be parsed
+	// in the run() function in this package, before
+	// initializing logging and cobra command execution.
+	// Ref: github.com/spf13/pflag#supporting-go-flags-when-using-pflag
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 }
 
@@ -62,8 +66,8 @@ func run() error {
 	}
 
 	// Merge all flags from the Cobra Command to the global FlagSet
+	// and Parse them
 	pflag.CommandLine.AddFlagSet(cmd.Flags())
-	// Parse all flags
 	pflag.Parse()
 
 	// NOTE: Logging must start after CLI flags have been parsed
