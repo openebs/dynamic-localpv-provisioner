@@ -18,19 +18,16 @@ package app
 
 import (
 	"context"
-	"flag"
 	"os"
 	"strings"
 
 	menv "github.com/openebs/maya/pkg/env/v1alpha1"
+	mKube "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
 	analytics "github.com/openebs/maya/pkg/usage"
+	"github.com/openebs/maya/pkg/util"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
-	klog "k8s.io/klog/v2"
-
-	mKube "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
-	"github.com/openebs/maya/pkg/util"
+	"k8s.io/klog/v2"
 	pvController "sigs.k8s.io/sig-storage-lib-external-provisioner/v7/controller"
 )
 
@@ -57,15 +54,9 @@ func StartProvisioner() (*cobra.Command, error) {
 		},
 	}
 
+	// Add flags to the cobra command's FlagSet
 	cmd.Flags().IntVar(&WaitForBDTimeoutCounts, "bd-time-out", 12,
-		"WaitForBDTimeoutCounts specifies the duration to wait for BDC to be associated with a BD.")
-
-	// add the default command line flags as global flags to cobra command
-	// flagset
-	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
-
-	// Hack: Without the following line, the logs will be prefixed with Error
-	_ = flag.CommandLine.Parse([]string{})
+		"Specifies the no. of 5s intervals to wait for BDC to be associated with a BD")
 
 	return cmd, nil
 }

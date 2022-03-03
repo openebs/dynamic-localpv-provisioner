@@ -20,15 +20,15 @@ import (
 	"context"
 
 	"github.com/openebs/maya/pkg/alertlog"
+	mconfig "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	klog "k8s.io/klog/v2"
+	"k8s.io/klog/v2"
+	pvController "sigs.k8s.io/sig-storage-lib-external-provisioner/v7/controller"
 
 	"github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/persistentvolume"
-	mconfig "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	pvController "sigs.k8s.io/sig-storage-lib-external-provisioner/v7/controller"
 )
 
 const (
@@ -225,7 +225,7 @@ func (p *Provisioner) DeleteHostPath(ctx context.Context, pv *v1.PersistentVolum
 	}
 
 	nodeAffinityLabels := pvObj.GetAffinitedNodeLabels()
-	if nodeAffinityLabels == nil || len(nodeAffinityLabels) == 0 {
+	if len(nodeAffinityLabels) == 0 {
 		return errors.Errorf("cannot find affinited node details")
 	}
 	alertlog.Logger.Infof("Get the Node Object with label {%v}", nodeAffinityLabels)
