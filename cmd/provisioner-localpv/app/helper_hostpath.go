@@ -328,6 +328,11 @@ func (p *Provisioner) launchPod(ctx context.Context, config podConfig) (*corev1.
 						ReadOnly:  false,
 						MountPath: "/data/",
 					},
+					{
+						Name:      "dev",
+						ReadOnly:  false,
+						MountPath: "/dev/",
+					},
 				}).
 				WithPrivilegedSecurityContext(&privileged),
 		).
@@ -336,6 +341,11 @@ func (p *Provisioner) launchPod(ctx context.Context, config podConfig) (*corev1.
 			volume.NewBuilder().
 				WithName("data").
 				WithHostDirectory(config.parentDir),
+		).
+		WithVolumeBuilder(
+			volume.NewBuilder().
+				WithName("dev").
+				WithHostDirectory("/dev/"),
 		).
 		Build()
 
