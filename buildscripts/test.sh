@@ -31,7 +31,7 @@ fi
 #fi
 
 echo "" > coverage.txt
-PACKAGES=$(go list ./... | grep -v '/vendor/\|/pkg/version\|tests')
+PACKAGES=$(go list ./... | grep -v '/pkg/version\|tests')
 for d in $PACKAGES; do
 	go test -coverprofile=profile.out -covermode=atomic "$d"
 	if [ -f profile.out ]; then

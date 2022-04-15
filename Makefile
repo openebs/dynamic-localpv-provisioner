@@ -31,10 +31,10 @@ export ARCH
 
 
 # list only the source code directories
-PACKAGES = $(shell go list ./... | grep -v '/vendor/\|/pkg/version\|tests')
+PACKAGES = $(shell go list ./... | grep -v '/pkg/version\|tests')
 
 # list only the integration tests code directories
-PACKAGES_IT = $(shell go list ./... | grep -v 'vendor\|pkg/client/generated' | grep 'tests')
+PACKAGES_IT = $(shell go list ./... | grep -v 'pkg/client/generated' | grep 'tests')
 
 # The images can be pushed to any docker/image registeries
 # like docker hub, quay. The registries are specified in 
@@ -120,10 +120,6 @@ verify-deps: deps
 		echo "go module files are out of date, please commit the changes to go.mod and go.sum"; exit 1; \
 	fi
 
-.PHONY: vendor
-vendor: go.mod go.sum deps
-	@go mod vendor
-
 .PHONY: clean
 clean: 
 	go clean -testcache
@@ -163,7 +159,7 @@ format:
 .PHONY: vet
 vet:
 	@echo "--> Running go vet"
-	@go list ./... | grep -v "./vendor/*" | xargs go vet -composites
+	@go list ./... | xargs go vet -composites
 
 .PHONY: verify-src
 verify-src: 
@@ -191,7 +187,7 @@ provisioner-localpv-image: provisioner-localpv
 .PHONY: license-check
 license-check:
 	@echo "--> Checking license header..."
-	@licRes=$$(for file in $$(find . -type f -regex '.*\.sh\|.*\.go\|.*Docker.*\|.*\Makefile*' ! -path './vendor/*' ) ; do \
+	@licRes=$$(for file in $$(find . -type f -regex '.*\.sh\|.*\.go\|.*Docker.*\|.*\Makefile*') ; do \
                awk 'NR<=5' $$file | grep -Eq "(Copyright|generated|GENERATED)" || echo $$file; \
        done); \
        if [ -n "$${licRes}" ]; then \

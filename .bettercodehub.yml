@@ -3,4 +3,3 @@ languages:
 - go
 exclude:
 - /pkg/client/generated/.*
-- /vendor/.*
