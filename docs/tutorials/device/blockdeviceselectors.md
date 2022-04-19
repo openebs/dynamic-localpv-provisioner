@@ -24,7 +24,7 @@ provisioner: openebs.io/local
 volumeBindingMode: WaitForFirstConsumer
 ```
 
-# NDM metaconfigs
+## NDM metaconfigs
 
 You may enable `metaconfigs` in NDM's `openebs-ndm-config` ConfigMap in the `openebs` namespace, and use the node and device labels specified there. To enable metaconfigs, edit the NDM Configmap.
 
