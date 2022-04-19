@@ -1,0 +1,1 @@
+fix bug where klog logging flags are not parsed
