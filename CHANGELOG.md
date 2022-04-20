@@ -1,3 +1,9 @@
+v3.2.0 / 2022-04-19
+===================
+* fix bug where klog logging flags are not parsed ([#127](https://github.com/openebs/dynamic-localpv-provisioner/pull/127), [@niladrih](https://github.com/niladrih))
+* fix bug where XFS-Quota does not work with LVM ([#130](https://github.com/openebs/dynamic-localpv-provisioner/pull/130), [@csschwe](https://github.com/csschwe))
+
+
 v3.1.0 / 2022-01-06
 ========================
 * add support for multiple Node Affinity Labels for both hostpath and device volumes. ([#102](https://github.com/openebs/dynamic-localpv-provisioner/pull/102),[@Ab-hishek](https://https://github.com/Ab-hishek))
