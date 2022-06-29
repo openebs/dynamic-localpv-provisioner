@@ -25,6 +25,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	hostpath "github.com/openebs/maya/pkg/hostpath/v1alpha1"
@@ -279,18 +280,24 @@ func (p *Provisioner) createQuotaPod(ctx context.Context, pOpts *HelperPodOption
 
 	//fs stores the file system of mount
 	fs := "FS=`stat -f -c %T /data` ; "
-	//check if fs is xfs
-	checkXfs := "if [[ \"$FS\" != \"xfs\" ]]; then rm -rf " + filepath.Join("/data/", config.volumeDir) + " ;exit 1 ; else "
-	//lastPid finds last project Id in the directory
-	lastPid := "PID=`xfs_quota -x -c 'report -h' /data | tail -2 | awk 'NR==1{print substr ($1,2)}+0'` ;"
-	//newPid increments last project Id by 1
-	newPid := "PID=`expr $PID + 1` ;"
-	//initializeProject initializes project with newpid
-	initializeProject := "xfs_quota -x -c 'project -s -p " + filepath.Join("/data/", config.volumeDir) + " '$PID /data ;"
-	//setQuota sets the quota according to limits defined
-	setQuota := "xfs_quota -x -c 'limit -p bsoft=" + config.pOpts.softLimitGrace + " bhard=" + config.pOpts.hardLimitGrace + " '$PID /data ; fi"
-
-	config.pOpts.cmdsForPath = []string{"sh", "-c", fs + checkXfs + lastPid + newPid + initializeProject + setQuota}
+	//check if fs is xfs or ext4 (output of stat is ext2/ext3)
+	//PID is the last project Id in the directory
+	//xfs_quota project(xfs) or chattr +P (ext4) initializes project with new project id
+	//xfs_quota limit(xfs) or repquota (ext4) sets the quota according to limits defined
+	checkQuota := "" +
+		"if [[ \"$FS\" == \"xfs\" ]]; then " +
+		"  PID=`xfs_quota -x -c 'report -h' /data | tail -2 | awk 'NR==1{print substr ($1,2)}+0'` ;" +
+		"  PID=`expr $PID + 1` ;" +
+		"  xfs_quota -x -c 'project -s -p " + filepath.Join("/data/", config.volumeDir) + " '$PID /data;" +
+		"  xfs_quota -x -c 'limit -p bsoft=" + config.pOpts.softLimitGrace + " bhard=" + config.pOpts.hardLimitGrace + " '$PID /data ;" +
+		"elif [[ \"$FS\" == \"ext2/ext3\" ]]; then" +
+		"  PID=`repquota -P /data | tail -3 | awk 'NR==1{print substr ($1,2)}+0'` ;" +
+		"  PID=`expr $PID + 1` ;" +
+		"  chattr +P -p $PID " + filepath.Join("/data/", config.volumeDir) + " ;" +
+		"  setquota -P $PID " + strings.ToUpper(config.pOpts.softLimitGrace) + " " + strings.ToUpper(config.pOpts.hardLimitGrace) + " 0 0 " + "/data ; " +
+		"else " +
+		"  rm -rf " + filepath.Join("/data/", config.volumeDir) + " ; exit 1; fi"
+	config.pOpts.cmdsForPath = []string{"sh", "-c", fs + checkQuota}
 
 	qPod, err := p.launchPod(ctx, config)
 	if err != nil {

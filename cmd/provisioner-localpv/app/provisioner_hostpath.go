@@ -32,9 +32,10 @@ import (
 )
 
 const (
-	EnableXfsQuota string = "enableXfsQuota"
-	SoftLimitGrace string = "softLimitGrace"
-	HardLimitGrace string = "hardLimitGrace"
+	EnableXfsQuota  string = "enableXfsQuota"
+	EnableExt4Quota string = "enableExt4Quota"
+	SoftLimitGrace  string = "softLimitGrace"
+	HardLimitGrace  string = "hardLimitGrace"
 )
 
 // ProvisionHostPath is invoked by the Provisioner which expect HostPath PV
@@ -99,8 +100,44 @@ func (p *Provisioner) ProvisionHostPath(ctx context.Context, opts pvController.P
 	}
 
 	if volumeConfig.IsXfsQuotaEnabled() {
-		softLimitGrace := volumeConfig.getDataField(KeyXFSQuota, KeyXfsQuotaSoftLimit)
-		hardLimitGrace := volumeConfig.getDataField(KeyXFSQuota, KeyXfsQuotaHardLimit)
+		softLimitGrace := volumeConfig.getDataField(KeyXFSQuota, KeyQuotaSoftLimit)
+		hardLimitGrace := volumeConfig.getDataField(KeyXFSQuota, KeyQuotaHardLimit)
+		pvcStorage := opts.PVC.Spec.Resources.Requests.Storage().Value()
+
+		podOpts := &HelperPodOptions{
+			name:               name,
+			path:               path,
+			nodeAffinityLabels: nodeAffinityLabels,
+			serviceAccountName: saName,
+			selectedNodeTaints: taints,
+			imagePullSecrets:   imagePullSecrets,
+			softLimitGrace:     softLimitGrace,
+			hardLimitGrace:     hardLimitGrace,
+			pvcStorage:         pvcStorage,
+		}
+		iErr := p.createQuotaPod(ctx, podOpts)
+		if iErr != nil {
+			klog.Infof("Applying quota failed: %v", iErr)
+			alertlog.Logger.Errorw("",
+				"eventcode", "local.pv.provision.failure",
+				"msg", "Failed to provision Local PV",
+				"rname", opts.PVName,
+				"reason", "Quota enforcement failed",
+				"storagetype", stgType,
+			)
+			return nil, pvController.ProvisioningFinished, iErr
+		}
+		alertlog.Logger.Infow("",
+			"eventcode", "local.pv.quota.success",
+			"msg", "Successfully applied quota",
+			"rname", opts.PVName,
+			"storagetype", stgType,
+		)
+	}
+
+	if volumeConfig.IsExt4QuotaEnabled() {
+		softLimitGrace := volumeConfig.getDataField(KeyEXT4Quota, KeyQuotaSoftLimit)
+		hardLimitGrace := volumeConfig.getDataField(KeyEXT4Quota, KeyQuotaHardLimit)
 		pvcStorage := opts.PVC.Spec.Resources.Requests.Storage().Value()
 
 		podOpts := &HelperPodOptions{
