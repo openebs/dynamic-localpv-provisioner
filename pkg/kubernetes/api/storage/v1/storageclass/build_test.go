@@ -445,6 +445,146 @@ func TestBuildWithXfsQuota(t *testing.T) {
 	}
 }
 
+func TestBuildWithExt4Quota(t *testing.T) {
+	tests := map[string]struct {
+		softLimit    string
+		hardLimit    string
+		storageClass *storagev1.StorageClass
+		expectErr    bool
+	}{
+		"Build with sane limits": {
+			softLimit:    "75%",
+			hardLimit:    "80%",
+			storageClass: &storagev1.StorageClass{},
+			expectErr:    false,
+		},
+		"Build with empty softLimit": {
+			softLimit:    "",
+			hardLimit:    "80%",
+			storageClass: &storagev1.StorageClass{},
+			expectErr:    false,
+		},
+		"Build with empty hardLimit": {
+			softLimit:    "80%",
+			hardLimit:    "",
+			storageClass: &storagev1.StorageClass{},
+			expectErr:    false,
+		},
+		"Build with compatible '" + string(mconfig.CASConfigKey) + "' annotation": {
+			softLimit: "75%",
+			hardLimit: "80%",
+			storageClass: &storagev1.StorageClass{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						string(mconfig.CASConfigKey): mockNodeAffinityLabelConfig,
+					},
+				},
+			},
+			expectErr: false,
+		},
+		"Build with incompatible '" + string(mconfig.CASConfigKey) + "' annotation": {
+			softLimit: "75%",
+			hardLimit: "80%",
+			storageClass: &storagev1.StorageClass{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						string(mconfig.CASConfigKey): mockBlockDeviceSelectorsConfig,
+					},
+				},
+			},
+			expectErr: true,
+		},
+		"Build with empty '" + string(mconfig.CASConfigKey) + "' annotation": {
+			softLimit: "75%",
+			hardLimit: "80%",
+			storageClass: &storagev1.StorageClass{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						string(mconfig.CASConfigKey): "",
+					},
+				},
+			},
+			expectErr: false,
+		},
+		"Build with valid '" + string(mconfig.CASTypeKey) + "' annotation": {
+			softLimit: "75%",
+			hardLimit: "80%",
+			storageClass: &storagev1.StorageClass{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						string(mconfig.CASTypeKey): localPVcasTypeValue,
+					},
+				},
+			},
+			expectErr: false,
+		},
+		"Build with invalid '" + string(mconfig.CASTypeKey) + "' annotation": {
+			softLimit: "75%",
+			hardLimit: "80%",
+			storageClass: &storagev1.StorageClass{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						string(mconfig.CASTypeKey): fakeCASTypeValue,
+					},
+				},
+			},
+			expectErr: true,
+		},
+		"Build with empty '" + string(mconfig.CASTypeKey) + "' annotation": {
+			softLimit: "75%",
+			hardLimit: "80%",
+			storageClass: &storagev1.StorageClass{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						string(mconfig.CASTypeKey): "",
+					},
+				},
+			},
+			expectErr: false,
+		},
+		"Build with valid Provisioner name": {
+			softLimit: "75%",
+			hardLimit: "80%",
+			storageClass: &storagev1.StorageClass{
+				Provisioner: localPVprovisionerName,
+			},
+			expectErr: false,
+		},
+		"Build with invalid Provisioner name": {
+			softLimit: "75%",
+			hardLimit: "80%",
+			storageClass: &storagev1.StorageClass{
+				Provisioner: fakeProvisionerName,
+			},
+			expectErr: true,
+		},
+		"Build with empty Provisioner name": {
+			softLimit: "75%",
+			hardLimit: "80%",
+			storageClass: &storagev1.StorageClass{
+				Provisioner: "",
+			},
+			expectErr: false,
+		},
+	}
+
+	for name, mock := range tests {
+		name := name
+		mock := mock
+		t.Run(name, func(t *testing.T) {
+			opt := WithExt4Quota(mock.softLimit, mock.hardLimit)
+			err := opt(mock.storageClass)
+
+			if mock.expectErr && err == nil {
+				t.Fatal("Test '" + name + "' failed: expected error to not be nil.")
+			}
+			if !mock.expectErr && err != nil {
+				t.Fatal("Test '" + name + "' failed: expected error to be nil.")
+			}
+		})
+	}
+}
+
 func TestBuildWithDevice(t *testing.T) {
 	tests := map[string]struct {
 		storageClass *storagev1.StorageClass

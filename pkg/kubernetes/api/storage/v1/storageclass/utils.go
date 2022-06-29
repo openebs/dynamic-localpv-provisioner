@@ -76,7 +76,12 @@ func isCompatibleWithHostpath(s *storagev1.StorageClass) bool {
 			case "NodeAffinityLabel":
 				continue
 			case "XFSQuota":
-				if !isValidXfsQuotaData(config.Data) {
+				if !isValidQuotaData(config.Data) {
+					return false
+				}
+				continue
+			case "EXT4Quota":
+				if !isValidQuotaData(config.Data) {
 					return false
 				}
 				continue
@@ -93,11 +98,11 @@ func isCompatibleWithHostpath(s *storagev1.StorageClass) bool {
 	return true
 }
 
-func isValidXfsQuotaData(data map[string]string) bool {
+func isValidQuotaData(data map[string]string) bool {
 	if data == nil {
 		return true
 	}
-	if softLimit, ok := data[KeyXfsQuotaSoftLimit]; ok {
+	if softLimit, ok := data[KeyQuotaSoftLimit]; ok {
 		//Allows values of the following formats:
 		// 123.456%, 123%, 123.%, .45%
 		//Does not allow:
@@ -106,7 +111,7 @@ func isValidXfsQuotaData(data map[string]string) bool {
 			return false
 		}
 	}
-	if hardLimit, ok := data[KeyXfsQuotaHardLimit]; ok {
+	if hardLimit, ok := data[KeyQuotaHardLimit]; ok {
 		//Allows values of the following formats:
 		// 123.456%, 123%, 123.%, .45%
 		//Does not allow:
@@ -119,7 +124,7 @@ func isValidXfsQuotaData(data map[string]string) bool {
 	return true
 }
 
-func isCompatibleWithXfsQuota(s *storagev1.StorageClass) bool {
+func isCompatibleWithQuota(s *storagev1.StorageClass) bool {
 	if !isCompatibleWithLocalPVcasType(s) {
 		return false
 	}
@@ -187,7 +192,12 @@ func isCompatibleWithNodeAffinityLabel(s *storagev1.StorageClass) bool {
 				}
 				continue
 			case "XFSQuota":
-				if !isValidXfsQuotaData(config.Data) {
+				if !isValidQuotaData(config.Data) {
+					return false
+				}
+				continue
+			case "EXT4Quota":
+				if !isValidQuotaData(config.Data) {
 					return false
 				}
 				continue
