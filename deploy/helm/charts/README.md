@@ -123,6 +123,7 @@ helm install openebs-localpv openebs-localpv/localpv-provisioner --namespace ope
 | `hostpathClass.isDefaultClass`              | Make openebs-hostpath the default StorageClass    | `"false"`                       |
 | `hostpathClass.nodeAffinityLabels`          | Custom node label(or labels) key to uniquely identify nodes. `kubernetes.io/hostname` is the default label key for node selection. | `[]` |
 | `hostpathClass.xfsQuota.enabled`            | Enable XFS Quota (requires XFS filesystem)        | `false`                         |
+| `hostpathClass.ext4Quota.enabled`            | Enable EXT4 Quota (requires EXT4 filesystem)     | `false`                         |
 | `hostpathClass.reclaimPolicy`               | ReclaimPolicy for Hostpath PVs                    | `"Delete"`                      |
 | `imagePullSecrets`                          | Provides image pull secrect                       | `""`                            |
 | `localpv.enabled`                           | Enable LocalPV Provisioner                        | `true`                          |

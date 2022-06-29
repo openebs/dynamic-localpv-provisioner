@@ -146,6 +146,16 @@ hostpathClass:
     # is set at the storage capacity specified in the PVC.
     softLimitGrace: "0%"
     hardLimitGrace: "0%"
+  # Prerequisite: EXT4 Quota requires an EXT4 filesystem mounted with
+  # the 'prjquota' mount option.
+  ext4Quota:
+    # If true, enables XFS project quota
+    enabled: false
+    # Detailed configuration options for EXT4 project quota.
+    # If EXT4 Quota is enabled with the default values, the usage limit
+    # is set at the storage capacity specified in the PVC.
+    softLimitGrace: "0%"
+    hardLimitGrace: "0%"
 
 helperPod:
   image:
