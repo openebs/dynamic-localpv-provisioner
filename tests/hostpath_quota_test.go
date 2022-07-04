@@ -196,7 +196,7 @@ var _ = Describe("TEST HOSTPATH XFS QUOTA LOCAL PV WITH UNSUPPORTED FILESYSTEM",
 				pvcName,
 			)
 
-			By("removing the ext4 filesystem")
+			By("removing the minix filesystem")
 			//umount
 			errs := physicalDisk.Unmount()
 			Expect(errs).To(BeEmpty(), "when unmounting loop device")
@@ -575,7 +575,7 @@ var _ = Describe("TEST HOSTPATH EXT4 QUOTA LOCAL PV WITH UNSUPPORTED FILESYSTEM"
 				pvcName,
 			)
 
-			By("removing the xfs filesystem")
+			By("removing the minix filesystem")
 			//umount
 			errs := physicalDisk.Unmount()
 			Expect(errs).To(BeEmpty(), "when unmounting loop device")
