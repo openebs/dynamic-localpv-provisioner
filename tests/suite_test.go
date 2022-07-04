@@ -100,7 +100,7 @@ var _ = BeforeSuite(func() {
 	loopHostpathDir = filepath.Join(hostpathDir, loopHostpathDirName)
 	loopDiskImgDir = filepath.Join(hostpathDir, loopDiskImgDirName)
 
-	By("preparing the loop device for hostpath XFS Quota tests")
+	By("preparing the loop device for hostpath Quota tests")
 	//Checking if NDM might be used for LOCAL HOSTDEVICE tests
 	ndmState = ops.IsNdmPrerequisiteMet(openebsNamespace, ndmLabelSelector, ndmOperatorLabelSelector)
 	physicalDisk, err = disk.PrepareDisk(loopDiskImgDir, loopHostpathDir)

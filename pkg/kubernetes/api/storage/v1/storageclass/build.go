@@ -36,8 +36,8 @@ const (
 
 	//These are from 'app' package
 	// cmd/provisioner-localpv/app/config.go
-	KeyXfsQuotaSoftLimit = "softLimitGrace"
-	KeyXfsQuotaHardLimit = "hardLimitGrace"
+	KeyQuotaSoftLimit = "softLimitGrace"
+	KeyQuotaHardLimit = "hardLimitGrace"
 )
 
 type StorageClassOption func(*storagev1.StorageClass) error
@@ -193,7 +193,7 @@ func WithDevice() StorageClassOption {
 
 func WithXfsQuota(softLimit, hardLimit string) StorageClassOption {
 	return func(s *storagev1.StorageClass) error {
-		if !isCompatibleWithXfsQuota(s) {
+		if !isCompatibleWithQuota(s) {
 			return errors.New("Failed to set XFSQuota parameters. " +
 				"Invalid existing '" + string(mconfig.CASConfigKey) + "' annotation" +
 				" parameters or Provisioner name.")
@@ -205,24 +205,61 @@ func WithXfsQuota(softLimit, hardLimit string) StorageClassOption {
 			"  enabled: \"true\"\n"
 
 		if len(softLimit) > 0 || len(hardLimit) > 0 {
-			if !isValidXfsQuotaData(map[string]string{
-				KeyXfsQuotaSoftLimit: softLimit,
-				KeyXfsQuotaHardLimit: hardLimit,
+			if !isValidQuotaData(map[string]string{
+				KeyQuotaSoftLimit: softLimit,
+				KeyQuotaHardLimit: hardLimit,
 			}) {
 				return errors.New("Failed to set XFSQuota parameters. " +
-					"Invalid " + KeyXfsQuotaSoftLimit + " and " +
-					KeyXfsQuotaHardLimit + " values")
+					"Invalid " + KeyQuotaSoftLimit + " and " +
+					KeyQuotaHardLimit + " values")
 			}
 
 			config = config +
 				"  data:\n" +
-				"    " + KeyXfsQuotaSoftLimit + ": \"" + softLimit + "\"\n" +
-				"    " + KeyXfsQuotaHardLimit + ": \"" + hardLimit + "\"\n"
+				"    " + KeyQuotaSoftLimit + ": \"" + softLimit + "\"\n" +
+				"    " + KeyQuotaHardLimit + ": \"" + hardLimit + "\"\n"
 		}
 
 		ok := writeOrAppendCASConfig(s, config)
 		if !ok {
 			return errors.New("Failed to set XFSQuota parameters")
+		}
+		return nil
+	}
+}
+
+func WithExt4Quota(softLimit, hardLimit string) StorageClassOption {
+	return func(s *storagev1.StorageClass) error {
+		if !isCompatibleWithQuota(s) {
+			return errors.New("Failed to set EXT4Quota parameters. " +
+				"Invalid existing '" + string(mconfig.CASConfigKey) + "' annotation" +
+				" parameters or Provisioner name.")
+		}
+
+		// TODO: Refactor this code
+
+		config := "- name: EXT4Quota\n" +
+			"  enabled: \"true\"\n"
+
+		if len(softLimit) > 0 || len(hardLimit) > 0 {
+			if !isValidQuotaData(map[string]string{
+				KeyQuotaSoftLimit: softLimit,
+				KeyQuotaHardLimit: hardLimit,
+			}) {
+				return errors.New("Failed to set EXT4Quota parameters. " +
+					"Invalid " + KeyQuotaSoftLimit + " and " +
+					KeyQuotaHardLimit + " values")
+			}
+
+			config = config +
+				"  data:\n" +
+				"    " + KeyQuotaSoftLimit + ": \"" + softLimit + "\"\n" +
+				"    " + KeyQuotaHardLimit + ": \"" + hardLimit + "\"\n"
+		}
+
+		ok := writeOrAppendCASConfig(s, config)
+		if !ok {
+			return errors.New("Failed to set EXT4Quota parameters")
 		}
 		return nil
 	}

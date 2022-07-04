@@ -117,9 +117,19 @@ const (
 	//      data:
 	//        softLimitGrace: "80%"
 	//        hardLimitGrace: "85%"
-	KeyXFSQuota          = "XFSQuota"
-	KeyXfsQuotaSoftLimit = "softLimitGrace"
-	KeyXfsQuotaHardLimit = "hardLimitGrace"
+	KeyXFSQuota = "XFSQuota"
+
+	//KeyEXT4Quota enables/sets parameters for EXT4 Quota.
+	// Example StorageClass snippet:
+	//    - name: EXT4Quota
+	//      enabled: true
+	//      data:
+	//        softLimitGrace: "80%"
+	//        hardLimitGrace: "85%"
+	KeyEXT4Quota = "EXT4Quota"
+
+	KeyQuotaSoftLimit = "softLimitGrace"
+	KeyQuotaHardLimit = "hardLimitGrace"
 )
 
 const (
@@ -309,6 +319,23 @@ func (c *VolumeConfig) IsXfsQuotaEnabled() bool {
 	}
 
 	return enableXfsQuotaBool
+}
+
+func (c *VolumeConfig) IsExt4QuotaEnabled() bool {
+	ext4QuotaEnabled := c.getEnabled(KeyEXT4Quota)
+	ext4QuotaEnabled = strings.TrimSpace(ext4QuotaEnabled)
+
+	enableExt4QuotaBool, err := strconv.ParseBool(ext4QuotaEnabled)
+	//Default case
+	// this means that we have hit either of the two cases below:
+	//     i. The value was something other than a straightforward
+	//        true or false
+	//    ii. The value was empty
+	if err != nil {
+		return false
+	}
+
+	return enableExt4QuotaBool
 }
 
 //getValue is a utility function to extract the value

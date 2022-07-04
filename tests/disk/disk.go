@@ -32,9 +32,9 @@ import (
 
 const (
 	// DiskImageSize is the default file size(1GB) used while creating backing image
-	DiskImageSize               = 1073741824
-	DiskImageNamePrefix         = "openebs-disk"
-	XfsQuotaDiskImageNamePrefix = DiskImageNamePrefix + "-xfs_quota"
+	DiskImageSize            = 1073741824
+	DiskImageNamePrefix      = "openebs-disk"
+	QuotaDiskImageNamePrefix = DiskImageNamePrefix + "-quota"
 )
 
 // Disk has the attributes of a virtual disk which is emulated for integration
@@ -65,7 +65,7 @@ func NewDisk(size int64) Disk {
 }
 
 func (disk *Disk) createDiskImage(imgDir string) error {
-	f, err := ioutil.TempFile(imgDir, XfsQuotaDiskImageNamePrefix+"-*.img")
+	f, err := ioutil.TempFile(imgDir, QuotaDiskImageNamePrefix+"-*.img")
 	if err != nil {
 		return fmt.Errorf("error creating disk image. Error : %v", err)
 	}
@@ -138,6 +138,8 @@ func RunCommand(cmd string) ([]byte, error) {
 func (disk *Disk) CreateFilesystem(fstype string) error {
 	var mkfsCommand string
 	switch fstype {
+	case "minix":
+		mkfsCommand = "mkfs.minix " + disk.DiskPath
 	case "ext4":
 		mkfsCommand = "mkfs.ext4 -O quota -E quotatype=prjquota " + disk.DiskPath
 	case "xfs":
@@ -243,7 +245,7 @@ func (disk *Disk) DetachAndDeleteDisk() error {
 	return nil
 }
 
-// PrepareDisk prepares the setup necessary for testing xfs hostpath quota
+// PrepareDisk prepares the setup necessary for testing xfs/ext4 hostpath quota
 func PrepareDisk(imgDir, hostPath string) (Disk, error) {
 	physicalDisk := NewDisk(DiskImageSize)
 
