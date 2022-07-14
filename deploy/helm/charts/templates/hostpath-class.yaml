@@ -24,6 +24,13 @@ metadata:
           softLimitGrace: "{{ .Values.hostpathClass.xfsQuota.softLimitGrace }}"
           hardLimitGrace: "{{ .Values.hostpathClass.xfsQuota.hardLimitGrace }}"
 {{- end }}
+{{- if .Values.hostpathClass.ext4Quota.enabled }}
+      - name: EXT4Quota
+        enabled: "{{ .Values.hostpathClass.ext4Quota.enabled }}"
+        data:
+          softLimitGrace: "{{ .Values.hostpathClass.ext4Quota.softLimitGrace }}"
+          hardLimitGrace: "{{ .Values.hostpathClass.ext4Quota.hardLimitGrace }}"
+{{- end }}
 {{- if .Values.hostpathClass.isDefaultClass }}
     storageclass.kubernetes.io/is-default-class: "true"
 {{- end }}
