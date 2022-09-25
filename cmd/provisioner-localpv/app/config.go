@@ -143,7 +143,7 @@ const (
 )
 
 //GetVolumeConfig creates a new VolumeConfig struct by
-// parsing and merging the configuration provided in the PVC
+// parsing and merging the configuration provided in the PVC/SC
 // annotation - cas.openebs.io/config with the
 // default configuration of the provisioner.
 func (p *Provisioner) GetVolumeConfig(ctx context.Context, pvName string, pvc *corev1.PersistentVolumeClaim) (*VolumeConfig, error) {
@@ -166,6 +166,18 @@ func (p *Provisioner) GetVolumeConfig(ctx context.Context, pvName string, pvc *c
 			pvConfig = cast.MergeConfig(scCASConfig, pvConfig)
 		} else {
 			return nil, errors.Wrapf(err, "failed to get config: invalid sc config {%v}", scCASConfigStr)
+		}
+	}
+
+	// extract and merge the cas config from persistentvolumeclaim
+	pvcCASConfigStr := pvc.Annotations[string(mconfig.CASConfigKey)]
+	klog.V(4).Infof("PVC %v has config:%v", pvc.Name, pvcCASConfigStr)
+	if len(strings.TrimSpace(pvcCASConfigStr)) != 0 {
+		pvcCASConfig, err := cast.UnMarshallToConfig(pvcCASConfigStr)
+		if err == nil {
+			pvConfig = cast.MergeConfig(pvcCASConfig, pvConfig)
+		} else {
+			return nil, errors.Wrapf(err, "failed to get config: invalid pvc config {%v}", pvcCASConfigStr)
 		}
 	}
 
