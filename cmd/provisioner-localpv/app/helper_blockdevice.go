@@ -51,9 +51,10 @@ type HelperBlockDeviceOptions struct {
 	//nodeAffinityLabels represents the labels of the node where pod should be launched.
 	nodeAffinityLabels map[string]string
 
-	capacity string
-	//	deviceType string
-	bdcName string
+	capacity   string
+	deviceType string
+	bdcName    string
+
 	//  volumeMode of PVC
 	volumeMode corev1.PersistentVolumeMode
 
@@ -125,6 +126,10 @@ func (p *Provisioner) createBlockDeviceClaim(ctx context.Context, blkDevOpts *He
 		WithCapacity(blkDevOpts.capacity).
 		WithFinalizer(LocalPVFinalizer).
 		WithBlockVolumeMode(blkDevOpts.volumeMode)
+
+	if blkDevOpts.deviceType != "" {
+		bdcObjBuilder.WithDeviceType(blkDevOpts.deviceType)
+	}
 
 	// if block device selectors are present, set it on the BDC
 	if blkDevOpts.bdSelectors != nil {

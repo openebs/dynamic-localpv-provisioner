@@ -41,6 +41,10 @@ const (
 	// can be configured via the StorageClass annotations.
 	KeyPVBasePath = "BasePath"
 
+	//KeyPVDeviceType defines the type of device like
+	// sparse, disk, partition, lvm, crypt
+	KeyPVDeviceType = "DeviceType"
+
 	//KeyPVFSType defines filesystem type to be used with devices
 	// and can be configured via the StorageClass annotations.
 	KeyPVFSType = "FSType"

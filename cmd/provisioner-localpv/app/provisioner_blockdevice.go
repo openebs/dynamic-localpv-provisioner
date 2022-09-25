@@ -78,6 +78,7 @@ func (p *Provisioner) ProvisionBlockDevice(ctx context.Context, opts pvControlle
 		name:               name,
 		nodeAffinityLabels: nodeAffinityLabels,
 		capacity:           capacity.String(),
+		deviceType:         volumeConfig.getValue(KeyPVDeviceType),
 		volumeMode:         *opts.PVC.Spec.VolumeMode,
 		bdSelectors:        volumeConfig.GetBlockDeviceSelectors(),
 	}
