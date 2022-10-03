@@ -19,4 +19,19 @@ kubelet:
             - rw
 ```
 
-After adding the `extraMounts` are added, proceed with installation as described in [the quickstart](https://github.com/openebs/dynamic-localpv-provisioner/blob/develop/docs/quickstart.md).
+If you are using the default Talos security policy you will also have to add privileged security labels on the `openebs` namespace to allow it to use `hostPath` volumes. Eg:
+
+```yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+    name: openebs
+    labels:
+        pod-security.kubernetes.io/audit: privileged
+        pod-security.kubernetes.io/enforce: privileged
+        pod-security.kubernetes.io/warn: privileged
+```
+
+Caution: When using local storage on Talos, you must remember to pass the `--preserve` argument when running `talosctl upgrade` to avoid host paths getting wiped out during the upgrade (as noted in [Talos Local Storage documentation](https://www.talos.dev/v1.2/kubernetes-guides/configuration/replicated-local-storage-with-openebs-jiva/)).
+
+After adding the required configuration, proceed with installation as described in [the quickstart](https://github.com/openebs/dynamic-localpv-provisioner/blob/develop/docs/quickstart.md).
