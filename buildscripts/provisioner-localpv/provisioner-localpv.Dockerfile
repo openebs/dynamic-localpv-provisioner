@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-FROM golang:1.16.6 as build
+FROM golang:1.19.4 as build
 
 ARG BRANCH
 ARG RELEASE_TAG
@@ -35,14 +35,14 @@ WORKDIR /go/src/github.com/openebs/dynamic-localpv-provisioner/
 RUN apt-get update && apt-get install -y make git
 
 COPY go.mod go.sum ./
-# Get dependancies - will also be cached if we won't change mod/sum
+# Get dependencies - will also be cached if we won't change mod/sum
 RUN go mod download
 
 COPY . .
 
 RUN make provisioner-localpv
 
-FROM alpine:3.12
+FROM alpine:3.17
 
 ARG DBUILD_DATE
 ARG DBUILD_REPO_URL
