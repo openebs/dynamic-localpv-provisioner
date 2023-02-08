@@ -233,7 +233,7 @@ spec:
   - command:
        - sh
        - -c
-       - 'date >> /mnt/openebs-csi/date.txt; hostname >> /mnt/openebs-csi/hostname.txt; sync; sleep 5; sync; tail -f /dev/null;'
+       - 'date >> /mnt/data/date.txt; hostname >> /mnt/data/hostname.txt; sync; sleep 5; sync; tail -f /dev/null;'
     image: busybox
     name: busybox
     volumeMounts:
