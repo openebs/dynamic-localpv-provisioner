@@ -3,4 +3,4 @@ nohup.out
 coverage.txt
 .DS_Store
 cmd/provisioner-localpv/start.sh
-.idea
+**/.idea/
