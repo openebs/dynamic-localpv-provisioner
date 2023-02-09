@@ -50,14 +50,14 @@ differences include:
   attached to the node and hostpath based Local PVs offer efficient management
   of the storage available on the node.
 
-## Kubernetes Compatibity Matrix
+## Kubernetes Compatibility Matrix
 
-|                               | Kubernetes <= 1.15 | Kubernetes 1.16 | Kubernetes 1.17 | Kubernetes 1.18 | Kubernetes 1.19 | Kubernetes 1.20 | Kubernetes 1.21 | Kubernetes 1.22 | Kubernetes 1.23 |
-|-------------------------------|-----------------|-----------------|-----------------|-----------------|-----------------|-----------------|-----------------|-----------------|-----------------|
-| `v3.0.x`  | ✕              | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               |
-| `v3.1.x`  | ✕              | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               |
-| `v3.2.x`  | ✕              | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               |
-| `HEAD`    | ✕              | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               |
+|          | Kubernetes <= 1.15 | Kubernetes 1.16 | Kubernetes 1.17 | Kubernetes 1.18 | Kubernetes 1.19 | Kubernetes 1.20 | Kubernetes 1.21 | Kubernetes 1.22 | Kubernetes 1.23 | Kubernetes 1.24 | Kubernetes 1.25 | Kubernetes 1.26 |
+|----------|--------------------|-----------------|-----------------|-----------------|-----------------|-----------------|-----------------|-----------------|-----------------|-----------------|-----------------|-----------------|
+| `v3.2.x` | ✕                  | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               |
+| `v3.3.x` | ✕                  | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               |
+| `v3.4.x` | ✕                  | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               |
+| `HEAD`   | ✕                  | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               |
 
 
 ## Install
