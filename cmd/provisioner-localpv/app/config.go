@@ -113,6 +113,26 @@ const (
 
 	KeyQuotaSoftLimit = "softLimitGrace"
 	KeyQuotaHardLimit = "hardLimitGrace"
+
+	// FilePermissions allows to define the default directory mode
+	// Exemple StorageClass snippet:
+	//    - name: FilePermissions
+	//      enabled: true
+	//      data:
+	//        UID: 1000
+	//        GID: 1000
+	//        mode: g+s
+	// This is the cas-template key for all file permission 'data' keys
+	KeyFilePermissions = "FilePermissions"
+
+	// FsUID defines the user owner of the shared directory
+	KeyFsUID = "UID"
+
+	// FsGID defines the group owner of the shared directory
+	KeyFsGID = "GID"
+
+	// FSMode defines the file permission mode of the shared directory
+	KeyFsMode = "mode"
 )
 
 const (
@@ -152,21 +172,20 @@ func (p *Provisioner) GetVolumeConfig(ctx context.Context, pvName string, pvc *c
 		}
 	}
 
-	// Extract and merge the cas config from persistentvolumeclaim.
-	// TODO: Validation checks for what all cas-config options can be
-	// set on the PVC.
-	pvcCASConfigStr := pvc.Annotations[string(mconfig.CASConfigKey)]
+	//TODO : extract and merge the cas volume config from pvc
+	// This block can be added once validation checks are added
+	// as to the type of config that can be passed via PVC
+	pvcCASConfigStr := pvc.ObjectMeta.Annotations[string(mconfig.CASConfigKey)]
 	klog.V(4).Infof("PVC %v has config:%v", pvc.Name, pvcCASConfigStr)
 	if len(strings.TrimSpace(pvcCASConfigStr)) != 0 {
 		pvcCASConfig, err := cast.UnMarshallToConfig(pvcCASConfigStr)
 		if err == nil {
-			// Config keys which already exist (SC config),
-			// will be skipped
-			// i.e. SC config will have precedence over PVC config,
-			// if both have the same keys
-			pvConfig = cast.MergeConfig(pvConfig, pvcCASConfig)
+			pvConfig = cast.MergeConfig(pvcCASConfig, pvConfig)
 		} else {
-			return nil, errors.Wrapf(err, "failed to get config: invalid pvc config {%v}", pvcCASConfigStr)
+			return nil, errors.Wrapf(err, "failed to get config: invalid config {%v}"+
+				" in pvc {%v} in namespace {%v}",
+				pvcCASConfigStr, pvc.Name, pvc.Namespace,
+			)
 		}
 	}
 
@@ -330,6 +349,68 @@ func (c *VolumeConfig) IsExt4QuotaEnabled() bool {
 	}
 
 	return enableExt4QuotaBool
+}
+
+func (c *VolumeConfig) IsPermissionEnabled() bool {
+	permissionEnabled := c.getEnabled(KeyFilePermissions)
+	permissionEnabled = strings.TrimSpace(permissionEnabled)
+
+	permissionEnabledQuotaBool, err := strconv.ParseBool(permissionEnabled)
+	//Default case
+	// this means that we have hit either of the two cases below:
+	//     i. The value was something other than a straightforward
+	//        true or false
+	//    ii. The value was empty
+	if err != nil {
+		return false
+	}
+
+	return permissionEnabledQuotaBool
+}
+
+// GetFsGID fetches the group owner's ID from
+// PVC annotation, if specified
+// NOT YET USED
+func (c *VolumeConfig) GetFsGID() string {
+	if c.IsPermissionEnabled() {
+		configData := c.getData(KeyFilePermissions)
+		if configData != nil {
+			if val, p := configData[KeyFsGID]; p {
+				return strings.TrimSpace(val)
+			}
+		}
+	}
+	return ""
+}
+
+// GetFsGID fetches the user owner's ID from
+// PVC annotation, if specified
+// NOT YET USED
+func (c *VolumeConfig) GetFsUID() string {
+	if c.IsPermissionEnabled() {
+		configData := c.getData(KeyFilePermissions)
+		if configData != nil {
+			if val, p := configData[KeyFsUID]; p {
+				return strings.TrimSpace(val)
+			}
+		}
+	}
+	return ""
+}
+
+// GetFsMode fetches the file mode from PVC
+// or StorageClass annotation, if specified
+func (c *VolumeConfig) GetFsMode() string {
+	if c.IsPermissionEnabled() {
+		configData := c.getData(KeyFilePermissions)
+		if configData != nil {
+			if val, p := configData[KeyFsMode]; p {
+				return strings.TrimSpace(val)
+			}
+		}
+	}
+	//Keep the original default mode
+	return "0777"
 }
 
 // getValue is a utility function to extract the value
