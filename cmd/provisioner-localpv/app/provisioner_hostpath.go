@@ -73,6 +73,8 @@ func (p *Provisioner) ProvisionHostPath(ctx context.Context, opts pvController.P
 
 	imagePullSecrets := GetImagePullSecrets(getOpenEBSImagePullSecrets())
 
+	hostNetwork := getHelperPodHostNetwork()
+
 	klog.Infof("Creating volume %v at node with labels {%v}, path:%v,ImagePullSecrets:%v", name, nodeAffinityLabels, path, imagePullSecrets)
 
 	//Before using the path for local PV, make sure it is created.
@@ -85,6 +87,7 @@ func (p *Provisioner) ProvisionHostPath(ctx context.Context, opts pvController.P
 		serviceAccountName: saName,
 		selectedNodeTaints: taints,
 		imagePullSecrets:   imagePullSecrets,
+		hostNetwork:        hostNetwork,
 	}
 	iErr := p.createInitPod(ctx, podOpts)
 	if iErr != nil {
@@ -114,6 +117,7 @@ func (p *Provisioner) ProvisionHostPath(ctx context.Context, opts pvController.P
 			softLimitGrace:     softLimitGrace,
 			hardLimitGrace:     hardLimitGrace,
 			pvcStorage:         pvcStorage,
+			hostNetwork:        hostNetwork,
 		}
 		iErr := p.createQuotaPod(ctx, podOpts)
 		if iErr != nil {
@@ -150,6 +154,7 @@ func (p *Provisioner) ProvisionHostPath(ctx context.Context, opts pvController.P
 			softLimitGrace:     softLimitGrace,
 			hardLimitGrace:     hardLimitGrace,
 			pvcStorage:         pvcStorage,
+			hostNetwork:        hostNetwork,
 		}
 		iErr := p.createQuotaPod(ctx, podOpts)
 		if iErr != nil {
@@ -276,6 +281,8 @@ func (p *Provisioner) DeleteHostPath(ctx context.Context, pv *v1.PersistentVolum
 
 	imagePullSecrets := GetImagePullSecrets(getOpenEBSImagePullSecrets())
 
+	hostNetwork := getHelperPodHostNetwork()
+
 	//Initiate clean up only when reclaim policy is not retain.
 	klog.Infof("Deleting volume %v at %v:%v", pv.Name, GetNodeHostname(nodeObject), path)
 	cleanupCmdsForPath := []string{"rm", "-rf"}
@@ -287,6 +294,7 @@ func (p *Provisioner) DeleteHostPath(ctx context.Context, pv *v1.PersistentVolum
 		serviceAccountName: saName,
 		selectedNodeTaints: taints,
 		imagePullSecrets:   imagePullSecrets,
+		hostNetwork:        hostNetwork,
 	}
 
 	if err := p.createCleanupPod(ctx, podOpts); err != nil {

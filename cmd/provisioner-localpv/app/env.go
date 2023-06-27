@@ -35,6 +35,10 @@ const (
 	// host path
 	ProvisionerHelperImage menv.ENVKey = "OPENEBS_IO_HELPER_IMAGE"
 
+	// ProvisionerHelperPodHostNetwork is the environment variable that provides the
+	// host network mode to be used to launch the help pods
+	ProvisionerHelperPodHostNetwork menv.ENVKey = "OPENEBS_IO_HELPER_POD_HOST_NETWORK"
+
 	// ProvisionerBasePath is the environment variable that provides the
 	// default base path on the node where host-path PVs will be provisioned.
 	ProvisionerBasePath menv.ENVKey = "OPENEBS_IO_BASE_PATH"
@@ -54,6 +58,12 @@ func getOpenEBSNamespace() string {
 }
 func getDefaultHelperImage() string {
 	return menv.GetOrDefault(ProvisionerHelperImage, string(defaultHelperImage))
+}
+func getHelperPodHostNetwork() bool {
+	if hostNetwork := menv.GetOrDefault(ProvisionerHelperPodHostNetwork, "false"); hostNetwork == "true" {
+		return true
+	}
+	return false
 }
 
 func getDefaultBasePath() string {

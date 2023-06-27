@@ -289,6 +289,13 @@ func (b *Builder) WithServiceAccountName(serviceAccountName string) *Builder {
 	return b
 }
 
+// WithServiceAccountName sets the ServiceAccountName of Pod spec with
+// the provided value
+func (b *Builder) WithNetwork(hostNetwork bool) *Builder {
+	b.pod.object.Spec.HostNetwork = hostNetwork
+	return b
+}
+
 // Build returns the Pod API instance
 func (b *Builder) Build() (*corev1.Pod, error) {
 	if len(b.errs) > 0 {

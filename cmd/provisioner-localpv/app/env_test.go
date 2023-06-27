@@ -19,6 +19,7 @@ package app
 import (
 	"os"
 	"reflect"
+	"strconv"
 	"testing"
 
 	menv "github.com/openebs/maya/pkg/env/v1alpha1"
@@ -88,6 +89,40 @@ func TestGetDefaultHelperImage(t *testing.T) {
 				t.Errorf("expected %s got %s", v.expectValue, actualValue)
 			}
 			os.Unsetenv(string(ProvisionerHelperImage))
+		})
+	}
+}
+
+func TestGetHelperPodHostNetworke(t *testing.T) {
+	testCases := map[string]struct {
+		value       string
+		expectValue string
+	}{
+		"Missing env variable": {
+			value:       "",
+			expectValue: "false",
+		},
+		"Present env variable with value": {
+			value:       "value1",
+			expectValue: "false",
+		},
+		"Present env variable with whitespaces": {
+			value:       "true",
+			expectValue: "true",
+		},
+	}
+
+	for k, v := range testCases {
+		v := v
+		t.Run(k, func(t *testing.T) {
+			if len(v.value) != 0 {
+				os.Setenv(string(ProvisionerHelperPodHostNetwork), v.value)
+			}
+			actualValue := strconv.FormatBool(getHelperPodHostNetwork())
+			if !reflect.DeepEqual(actualValue, v.expectValue) {
+				t.Errorf("expected %s got %s", v.expectValue, actualValue)
+			}
+			os.Unsetenv(string(ProvisionerHelperPodHostNetwork))
 		})
 	}
 }
