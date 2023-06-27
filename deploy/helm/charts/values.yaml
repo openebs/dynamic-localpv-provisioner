@@ -118,6 +118,7 @@ helperPod:
     pullPolicy: IfNotPresent
     # Overrides the image tag whose default is the chart appVersion.
     tag: 4.1.0
+  hostNetwork: false
 
 # Additional labels to add to all chart resources
 extraLabels: {}

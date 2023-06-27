@@ -1,22 +1,3 @@
-/*
-Copyright 2019 The OpenEBS Authors.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-
-This code was taken from https://github.com/rancher/local-path-provisioner
-and modified to work with the configuration options used by OpenEBS
-*/
-
 package app
 
 import (
@@ -84,6 +65,9 @@ type HelperPodOptions struct {
 
 	//pvcStorage is the storage requested for pv
 	pvcStorage int64
+
+	//hostNetwork is the network type of helper Pod
+	hostNetwork bool
 }
 
 // validate checks that the required fields to launch
@@ -357,6 +341,7 @@ func (p *Provisioner) launchPod(ctx context.Context, config podConfig) (*corev1.
 				WithName("dev").
 				WithHostDirectory("/dev/"),
 		).
+		WithHostNetwork(config.pOpts.hostNetwork).
 		Build()
 
 	if err != nil {
