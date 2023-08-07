@@ -107,7 +107,7 @@ func (pOpts *HelperPodOptions) validateLimits() error {
 		pOpts.hardLimitGrace == "0k" {
 		// Hack: using convertToK() style converstion
 		// TODO: Refactor this section of the code
-		pvcStorageInK := math.Ceil(float64(pOpts.pvcStorage) / 1000)
+		pvcStorageInK := math.Ceil(float64(pOpts.pvcStorage) / 1024)
 		pvcStorageInKString := strconv.FormatFloat(pvcStorageInK, 'f', -1, 64) + "k"
 		pOpts.softLimitGrace, pOpts.hardLimitGrace = pvcStorageInKString, pvcStorageInKString
 		return nil
