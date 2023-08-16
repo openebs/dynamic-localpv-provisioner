@@ -2,7 +2,7 @@
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
-  name: {{ .Values.hostpathClass.name }}
+  name: {{ tpl (.Values.hostpathClass.name) .}}
   annotations:
     openebs.io/cas-type: local
     cas.openebs.io/config: |
@@ -10,7 +10,7 @@ metadata:
         value: "hostpath"
 {{- if or .Values.localpv.basePath .Values.hostpathClass.basePath }}
       - name: BasePath
-        value: {{ .Values.hostpathClass.basePath | default .Values.localpv.basePath | quote }}
+        value: {{ tpl (.Values.hostpathClass.basePath | default .Values.localpv.basePath | quote) . }}
 {{- end }}
 {{- if .Values.hostpathClass.nodeAffinityLabels }}
       - name: NodeAffinityLabels
