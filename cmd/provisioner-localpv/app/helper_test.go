@@ -55,7 +55,7 @@ func TestConvertToK(t *testing.T) {
 				limit:      "200%",
 				pvcStorage: 5000000,
 			},
-			want:    "10000k",
+			want:    "9766k",
 			wantErr: false,
 		},
 		"Present limit grace with decimal%": {
@@ -63,7 +63,7 @@ func TestConvertToK(t *testing.T) {
 				limit:      ".5%",
 				pvcStorage: 1000,
 			},
-			want:    "2k",
+			want:    "1k", // the final result of limit can't be a float
 			wantErr: false,
 		},
 		"Present limit grace with invalid pattern": {
