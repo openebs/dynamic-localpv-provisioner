@@ -63,7 +63,7 @@ func TestConvertToK(t *testing.T) {
 				limit:      ".5%",
 				pvcStorage: 1000,
 			},
-			want:    "1k",
+			want:    "1k", // the final result of limit can't be a float
 			wantErr: false,
 		},
 		"Present limit grace with invalid pattern": {
