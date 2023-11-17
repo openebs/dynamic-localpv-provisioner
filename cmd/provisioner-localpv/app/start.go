@@ -21,14 +21,20 @@ import (
 	"os"
 	"strings"
 
+	analytics "github.com/openebs/google-analytics-4/usage"
 	menv "github.com/openebs/maya/pkg/env/v1alpha1"
 	mKube "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
-	analytics "github.com/openebs/maya/pkg/usage"
 	"github.com/openebs/maya/pkg/util"
+	"github.com/openebs/maya/pkg/version"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"k8s.io/klog/v2"
 	pvController "sigs.k8s.io/sig-storage-lib-external-provisioner/v7/controller"
+)
+
+const (
+	ProvisionerType = "dynamic-localpv-provisioner"
+	Ping            = "dynamic-localpv-provisioner-ping"
 )
 
 var (
@@ -103,8 +109,9 @@ func Start(cmd *cobra.Command) error {
 	)
 
 	if menv.Truthy(menv.OpenEBSEnableAnalytics) {
-		analytics.New().Build().InstallBuilder(true).Send()
-		go analytics.PingCheck()
+		analytics.RegisterVersionGetter(version.GetVersionDetails)
+		analytics.New().CommonBuild(ProvisionerType).InstallBuilder(true).Send()
+		go analytics.PingCheck(ProvisionerType, Ping)
 	}
 
 	klog.V(4).Info("Provisioner started")
