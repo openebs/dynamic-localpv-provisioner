@@ -25,7 +25,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set Image Org
         # sets the default IMAGE_ORG to openebs
@@ -41,20 +41,20 @@ jobs:
       - name: Set Build Date
         id: date
         run: |
-          echo "::set-output name=DATE::$(date -u +'%Y-%m-%dT%H:%M:%S%Z')"
+          echo "DATE=$(date -u +'%Y-%m-%dT%H:%M:%S%Z')" >> $GITHUB_OUTPUT
 
       - name: Docker meta
         id: docker_meta
-        uses: crazy-max/ghaction-docker-meta@v1
+        uses: docker/metadata-action@v4
         with:
           # add each registry to which the image needs to be pushed here
           images: |
             ${{ env.IMAGE_ORG }}/provisioner-localpv
             quay.io/${{ env.IMAGE_ORG }}/provisioner-localpv
             ghcr.io/${{ env.IMAGE_ORG }}/provisioner-localpv
-          tag-latest: true
-          tag-semver: |
-            {{version}}
+          tags: |
+            type=raw,value=latest,enable=true
+            type=raw,value={{version}}
 
       - name: Print Tags
         run: |
