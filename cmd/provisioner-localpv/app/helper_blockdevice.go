@@ -24,12 +24,13 @@ import (
 	"time"
 
 	blockdevice "github.com/openebs/maya/pkg/blockdevice/v1alpha2"
-	blockdeviceclaim "github.com/openebs/maya/pkg/blockdeviceclaim/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
-	errors "github.com/pkg/errors"
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
+
+	blockdeviceclaim "github.com/openebs/dynamic-localpv-provisioner/pkg/blockdeviceclaim/v1alpha1"
 )
 
 const (
@@ -82,7 +83,8 @@ func (blkDevOpts *HelperBlockDeviceOptions) hasBDC() bool {
 }
 
 // setBlcokDeviceClaimFromPV inspects the PV and fetches the BDC associated
-//  with the Local PV.
+//
+//	with the Local PV.
 func (blkDevOpts *HelperBlockDeviceOptions) setBlockDeviceClaimFromPV(pv *corev1.PersistentVolume) {
 	klog.V(4).Infof("Setting Block Device Claim From PV")
 	bdc, found := pv.Annotations[bdcStorageClassAnnotation]
@@ -92,7 +94,8 @@ func (blkDevOpts *HelperBlockDeviceOptions) setBlockDeviceClaimFromPV(pv *corev1
 }
 
 // createBlockDeviceClaim creates a new BlockDeviceClaim for a given
-//  Local PV
+//
+//	Local PV
 func (p *Provisioner) createBlockDeviceClaim(ctx context.Context, blkDevOpts *HelperBlockDeviceOptions) error {
 	klog.V(4).Infof("Creating Block Device Claim")
 	if err := blkDevOpts.validate(); err != nil {
@@ -228,7 +231,8 @@ func (p *Provisioner) getBlockDevicePath(ctx context.Context, blkDevOpts *Helper
 }
 
 // deleteBlockDeviceClaim deletes the BlockDeviceClaim associated with the
-//  PV being deleted.
+//
+//	PV being deleted.
 func (p *Provisioner) deleteBlockDeviceClaim(ctx context.Context, blkDevOpts *HelperBlockDeviceOptions) error {
 	klog.V(4).Infof("Delete Block Device Claim")
 	if !blkDevOpts.hasBDC() {
@@ -252,7 +256,6 @@ func (p *Provisioner) deleteBlockDeviceClaim(ctx context.Context, blkDevOpts *He
 	return nil
 }
 
-//
 func (p *Provisioner) removeFinalizer(ctx context.Context, blkDevOpts *HelperBlockDeviceOptions) error {
 	klog.V(4).Info("removing local-pv finalizer on the BDC")
 

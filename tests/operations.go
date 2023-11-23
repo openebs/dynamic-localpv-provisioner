@@ -20,22 +20,19 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-
-	//"sort"
 	"strconv"
 	"strings"
 	"time"
 
 	. "github.com/onsi/gomega"
-	ndm "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
-	bd "github.com/openebs/maya/pkg/blockdevice/v1alpha2"
-	bdc "github.com/openebs/maya/pkg/blockdeviceclaim/v1alpha1"
-	kubeclient "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
-	ns "github.com/openebs/maya/pkg/kubernetes/namespace/v1alpha1"
-	node "github.com/openebs/maya/pkg/kubernetes/node/v1alpha1"
-	svc "github.com/openebs/maya/pkg/kubernetes/service/v1alpha1"
-	templatefuncs "github.com/openebs/maya/pkg/templatefuncs/v1alpha1"
-	unstruct "github.com/openebs/maya/pkg/unstruct/v1alpha2"
+	ndm "github.com/openebs/api/v3/pkg/apis/openebs.io/v1alpha1"
+	bd "github.com/openebs/dynamic-localpv-provisioner/pkg/blockdevice/v1alpha2"
+	kubeclient "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/client"
+	ns "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/namespace/v1alpha1"
+	node "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/node/v1alpha1"
+	svc "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/service/v1alpha1"
+	templatefuncs "github.com/openebs/dynamic-localpv-provisioner/pkg/templatefuncs/v1alpha1"
+	unstruct "github.com/openebs/dynamic-localpv-provisioner/pkg/unstruct/v1alpha2"
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -49,16 +46,18 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/remotecommand"
 
+	bdc "github.com/openebs/dynamic-localpv-provisioner/pkg/blockdeviceclaim/v1alpha1"
+
 	deploy "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/apps/v1/deployment"
-	container "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/container"
-	event "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/event"
+	"github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/container"
+	"github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/event"
 	pv "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/persistentvolume"
 	pvc "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/persistentvolumeclaim"
-	pod "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/pod"
+	"github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/pod"
 	pts "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/podtemplatespec"
 	k8svolume "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/volume"
 	sc "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/storage/v1/storageclass"
-	ndmconfig "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/ndmconfig"
+	"github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/ndmconfig"
 )
 
 const (
@@ -734,7 +733,7 @@ func (ops *Operations) PathFilterExclude(
 	return nil
 }
 
-//This function returns true if:
+// This function returns true if:
 // 1. The Pod count for the NDM Daemonset Pod, the NDM Operator are greater than 1
 // 2. Only a single blockdevice without a filesystem in Unclaimed and Active state
 // is available
@@ -1020,7 +1019,7 @@ func (ops *Operations) DeletePersistentVolumeClaim(name, namespace string) {
 	Expect(err).To(BeNil())
 }
 
-//GetSVCClusterIP returns list of IP address of the services, having given label and namespace
+// GetSVCClusterIP returns list of IP address of the services, having given label and namespace
 func (ops *Operations) GetSVCClusterIP(ns, lselector string) ([]string, error) {
 	addr := []string{}
 	svclist, err := ops.SVCClient.

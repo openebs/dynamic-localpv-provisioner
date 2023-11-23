@@ -21,18 +21,23 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	localpv_app "github.com/openebs/dynamic-localpv-provisioner/cmd/provisioner-localpv/app"
-	deploy "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/apps/v1/deployment"
-	container "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/container"
-	pvc "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/persistentvolumeclaim"
-	pts "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/podtemplatespec"
-	volume "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/volume"
-	sc "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/storage/v1/storageclass"
-	blockdeviceclaim "github.com/openebs/maya/pkg/blockdeviceclaim/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	blockdeviceclaim "github.com/openebs/dynamic-localpv-provisioner/pkg/blockdeviceclaim/v1alpha1"
+
+	ndmApi "github.com/openebs/api/v3/pkg/apis/openebs.io/v1alpha1"
+	dynamicClient "sigs.k8s.io/controller-runtime/pkg/client"
+
+	localpv_app "github.com/openebs/dynamic-localpv-provisioner/cmd/provisioner-localpv/app"
+	deploy "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/apps/v1/deployment"
+	"github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/container"
+	pvc "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/persistentvolumeclaim"
+	pts "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/podtemplatespec"
+	"github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/volume"
+	sc "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/storage/v1/storageclass"
 )
 
 var _ = Describe("TEST HOSTDEVICE LOCAL PV", func() {
@@ -186,6 +191,10 @@ var _ = Describe("TEST HOSTDEVICE LOCAL PV", func() {
 	When("remove finalizer", func() {
 		It("finalizer should come back after provisioner restart", func() {
 			bdcName = "bdc-pvc-" + string(pvcObj.GetUID())
+
+			_bdcInstance := &ndmApi.BlockDeviceClaim{}
+			err := dynamicClient.Client.Get(context.TODO(), request.NamespacedName, instance)
+
 			bdcObj, err := ops.BDCClient.WithNamespace(openebsNamespace).Get(context.TODO(), bdcName,
 				metav1.GetOptions{})
 			Expect(err).To(BeNil())

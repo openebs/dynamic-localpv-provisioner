@@ -17,7 +17,7 @@ limitations under the License.
 package storageclass
 
 import (
-	mconfig "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	mconfig "github.com/openebs/api/v3/pkg/apis/openebs.io/v1alpha1"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"

@@ -42,7 +42,8 @@ const (
 // to abstract getting kubernetes incluster config
 //
 // NOTE:
-//  typed function makes it simple to mock
+//
+//	typed function makes it simple to mock
 type getInClusterConfigFn func() (*rest.Config, error)
 
 // buildConfigFromFlagsFn is a typed function
@@ -50,7 +51,8 @@ type getInClusterConfigFn func() (*rest.Config, error)
 // provided flags
 //
 // NOTE:
-//  typed function makes it simple to mock
+//
+//	typed function makes it simple to mock
 type buildConfigFromFlagsFn func(string, string) (*rest.Config, error)
 
 // getKubeMasterIPFromENVFn is a typed function
@@ -58,7 +60,8 @@ type buildConfigFromFlagsFn func(string, string) (*rest.Config, error)
 // address from environment variable
 //
 // NOTE:
-//  typed function makes it simple to mock
+//
+//	typed function makes it simple to mock
 type getKubeMasterIPFromENVFn func(env.ENVKey) string
 
 // getKubeConfigPathFromENVFn is a typed function to
@@ -66,21 +69,24 @@ type getKubeMasterIPFromENVFn func(env.ENVKey) string
 // environment variable
 //
 // NOTE:
-//  typed function makes it simple to mock
+//
+//	typed function makes it simple to mock
 type getKubeConfigPathFromENVFn func(env.ENVKey) string
 
 // getKubeDynamicClientFn is a typed function to
 // abstract getting dynamic kubernetes clientset
 //
 // NOTE:
-//  typed function makes it simple to mock
-type getKubeDynamicClientFn func(*rest.Config) (dynamic.Interface, error)
+//
+//	typed function makes it simple to mock
+type getKubeDynamicClientFn func(*rest.Config) (*dynamic.DynamicClient, error)
 
 // getKubeClientsetFn is a typed function
 // to abstract getting kubernetes clientset
 //
 // NOTE:
-//  typed function makes it simple to mock
+//
+//	typed function makes it simple to mock
 type getKubeClientsetFn func(*rest.Config) (*kubernetes.Clientset, error)
 
 // Client provides Kubernetes client operations
@@ -119,7 +125,9 @@ type Client struct {
 // instance
 //
 // NOTE:
-//  This is the basic building block to create
+//
+//	This is the basic building block to create
+//
 // functional operations against the client
 // instance
 type OptionFn func(*Client)

@@ -22,7 +22,7 @@ import (
 	"strconv"
 	"strings"
 
-	mconfig "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	mconfig "github.com/openebs/api/v3/pkg/apis/openebs.io/v1alpha1"
 	cast "github.com/openebs/maya/pkg/castemplate/v1alpha1"
 	hostpath "github.com/openebs/maya/pkg/hostpath/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
@@ -142,7 +142,7 @@ const (
 	k8sNodeLabelKeyHostname = "kubernetes.io/hostname"
 )
 
-//GetVolumeConfig creates a new VolumeConfig struct by
+// GetVolumeConfig creates a new VolumeConfig struct by
 // parsing and merging the configuration provided in the PVC
 // annotation - cas.openebs.io/config with the
 // default configuration of the provisioner.
@@ -206,7 +206,7 @@ func (p *Provisioner) GetVolumeConfig(ctx context.Context, pvName string, pvc *c
 	return c, nil
 }
 
-//GetStorageType returns the StorageType value configured
+// GetStorageType returns the StorageType value configured
 // in StorageClass. Default is hostpath
 func (c *VolumeConfig) GetStorageType() string {
 	stgType := c.getValue(KeyPVStorageType)
@@ -216,7 +216,7 @@ func (c *VolumeConfig) GetStorageType() string {
 	return stgType
 }
 
-//GetBlockDeviceSelectors returns the BlockDeviceSelectors data configured
+// GetBlockDeviceSelectors returns the BlockDeviceSelectors data configured
 // in StorageClass. Default is nil
 func (c *VolumeConfig) GetBlockDeviceSelectors() map[string]string {
 	blockDeviceSelector := c.getData(KeyBlockDeviceSelectors)
@@ -224,7 +224,8 @@ func (c *VolumeConfig) GetBlockDeviceSelectors() map[string]string {
 }
 
 // NOTE: This function should not be used, as KeyBDTag has been deprecated.
-//       GetBlockDeviceSelectors() is the right function to use.
+//
+//	GetBlockDeviceSelectors() is the right function to use.
 func (c *VolumeConfig) GetBDTagValue() string {
 	bdTagValue := c.getValue(KeyBDTag)
 	if len(strings.TrimSpace(bdTagValue)) == 0 {
@@ -233,7 +234,7 @@ func (c *VolumeConfig) GetBDTagValue() string {
 	return bdTagValue
 }
 
-//GetFSType returns the FSType value configured
+// GetFSType returns the FSType value configured
 // in StorageClass. Default is "", auto-determined
 // by Local PV
 func (c *VolumeConfig) GetFSType() string {
@@ -254,10 +255,10 @@ func (c *VolumeConfig) GetNodeAffinityLabelKey() string {
 	return nodeAffinityLabelKey
 }
 
-//GetNodeAffinityLabelKey returns the custom node affinity
-//label keys as configured in StorageClass.
+// GetNodeAffinityLabelKey returns the custom node affinity
+// label keys as configured in StorageClass.
 //
-//Default is nil.
+// Default is nil.
 func (c *VolumeConfig) GetNodeAffinityLabelKeys() []string {
 	nodeAffinityLabelKeys := c.getList(KeyNodeAffinityLabels)
 	if nodeAffinityLabelKeys == nil {
@@ -266,14 +267,17 @@ func (c *VolumeConfig) GetNodeAffinityLabelKeys() []string {
 	return nodeAffinityLabelKeys
 }
 
-//GetPath returns a valid PV path based on the configuration
+// GetPath returns a valid PV path based on the configuration
 // or an error. The Path is constructed using the following rules:
 // If AbsolutePath is specified return it. (Future)
 // If PVPath is specified, suffix it with BasePath and return it. (Future)
 // If neither of above are specified, suffix the PVName to BasePath
-//  and return it
+//
+//	and return it
+//
 // Also before returning the path, validate that path is safe
-//  and matches the filters specified in StorageClass.
+//
+//	and matches the filters specified in StorageClass.
 func (c *VolumeConfig) GetPath() (string, error) {
 	//This feature need to be supported with some more
 	// security checks are in place, so that rouge pods
@@ -338,18 +342,21 @@ func (c *VolumeConfig) IsExt4QuotaEnabled() bool {
 	return enableExt4QuotaBool
 }
 
-//getValue is a utility function to extract the value
+// getValue is a utility function to extract the value
 // of the `key` from the ConfigMap object - which is
 // map[string]interface{map[string][string]}
 // Example:
-// {
-//     key1: {
-//             value: value1
-//             enabled: true
-//           }
-// }
+//
+//	{
+//	    key1: {
+//	            value: value1
+//	            enabled: true
+//	          }
+//	}
+//
 // In the above example, if `key1` is passed as input,
-//   `value1` will be returned.
+//
+//	`value1` will be returned.
 func (c *VolumeConfig) getValue(key string) string {
 	if configObj, ok := util.GetNestedField(c.options, key).(map[string]string); ok {
 		if val, p := configObj[string(mconfig.ValuePTP)]; p {
@@ -359,7 +366,7 @@ func (c *VolumeConfig) getValue(key string) string {
 	return ""
 }
 
-//Similar to getValue() above. Returns value of the
+// Similar to getValue() above. Returns value of the
 // 'Enabled' parameter.
 func (c *VolumeConfig) getEnabled(key string) string {
 	if configObj, ok := util.GetNestedField(c.options, key).(map[string]string); ok {
@@ -370,7 +377,7 @@ func (c *VolumeConfig) getEnabled(key string) string {
 	return ""
 }
 
-//This is similar to getValue() and getEnabled().
+// This is similar to getValue() and getEnabled().
 // This gets the value for a specific
 // 'Data' parameter key-value pair.
 func (c *VolumeConfig) getDataField(key string, dataKey string) string {
@@ -383,7 +390,7 @@ func (c *VolumeConfig) getDataField(key string, dataKey string) string {
 	return ""
 }
 
-//This is similar to getValue() and getEnabled().
+// This is similar to getValue() and getEnabled().
 // This returns the value of the `Data` parameter
 func (c *VolumeConfig) getData(key string) map[string]string {
 	if configData, ok := util.GetNestedField(c.configData, key).(map[string]string); ok {

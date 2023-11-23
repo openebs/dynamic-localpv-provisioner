@@ -21,14 +21,14 @@ import (
 	"os"
 	"strings"
 
+	mKube "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/client"
 	menv "github.com/openebs/maya/pkg/env/v1alpha1"
-	mKube "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
 	analytics "github.com/openebs/maya/pkg/usage"
 	"github.com/openebs/maya/pkg/util"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"k8s.io/klog/v2"
-	pvController "sigs.k8s.io/sig-storage-lib-external-provisioner/v7/controller"
+	pvController "sigs.k8s.io/sig-storage-lib-external-provisioner/v9/controller"
 )
 
 var (

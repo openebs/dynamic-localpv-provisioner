@@ -19,14 +19,14 @@ package app
 import (
 	"context"
 
+	mconfig "github.com/openebs/api/v3/pkg/apis/openebs.io/v1alpha1"
 	"github.com/openebs/maya/pkg/alertlog"
-	mconfig "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/klog/v2"
-	pvController "sigs.k8s.io/sig-storage-lib-external-provisioner/v7/controller"
+	pvController "sigs.k8s.io/sig-storage-lib-external-provisioner/v9/controller"
 
 	"github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/persistentvolume"
 )
@@ -39,7 +39,8 @@ const (
 )
 
 // ProvisionHostPath is invoked by the Provisioner which expect HostPath PV
-//  to be provisioned and a valid PV spec returned.
+//
+//	to be provisioned and a valid PV spec returned.
 func (p *Provisioner) ProvisionHostPath(ctx context.Context, opts pvController.ProvisionOptions, volumeConfig *VolumeConfig) (*v1.PersistentVolume, pvController.ProvisioningState, error) {
 	pvc := opts.PVC
 	taints := GetTaints(opts.SelectedNode)
@@ -245,9 +246,10 @@ func (p *Provisioner) GetNodeObjectFromLabels(nodeLabels map[string]string) (*v1
 }
 
 // DeleteHostPath is invoked by the PVC controller to perform clean-up
-//  activities before deleteing the PV object. If reclaim policy is
-//  set to not-retain, then this function will create a helper pod
-//  to delete the host path from the node.
+//
+//	activities before deleteing the PV object. If reclaim policy is
+//	set to not-retain, then this function will create a helper pod
+//	to delete the host path from the node.
 func (p *Provisioner) DeleteHostPath(ctx context.Context, pv *v1.PersistentVolume) (err error) {
 	defer func() {
 		err = errors.Wrapf(err, "failed to delete volume %v", pv.Name)

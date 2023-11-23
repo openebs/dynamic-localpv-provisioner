@@ -19,12 +19,13 @@ package app
 import (
 	"context"
 
-	mconfig "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	blockdeviceclaim "github.com/openebs/maya/pkg/blockdeviceclaim/v1alpha1"
+	mconfig "github.com/openebs/api/v3/pkg/apis/openebs.io/v1alpha1"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
+
+	blockdeviceclaim "github.com/openebs/dynamic-localpv-provisioner/pkg/blockdeviceclaim/v1alpha1"
 )
 
 // This function performs the preupgrade related tasks for 1.0 to 1.1
