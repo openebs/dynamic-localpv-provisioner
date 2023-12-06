@@ -17,7 +17,7 @@
 
 set -e
 
-# architecute on which tests need to be run
+# architecture on which tests need to be run
 ARCH=$1
 
 if [ -z "$ARCH" ]; then

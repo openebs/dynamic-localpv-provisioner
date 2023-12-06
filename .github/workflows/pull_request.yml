@@ -34,7 +34,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: License Check
         run: make license-check
@@ -42,13 +42,13 @@ jobs:
   unit-test:
     runs-on: ubuntu-latest
     steps:
-      - name: Set up Go 1.16
-        uses: actions/setup-go@v3
+      - name: Set up Go 1.19
+        uses: actions/setup-go@v4
         with:
-          go-version: 1.16.6
+          go-version: 1.19.13
 
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Unit test
         run: make test
@@ -63,10 +63,10 @@ jobs:
     runs-on: ubuntu-latest
     needs: ['lint', 'unit-test']
     steps:
-      - name: Set up Go 1.16
-        uses: actions/setup-go@v3
+      - name: Set up Go 1.19
+        uses: actions/setup-go@v4
         with:
-          go-version: 1.16.6
+          go-version: 1.19.13
 
       - name: Setup QEMU
         uses: docker/setup-qemu-action@v2
@@ -80,7 +80,7 @@ jobs:
           version: v0.5.1
 
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Build multi-arch Image
         uses: docker/build-push-action@v4
@@ -98,12 +98,12 @@ jobs:
     needs: ['lint', 'unit-test']
     strategy:
       matrix:
-        kubernetes: [v1.23.16]
+        kubernetes: [v1.27.2]
     steps:
-      - name: Set up Go 1.16
-        uses: actions/setup-go@v3
+      - name: Set up Go 1.19
+        uses: actions/setup-go@v4
         with:
-          go-version: 1.16.6
+          go-version: 1.19.13
 
       - name: Set up Docker Buildx
         id: buildx
@@ -112,7 +112,7 @@ jobs:
           version: v0.5.1
 
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Build Image
         uses: docker/build-push-action@v4
@@ -125,13 +125,15 @@ jobs:
           tags: |
             openebs/provisioner-localpv:ci
 
-      - name: Set up Minikube
-        uses: manusa/actions-setup-minikube@v2.7.2
+      - name: Setup Minikube-Kubernetes
+        uses: medyagh/setup-minikube@latest
         with:
-          minikube version: 'v1.29.0'
-          kubernetes version: '${{ matrix.kubernetes }}'
+          cache: false
+          minikube-version: 1.31.1
           driver: none
-          start args: '--install-addons=false'
+          kubernetes-version: ${{ matrix.kubernetes }}
+          cni: calico
+          start-args: '--install-addons=false'
 
       - name: Set up infra for integration test
         run: |
@@ -148,7 +150,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Build the localpv-e2e image
         uses: docker/build-push-action@v4

@@ -25,13 +25,14 @@ import (
 
 	mconfig "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	v1 "k8s.io/api/core/v1"
-	pvController "sigs.k8s.io/sig-storage-lib-external-provisioner/v7/controller"
+	pvController "sigs.k8s.io/sig-storage-lib-external-provisioner/v9/controller"
 
 	pv "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/persistentvolume"
 )
 
 // ProvisionBlockDevice is invoked by the Provisioner to create a Local PV
-//  with a Block Device
+//
+//	with a Block Device
 func (p *Provisioner) ProvisionBlockDevice(ctx context.Context, opts pvController.ProvisionOptions, volumeConfig *VolumeConfig) (*v1.PersistentVolume, pvController.ProvisioningState, error) {
 	pvc := opts.PVC
 	nodeHostname := GetNodeHostname(opts.SelectedNode)
@@ -155,8 +156,9 @@ func (p *Provisioner) ProvisionBlockDevice(ctx context.Context, opts pvControlle
 }
 
 // DeleteBlockDevice is invoked by the PVC controller to perform clean-up
-//  activities before deleteing the PV object. If reclaim policy is
-//  set to not-retain, then this function will delete the associated BDC
+//
+//	activities before deleteing the PV object. If reclaim policy is
+//	set to not-retain, then this function will delete the associated BDC
 func (p *Provisioner) DeleteBlockDevice(ctx context.Context, pv *v1.PersistentVolume) (err error) {
 	defer func() {
 		err = errors.Wrapf(err, "failed to delete volume %v", pv.Name)

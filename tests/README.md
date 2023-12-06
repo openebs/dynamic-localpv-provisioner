@@ -25,7 +25,7 @@ Local PV Provisioner BDD tests are developed using ginkgo & gomega libraries.
 - You will require the Ginkgo binary to be able to run the tests.
   Install the latest Ginkgo binary using the following command:
   ```bash
-  $ go install github.com/onsi/ginkgo/ginkgo@latest
+  $ go install github.com/onsi/ginkgo/ginkgo@v1.16.4
   ```
 
 - Get your Kubernetes Cluster ready and make sure you can run 

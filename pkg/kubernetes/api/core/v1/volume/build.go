@@ -65,7 +65,7 @@ func (b *Builder) WithHostDirectory(path string) *Builder {
 	return b
 }
 
-//WithSecret sets the VolumeSource field of Volume with provided Secret
+// WithSecret sets the VolumeSource field of Volume with provided Secret
 func (b *Builder) WithSecret(secret *corev1.Secret, defaultMode int32) *Builder {
 	dM := defaultMode
 	if secret == nil {
@@ -92,7 +92,7 @@ func (b *Builder) WithSecret(secret *corev1.Secret, defaultMode int32) *Builder 
 	return b
 }
 
-//WithConfigMap sets the VolumeSource field of Volume with provided ConfigMap
+// WithConfigMap sets the VolumeSource field of Volume with provided ConfigMap
 func (b *Builder) WithConfigMap(configMap *corev1.ConfigMap, defaultMode int32) *Builder {
 	dM := defaultMode
 	if configMap == nil {

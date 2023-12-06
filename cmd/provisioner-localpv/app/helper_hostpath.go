@@ -101,7 +101,7 @@ func (pOpts *HelperPodOptions) validate() error {
 	return nil
 }
 
-//validateLimits check that the limits to setup qouta are valid
+// validateLimits check that the limits to setup qouta are valid
 func (pOpts *HelperPodOptions) validateLimits() error {
 	if pOpts.softLimitGrace == "0k" &&
 		pOpts.hardLimitGrace == "0k" {
@@ -127,7 +127,7 @@ func (pOpts *HelperPodOptions) validateLimits() error {
 	return nil
 }
 
-//converToK converts the limits to kilobytes
+// converToK converts the limits to kilobytes
 func convertToK(limit string, pvcStorage int64) (string, error) {
 
 	if len(limit) == 0 {
@@ -162,8 +162,9 @@ func convertToK(limit string, pvcStorage int64) (string, error) {
 }
 
 // createInitPod launches a helper(busybox) pod, to create the host path.
-//  The local pv expect the hostpath to be already present before mounting
-//  into pod. Validate that the local pv host path is not created under root.
+//
+//	The local pv expect the hostpath to be already present before mounting
+//	into pod. Validate that the local pv host path is not created under root.
 func (p *Provisioner) createInitPod(ctx context.Context, pOpts *HelperPodOptions) error {
 	var config podConfig
 	config.pOpts, config.podName = pOpts, "init"
@@ -201,10 +202,11 @@ func (p *Provisioner) createInitPod(ctx context.Context, pOpts *HelperPodOptions
 }
 
 // createCleanupPod launches a helper(busybox) pod, to delete the host path.
-//  This provisioner expects that the host paths are created using
-//  an unique PV path - under a given BasePath. From the absolute path,
-//  it extracts the base path and the PV path. The helper pod is then launched
-//  by mounting the base path - and performing a delete on the unique PV path.
+//
+//	This provisioner expects that the host paths are created using
+//	an unique PV path - under a given BasePath. From the absolute path,
+//	it extracts the base path and the PV path. The helper pod is then launched
+//	by mounting the base path - and performing a delete on the unique PV path.
 func (p *Provisioner) createCleanupPod(ctx context.Context, pOpts *HelperPodOptions) error {
 	var config podConfig
 	config.pOpts, config.podName = pOpts, "cleanup"
@@ -240,8 +242,9 @@ func (p *Provisioner) createCleanupPod(ctx context.Context, pOpts *HelperPodOpti
 }
 
 // createQuotaPod launches a helper(busybox) pod, to apply the quota.
-//  The local pv expect the hostpath to be already present before mounting
-//  into pod. Validate that the local pv host path is not created under root.
+//
+//	The local pv expect the hostpath to be already present before mounting
+//	into pod. Validate that the local pv host path is not created under root.
 func (p *Provisioner) createQuotaPod(ctx context.Context, pOpts *HelperPodOptions) error {
 	var config podConfig
 	config.pOpts, config.podName = pOpts, "quota"

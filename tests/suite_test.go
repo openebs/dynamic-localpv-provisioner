@@ -28,9 +28,6 @@ import (
 	ns "github.com/openebs/maya/pkg/kubernetes/namespace/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 
-	// auth plugins
-	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
-
 	"github.com/openebs/dynamic-localpv-provisioner/tests/disk"
 )
 

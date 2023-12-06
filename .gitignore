@@ -3,4 +3,8 @@ nohup.out
 coverage.txt
 .DS_Store
 cmd/provisioner-localpv/start.sh
+# IDEs
 **/.idea/
+
+# Ginkgo test
+tests/tests.test
