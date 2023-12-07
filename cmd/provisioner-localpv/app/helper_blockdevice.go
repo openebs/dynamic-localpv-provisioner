@@ -82,7 +82,8 @@ func (blkDevOpts *HelperBlockDeviceOptions) hasBDC() bool {
 }
 
 // setBlcokDeviceClaimFromPV inspects the PV and fetches the BDC associated
-//  with the Local PV.
+//
+//	with the Local PV.
 func (blkDevOpts *HelperBlockDeviceOptions) setBlockDeviceClaimFromPV(pv *corev1.PersistentVolume) {
 	klog.V(4).Infof("Setting Block Device Claim From PV")
 	bdc, found := pv.Annotations[bdcStorageClassAnnotation]
@@ -92,7 +93,8 @@ func (blkDevOpts *HelperBlockDeviceOptions) setBlockDeviceClaimFromPV(pv *corev1
 }
 
 // createBlockDeviceClaim creates a new BlockDeviceClaim for a given
-//  Local PV
+//
+//	Local PV
 func (p *Provisioner) createBlockDeviceClaim(ctx context.Context, blkDevOpts *HelperBlockDeviceOptions) error {
 	klog.V(4).Infof("Creating Block Device Claim")
 	if err := blkDevOpts.validate(); err != nil {
@@ -228,7 +230,8 @@ func (p *Provisioner) getBlockDevicePath(ctx context.Context, blkDevOpts *Helper
 }
 
 // deleteBlockDeviceClaim deletes the BlockDeviceClaim associated with the
-//  PV being deleted.
+//
+//	PV being deleted.
 func (p *Provisioner) deleteBlockDeviceClaim(ctx context.Context, blkDevOpts *HelperBlockDeviceOptions) error {
 	klog.V(4).Infof("Delete Block Device Claim")
 	if !blkDevOpts.hasBDC() {
@@ -252,7 +255,6 @@ func (p *Provisioner) deleteBlockDeviceClaim(ctx context.Context, blkDevOpts *He
 	return nil
 }
 
-//
 func (p *Provisioner) removeFinalizer(ctx context.Context, blkDevOpts *HelperBlockDeviceOptions) error {
 	klog.V(4).Info("removing local-pv finalizer on the BDC")
 

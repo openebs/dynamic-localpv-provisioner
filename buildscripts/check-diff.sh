@@ -21,6 +21,6 @@ set -e
 TEST_NAME=$1
 
 
-if [[ `git diff --shortstat | wc -l` != 0 ]]; then 
+if [[ `git diff --shortstat | wc -l | tr -d ' '` != 0 ]]; then
   echo "Some files got changed after $1";printf "\n";git diff --stat;printf "\n"; exit 1; 
 fi

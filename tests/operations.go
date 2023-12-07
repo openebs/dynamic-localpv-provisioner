@@ -734,7 +734,7 @@ func (ops *Operations) PathFilterExclude(
 	return nil
 }
 
-//This function returns true if:
+// This function returns true if:
 // 1. The Pod count for the NDM Daemonset Pod, the NDM Operator are greater than 1
 // 2. Only a single blockdevice without a filesystem in Unclaimed and Active state
 // is available
@@ -1020,7 +1020,7 @@ func (ops *Operations) DeletePersistentVolumeClaim(name, namespace string) {
 	Expect(err).To(BeNil())
 }
 
-//GetSVCClusterIP returns list of IP address of the services, having given label and namespace
+// GetSVCClusterIP returns list of IP address of the services, having given label and namespace
 func (ops *Operations) GetSVCClusterIP(ns, lselector string) ([]string, error) {
 	addr := []string{}
 	svclist, err := ops.SVCClient.

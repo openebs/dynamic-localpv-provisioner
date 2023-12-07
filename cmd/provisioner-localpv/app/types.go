@@ -31,7 +31,7 @@ const (
 	SnapshotAPIGroup string = "snapshot.storage.k8s.io"
 )
 
-//Provisioner struct has the configuration and utilities required
+// Provisioner struct has the configuration and utilities required
 // across the different work-flows.
 type Provisioner struct {
 	kubeClient  *clientset.Clientset
@@ -44,20 +44,21 @@ type Provisioner struct {
 	getVolumeConfig GetVolumeConfigFn
 }
 
-//VolumeConfig struct contains the merged configuration of the PVC
+// VolumeConfig struct contains the merged configuration of the PVC
 // and the associated SC. The configuration is derived from the
 // annotation `cas.openebs.io/config`. The configuration will be
 // in the following json format:
-// {
-//   Key1:{
-//	enabled: true
-//	value: "string value"
-//   },
-//   Key2:{
-//	enabled: true
-//	value: "string value"
-//   },
-// }
+//
+//	{
+//	  Key1:{
+//		enabled: true
+//		value: "string value"
+//	  },
+//	  Key2:{
+//		enabled: true
+//		value: "string value"
+//	  },
+//	}
 type VolumeConfig struct {
 	pvName     string
 	pvcName    string
@@ -68,5 +69,6 @@ type VolumeConfig struct {
 }
 
 // GetVolumeConfigFn allows to plugin a custom function
-//  and makes it easy to unit test provisioner
+//
+//	and makes it easy to unit test provisioner
 type GetVolumeConfigFn func(ctx context.Context, pvName string, pvc *v1.PersistentVolumeClaim) (*VolumeConfig, error)
