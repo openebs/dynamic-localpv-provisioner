@@ -53,8 +53,7 @@ jobs:
             quay.io/${{ env.IMAGE_ORG }}/provisioner-localpv
             ghcr.io/${{ env.IMAGE_ORG }}/provisioner-localpv
           tags: |
-            type=raw,value=latest,enable=true
-            type=raw,value={{version}}
+            type=semver,pattern={{version}}
 
       - name: Print Tags
         run: |
