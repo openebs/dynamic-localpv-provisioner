@@ -84,6 +84,9 @@ type HelperPodOptions struct {
 
 	//pvcStorage is the storage requested for pv
 	pvcStorage int64
+
+	//hostNetwork is the network type of helper Pod
+	hostNetwork bool
 }
 
 // validate checks that the required fields to launch
@@ -357,6 +360,7 @@ func (p *Provisioner) launchPod(ctx context.Context, config podConfig) (*corev1.
 				WithName("dev").
 				WithHostDirectory("/dev/"),
 		).
+		WithNetwork(config.pOpts.hostNetwork).
 		Build()
 
 	if err != nil {
