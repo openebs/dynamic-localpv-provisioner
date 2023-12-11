@@ -40,6 +40,9 @@ rules:
 - apiGroups: ["openebs.io"]
   resources: [ "*"]
   verbs: ["*" ]
+- apiGroups: ["coordination.k8s.io"]
+  resources: ["leases"]
+  verbs: ["get", "create", "update"]
 - nonResourceURLs: ["/metrics"]
   verbs: ["get"]
 ---
