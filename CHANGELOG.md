@@ -1,3 +1,16 @@
+v3.5.0 / 2023-12-12
+===================
+* fix: quota is not calculated correctly ([#161](https://github.com/openebs/dynamic-localpv-provisioner/pull/161),[@MingZhang-YBPS](https://github.com/MingZhang-YBPS))
+* feat(usage): update ua to ga4 analytics ([#166](https://github.com/openebs/dynamic-localpv-provisioner/pull/166),[@niladrih](https://github.com/niladrih))
+
+v3.4.0 / 2022-09-30
+===================
+* chore: allow resolution of templating values ([#162](https://github.com/openebs/dynamic-localpv-provisioner/pull/162),[@Abhinandan-Purkait](https://github.com/Abhinandan-Purkait))
+
+v3.3.0 / 2022-07-13
+===================
+* feat(hostpath): enforce quotas for hostpath with an ext4 filesystem ([#137](https://github.com/openebs/dynamic-localpv-provisioner/pull/137),[@hickersonj](https://github.com/hickersonj))
+
 v3.2.0 / 2022-04-19
 ===================
 * fix bug where klog logging flags are not parsed ([#127](https://github.com/openebs/dynamic-localpv-provisioner/pull/127), [@niladrih](https://github.com/niladrih))
