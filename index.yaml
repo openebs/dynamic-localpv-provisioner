@@ -2,6 +2,37 @@ apiVersion: v1
 entries:
   localpv-provisioner:
   - apiVersion: v2
+    appVersion: 3.5.0
+    created: "2023-12-11T16:43:32.764501839Z"
+    dependencies:
+    - condition: openebsNDM.enabled
+      name: openebs-ndm
+      repository: https://openebs.github.io/node-disk-manager
+      version: 2.1.0
+    description: Helm chart for OpenEBS Dynamic Local PV. For instructions to install
+      OpenEBS Dynamic Local PV using helm chart, refer to https://openebs.github.io/dynamic-localpv-provisioner/.
+    digest: c8c89fa734b9a94d6daa8729e5064ccde38a3d4d46b85f2bf275e2975812230a
+    home: http://www.openebs.io/
+    icon: https://raw.githubusercontent.com/cncf/artwork/master/projects/openebs/icon/color/openebs-icon-color.png
+    keywords:
+    - storage
+    - local
+    - dynamic-localpv
+    maintainers:
+    - email: akhil.mohan@mayadata.io
+      name: akhilerm
+    - email: kiran.mova@mayadata.io
+      name: kiranmova
+    - email: prateek.pandey@mayadata.io
+      name: prateekpandey14
+    name: localpv-provisioner
+    sources:
+    - https://github.com/openebs/dynamic-localpv-provisioner
+    type: application
+    urls:
+    - https://github.com/openebs/dynamic-localpv-provisioner/releases/download/localpv-provisioner-3.5.0/localpv-provisioner-3.5.0.tgz
+    version: 3.5.0
+  - apiVersion: v2
     appVersion: 3.4.0
     created: "2023-08-16T16:46:48.174779873Z"
     dependencies:
@@ -9,7 +40,8 @@ entries:
       name: openebs-ndm
       repository: https://openebs.github.io/node-disk-manager
       version: 2.1.0
-    description: Helm chart for OpenEBS Dynamic Local PV. For instructions to install OpenEBS Dynamic Local PV using helm chart, refer to https://openebs.github.io/dynamic-localpv-provisioner/.
+    description: Helm chart for OpenEBS Dynamic Local PV. For instructions to install
+      OpenEBS Dynamic Local PV using helm chart, refer to https://openebs.github.io/dynamic-localpv-provisioner/.
     digest: 10f0c880450f4b73100a43931e322e2da74ed20c172ae38a24a866c2ea3cafde
     home: http://www.openebs.io/
     icon: https://raw.githubusercontent.com/cncf/artwork/master/projects/openebs/icon/color/openebs-icon-color.png
@@ -39,7 +71,8 @@ entries:
       name: openebs-ndm
       repository: https://openebs.github.io/node-disk-manager
       version: 2.1.0
-    description: Helm chart for OpenEBS Dynamic Local PV. For instructions to install OpenEBS Dynamic Local PV using helm chart, refer to https://openebs.github.io/dynamic-localpv-provisioner/.
+    description: Helm chart for OpenEBS Dynamic Local PV. For instructions to install
+      OpenEBS Dynamic Local PV using helm chart, refer to https://openebs.github.io/dynamic-localpv-provisioner/.
     digest: 3110a1b4f26535dbb90862f2763911fb9b106f73315405b1f62d2e2b5f075bd2
     home: http://www.openebs.io/
     icon: https://raw.githubusercontent.com/cncf/artwork/master/projects/openebs/icon/color/openebs-icon-color.png
@@ -69,7 +102,8 @@ entries:
       name: openebs-ndm
       repository: https://openebs.github.io/node-disk-manager
       version: 2.0.0
-    description: Helm chart for OpenEBS Dynamic Local PV. For instructions to install OpenEBS Dynamic Local PV using helm chart, refer to https://openebs.github.io/dynamic-localpv-provisioner/.
+    description: Helm chart for OpenEBS Dynamic Local PV. For instructions to install
+      OpenEBS Dynamic Local PV using helm chart, refer to https://openebs.github.io/dynamic-localpv-provisioner/.
     digest: 4c46a41d97806fc6a85ef3759c4084a0185d9ab30a1ec706409c562149faf45a
     home: http://www.openebs.io/
     icon: https://raw.githubusercontent.com/cncf/artwork/master/projects/openebs/icon/color/openebs-icon-color.png
@@ -99,7 +133,8 @@ entries:
       name: openebs-ndm
       repository: https://openebs.github.io/node-disk-manager
       version: 1.9.0
-    description: Helm chart for OpenEBS Dynamic Local PV. For instructions to install OpenEBS Dynamic Local PV using helm chart, refer to https://openebs.github.io/dynamic-localpv-provisioner/.
+    description: Helm chart for OpenEBS Dynamic Local PV. For instructions to install
+      OpenEBS Dynamic Local PV using helm chart, refer to https://openebs.github.io/dynamic-localpv-provisioner/.
     digest: 9d49c6bbb6284bc0657c150ec440353c997204c94724be551e8d8f6960e28210
     home: http://www.openebs.io/
     icon: https://raw.githubusercontent.com/cncf/artwork/master/projects/openebs/icon/color/openebs-icon-color.png
@@ -129,7 +164,8 @@ entries:
       name: openebs-ndm
       repository: https://openebs.github.io/node-disk-manager
       version: 1.8.0
-    description: Helm chart for OpenEBS Dynamic Local PV. For instructions to install OpenEBS Dynamic Local PV using helm chart, refer to https://openebs.github.io/dynamic-localpv-provisioner/.
+    description: Helm chart for OpenEBS Dynamic Local PV. For instructions to install
+      OpenEBS Dynamic Local PV using helm chart, refer to https://openebs.github.io/dynamic-localpv-provisioner/.
     digest: b1244dc2affb9ea8f8a04cd5000711fdc8fe2638f0fa601d0f55af4ce5974e80
     home: http://www.openebs.io/
     icon: https://raw.githubusercontent.com/cncf/artwork/master/projects/openebs/icon/color/openebs-icon-color.png
@@ -159,7 +195,8 @@ entries:
       name: openebs-ndm
       repository: https://openebs.github.io/node-disk-manager
       version: 1.7.1
-    description: Helm chart for OpenEBS Dynamic Local PV. For instructions to install OpenEBS Dynamic Local PV using helm chart, refer to https://openebs.github.io/dynamic-localpv-provisioner/.
+    description: Helm chart for OpenEBS Dynamic Local PV. For instructions to install
+      OpenEBS Dynamic Local PV using helm chart, refer to https://openebs.github.io/dynamic-localpv-provisioner/.
     digest: 062658d8652df79aa1f16b9778d2f44f3f1505c49e3596d8f6461179ec60da93
     home: http://www.openebs.io/
     icon: https://raw.githubusercontent.com/cncf/artwork/master/projects/openebs/icon/color/openebs-icon-color.png
@@ -189,7 +226,8 @@ entries:
       name: openebs-ndm
       repository: https://openebs.github.io/node-disk-manager
       version: 1.7.0
-    description: Helm chart for OpenEBS Dynamic Local PV. For instructions to install OpenEBS Dynamic Local PV using helm chart, refer to https://openebs.github.io/dynamic-localpv-provisioner/.
+    description: Helm chart for OpenEBS Dynamic Local PV. For instructions to install
+      OpenEBS Dynamic Local PV using helm chart, refer to https://openebs.github.io/dynamic-localpv-provisioner/.
     digest: 5a0e139355faa621d624fe4453166427f912fb4937a33991f6b5e11cff14e574
     home: http://www.openebs.io/
     icon: https://raw.githubusercontent.com/cncf/artwork/master/projects/openebs/icon/color/openebs-icon-color.png
@@ -219,7 +257,8 @@ entries:
       name: openebs-ndm
       repository: https://openebs.github.io/node-disk-manager
       version: 1.6.1
-    description: Helm chart for OpenEBS Dynamic Local PV. For instructions to install OpenEBS Dynamic Local PV using helm chart, refer to https://openebs.github.io/dynamic-localpv-provisioner/.
+    description: Helm chart for OpenEBS Dynamic Local PV. For instructions to install
+      OpenEBS Dynamic Local PV using helm chart, refer to https://openebs.github.io/dynamic-localpv-provisioner/.
     digest: 356674f6886e281e051f5be166742cc6ccf003028f73cbe3db67c3d86303711a
     home: http://www.openebs.io/
     icon: https://raw.githubusercontent.com/cncf/artwork/master/projects/openebs/icon/color/openebs-icon-color.png
@@ -249,7 +288,8 @@ entries:
       name: openebs-ndm
       repository: https://openebs.github.io/node-disk-manager
       version: 1.6.1
-    description: Helm chart for OpenEBS Dynamic Local PV. For instructions to install OpenEBS Dynamic Local PV using helm chart, refer to https://openebs.github.io/dynamic-localpv-provisioner/.
+    description: Helm chart for OpenEBS Dynamic Local PV. For instructions to install
+      OpenEBS Dynamic Local PV using helm chart, refer to https://openebs.github.io/dynamic-localpv-provisioner/.
     digest: f07405a8fc224ead2c22d030d2fb9c2d73f45d97b814170f25351b4b587b732e
     home: http://www.openebs.io/
     icon: https://raw.githubusercontent.com/cncf/artwork/master/projects/openebs/icon/color/openebs-icon-color.png
@@ -279,7 +319,8 @@ entries:
       name: openebs-ndm
       repository: https://openebs.github.io/node-disk-manager
       version: 1.6.0
-    description: Helm chart for OpenEBS Dynamic Local PV. For instructions to install OpenEBS Dynamic Local PV using helm chart, refer to https://openebs.github.io/dynamic-localpv-provisioner/.
+    description: Helm chart for OpenEBS Dynamic Local PV. For instructions to install
+      OpenEBS Dynamic Local PV using helm chart, refer to https://openebs.github.io/dynamic-localpv-provisioner/.
     digest: 9f1883233847fc5bbece02656d011dee6cfa13fcb8fe3a4d044bae8ea321aa60
     home: http://www.openebs.io/
     icon: https://raw.githubusercontent.com/cncf/artwork/master/projects/openebs/icon/color/openebs-icon-color.png
@@ -309,7 +350,8 @@ entries:
       name: openebs-ndm
       repository: https://openebs.github.io/node-disk-manager
       version: 1.6.0
-    description: Helm chart for OpenEBS Dynamic Local PV. For instructions to install OpenEBS Dynamic Local PV using helm chart, refer to https://openebs.github.io/dynamic-localpv-provisioner/.
+    description: Helm chart for OpenEBS Dynamic Local PV. For instructions to install
+      OpenEBS Dynamic Local PV using helm chart, refer to https://openebs.github.io/dynamic-localpv-provisioner/.
     digest: 891e2dde501e9288a32d301fabb22a97655d5501eab665dafb29a0cdfaa3e14a
     home: http://www.openebs.io/
     icon: https://raw.githubusercontent.com/cncf/artwork/master/projects/openebs/icon/color/openebs-icon-color.png
@@ -339,7 +381,8 @@ entries:
       name: openebs-ndm
       repository: https://openebs.github.io/node-disk-manager
       version: 1.5.0
-    description: Helm chart for OpenEBS Dynamic Local PV. For instructions to install OpenEBS Dynamic Local PV using helm chart, refer to https://openebs.github.io/dynamic-localpv-provisioner/.
+    description: Helm chart for OpenEBS Dynamic Local PV. For instructions to install
+      OpenEBS Dynamic Local PV using helm chart, refer to https://openebs.github.io/dynamic-localpv-provisioner/.
     digest: f4d3d1cb6145a760d939ce736b2c4bf2b553cad7eb84eaf40ffcd2cdbf01e8d6
     home: http://www.openebs.io/
     icon: https://raw.githubusercontent.com/cncf/artwork/master/projects/openebs/icon/color/openebs-icon-color.png
@@ -369,7 +412,8 @@ entries:
       name: openebs-ndm
       repository: https://openebs.github.io/node-disk-manager
       version: 1.5.0
-    description: Helm chart for OpenEBS Dynamic Local PV. For instructions to install OpenEBS Dynamic Local PV using helm chart, refer to https://openebs.github.io/dynamic-localpv-provisioner/.
+    description: Helm chart for OpenEBS Dynamic Local PV. For instructions to install
+      OpenEBS Dynamic Local PV using helm chart, refer to https://openebs.github.io/dynamic-localpv-provisioner/.
     digest: 205d96371e6c6104c57c0fc24931a19f2ae22de7869e6f0dd346c4f8f917e5c2
     home: http://www.openebs.io/
     icon: https://raw.githubusercontent.com/cncf/artwork/master/projects/openebs/icon/color/openebs-icon-color.png
@@ -399,7 +443,8 @@ entries:
       name: openebs-ndm
       repository: https://openebs.github.io/node-disk-manager
       version: 1.4.1
-    description: Helm chart for OpenEBS Dynamic Local PV. For instructions to install OpenEBS Dynamic Local PV using helm chart, refer to https://openebs.github.io/dynamic-localpv-provisioner/.
+    description: Helm chart for OpenEBS Dynamic Local PV. For instructions to install
+      OpenEBS Dynamic Local PV using helm chart, refer to https://openebs.github.io/dynamic-localpv-provisioner/.
     digest: 6c27190823fa41f6a69d7e033516c5321037a6dcf53a6653e142ac8dc9ede996
     home: http://www.openebs.io/
     icon: https://raw.githubusercontent.com/cncf/artwork/master/projects/openebs/icon/color/openebs-icon-color.png
@@ -429,7 +474,8 @@ entries:
       name: openebs-ndm
       repository: https://openebs.github.io/node-disk-manager
       version: 1.4.0
-    description: Helm chart for OpenEBS Dynamic Local PV. For instructions to install OpenEBS Dynamic Local PV using helm chart, refer to https://openebs.github.io/dynamic-localpv-provisioner/.
+    description: Helm chart for OpenEBS Dynamic Local PV. For instructions to install
+      OpenEBS Dynamic Local PV using helm chart, refer to https://openebs.github.io/dynamic-localpv-provisioner/.
     digest: 930ee6c9e5938bc32b1c056e5a7010d696f81a6f8f490ad33aa0dc6ee38d21bf
     home: http://www.openebs.io/
     icon: https://raw.githubusercontent.com/cncf/artwork/master/projects/openebs/icon/color/openebs-icon-color.png
@@ -459,7 +505,8 @@ entries:
       name: openebs-ndm
       repository: https://openebs.github.io/node-disk-manager
       version: 1.4.0
-    description: Helm chart for OpenEBS Dynamic Local PV. For instructions to install OpenEBS Dynamic Local PV using helm chart, refer to https://openebs.github.io/dynamic-localpv-provisioner/.
+    description: Helm chart for OpenEBS Dynamic Local PV. For instructions to install
+      OpenEBS Dynamic Local PV using helm chart, refer to https://openebs.github.io/dynamic-localpv-provisioner/.
     digest: d1744eb6029e155d5d073c042688c55df18edc8e240cc1790b89a1d664716324
     home: http://www.openebs.io/
     icon: https://raw.githubusercontent.com/cncf/artwork/master/projects/openebs/icon/color/openebs-icon-color.png
@@ -489,7 +536,8 @@ entries:
       name: openebs-ndm
       repository: https://openebs.github.io/node-disk-manager
       version: 1.3.0
-    description: Helm chart for OpenEBS Dynamic Local PV. For instructions to install OpenEBS Dynamic Local PV using helm chart, refer to https://openebs.github.io/dynamic-localpv-provisioner/.
+    description: Helm chart for OpenEBS Dynamic Local PV. For instructions to install
+      OpenEBS Dynamic Local PV using helm chart, refer to https://openebs.github.io/dynamic-localpv-provisioner/.
     digest: 548da56e6f4a8436b879c52b3802965645528405e17b2dede182557ac79b15cb
     home: http://www.openebs.io/
     icon: https://raw.githubusercontent.com/cncf/artwork/master/projects/openebs/icon/color/openebs-icon-color.png
@@ -519,7 +567,8 @@ entries:
       name: openebs-ndm
       repository: https://openebs.github.io/node-disk-manager
       version: 1.2.0
-    description: Helm chart for OpenEBS Dynamic Local PV. For instructions to install OpenEBS Dynamic Local PV using helm chart, refer to https://openebs.github.io/dynamic-localpv-provisioner/.
+    description: Helm chart for OpenEBS Dynamic Local PV. For instructions to install
+      OpenEBS Dynamic Local PV using helm chart, refer to https://openebs.github.io/dynamic-localpv-provisioner/.
     digest: c18cf73ae3b59670068291205c41c93faf8cf83084bcd3fc5d975a9107b8d818
     home: http://www.openebs.io/
     icon: https://raw.githubusercontent.com/cncf/artwork/master/projects/openebs/icon/color/openebs-icon-color.png
@@ -549,7 +598,8 @@ entries:
       name: openebs-ndm
       repository: https://openebs.github.io/node-disk-manager
       version: 1.1.1
-    description: Helm chart for OpenEBS Dynamic Local PV. For instructions to install OpenEBS Dynamic Local PV using helm chart, refer to https://openebs.github.io/dynamic-localpv-provisioner/.
+    description: Helm chart for OpenEBS Dynamic Local PV. For instructions to install
+      OpenEBS Dynamic Local PV using helm chart, refer to https://openebs.github.io/dynamic-localpv-provisioner/.
     digest: 7b8e19be8eb1ebf939bf8272039af731c794fcb6cdfe195aa96bb76e8d2b3801
     home: http://www.openebs.io/
     icon: https://raw.githubusercontent.com/cncf/artwork/master/projects/openebs/icon/color/openebs-icon-color.png
@@ -579,7 +629,8 @@ entries:
       name: openebs-ndm
       repository: https://openebs.github.io/node-disk-manager
       version: 1.1.0
-    description: Helm chart for OpenEBS Dynamic Local PV. For instructions to install OpenEBS Dynamic Local PV using helm chart, refer to https://openebs.github.io/dynamic-localpv-provisioner/.
+    description: Helm chart for OpenEBS Dynamic Local PV. For instructions to install
+      OpenEBS Dynamic Local PV using helm chart, refer to https://openebs.github.io/dynamic-localpv-provisioner/.
     digest: 0f44bac3ecb8022a96d2026812efdb6f594f75509f6c37f1d42c5aa20fc4ce3a
     home: http://www.openebs.io/
     icon: https://raw.githubusercontent.com/cncf/artwork/master/projects/openebs/icon/color/openebs-icon-color.png
@@ -631,4 +682,4 @@ entries:
     urls:
     - https://github.com/openebs/dynamic-localpv-provisioner/releases/download/localpv-provisioner-2.4.0/localpv-provisioner-2.4.0.tgz
     version: 2.4.0
-generated: "2021-01-07T05:28:38.606070105Z"
+generated: "2023-12-11T16:43:32.764627744Z"
