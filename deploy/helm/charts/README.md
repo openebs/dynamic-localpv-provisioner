@@ -103,52 +103,52 @@ helm install openebs-localpv openebs-localpv/localpv-provisioner --namespace ope
 	--set-string deviceClass.blockDeviceSelectors."ndm\.io/fsType"="ext4"
 ```
 
-| Parameter                                   | Description                                   | Default                                   |
-| ------------------------------------------- | --------------------------------------------- | ----------------------------------------- |
-| `release.version`                           | LocalPV Provisioner release version               | `3.4.0`                        |
-| `analytics.enabled`                         | Enable sending stats to Google Analytics          | `true`                          |
-| `analytics.pingInterval`                    | Duration(hours) between sending ping stat         | `24h`                           |
-| `deviceClass.blockDeviceSelectors`          | Label key value pairs based on which BlockDevices on the node will be selected for provisioning   | `{}`                         |
-| `deviceClass.enabled`                       | Enables creation of default Device StorageClass   | `true`                          |
-| `deviceClass.fsType`                        | Filesystem type for openebs-device StorageClass   | `"ext4"`                        |
-| `deviceClass.isDefaultClass`                | Make openebs-device the default StorageClass      | `"false"`                       |
-| `deviceClass.nodeAffinityLabels`          | Custom node label(or labels) key to uniquely identify nodes. `kubernetes.io/hostname` is the default label key for node selection. | `[]` |
-| `deviceClass.reclaimPolicy`                 | ReclaimPolicy for Device PVs                      | `"Delete"`                      |
-| `helperPod.image.registry`                  | Registry for helper image                         | `""`                            |
-| `helperPod.image.repository`                | Image for helper pod                              | `"openebs/linux-utils"`         |
-| `helperPod.image.pullPolicy`                | Pull policy for helper pod                        | `"IfNotPresent"`                |
-| `helperPod.image.tag`                       | Image tag for helper image                        | `3.4.0`                         |
-| `hostpathClass.basePath`                    | BasePath for openebs-hostpath StorageClass        | `"/var/openebs/local"`          |
-| `hostpathClass.enabled`                     | Enables creation of default Hostpath StorageClass | `true`                          |
-| `hostpathClass.isDefaultClass`              | Make openebs-hostpath the default StorageClass    | `"false"`                       |
-| `hostpathClass.nodeAffinityLabels`          | Custom node label(or labels) key to uniquely identify nodes. `kubernetes.io/hostname` is the default label key for node selection. | `[]` |
-| `hostpathClass.xfsQuota.enabled`            | Enable XFS Quota (requires XFS filesystem)        | `false`                         |
-| `hostpathClass.ext4Quota.enabled`            | Enable EXT4 Quota (requires EXT4 filesystem)     | `false`                         |
-| `hostpathClass.reclaimPolicy`               | ReclaimPolicy for Hostpath PVs                    | `"Delete"`                      |
-| `imagePullSecrets`                          | Provides image pull secrect                       | `""`                            |
-| `localpv.enabled`                           | Enable LocalPV Provisioner                        | `true`                          |
-| `localpv.image.registry`                    | Registry for LocalPV Provisioner image            | `""`                            |
-| `localpv.image.repository`                  | Image repository for LocalPV Provisioner          | `openebs/localpv-provisioner`   |
-| `localpv.image.pullPolicy`                  | Image pull policy for LocalPV Provisioner         | `IfNotPresent`                  |
-| `localpv.image.tag`                         | Image tag for LocalPV Provisioner                 | `3.4.0`                        |
-| `localpv.updateStrategy.type`               | Update strategy for LocalPV Provisioner           | `RollingUpdate`                 |
-| `localpv.annotations`                       | Annotations for LocalPV Provisioner metadata      | `""`                            |
-| `localpv.podAnnotations`                    | Annotations for LocalPV Provisioner pods metadata | `""`                            |
-| `localpv.privileged`                        | Run LocalPV Provisioner with extra privileges     | `true`                          |
-| `localpv.resources`                         | Resource and request and limit for containers     | `""`                            |
-| `localpv.podLabels`                         | Appends labels to the pods                        | `""`                            |
-| `localpv.nodeSelector`                      | Nodeselector for LocalPV Provisioner pods         | `""`                            |
-| `localpv.tolerations`                       | LocalPV Provisioner pod toleration values         | `""`                            |
-| `localpv.securityContext`                   | Seurity context for container                     | `""`                            |
-| `localpv.healthCheck.initialDelaySeconds`   | Delay before liveness probe is initiated          | `30`                            |
-| `localpv.healthCheck.periodSeconds`         | How often to perform the liveness probe           | `60`                            |
-| `localpv.replicas`                          | No. of LocalPV Provisioner replica                | `1`                             |
-| `localpv.enableLeaderElection`              | Enable leader election                            | `true`                          |
-| `localpv.affinity`                          | LocalPV Provisioner pod affinity                  | `{}`                            |
-| `localpv.waitForBDBindTimeoutRetryCount`    | This sets the number of times the provisioner should try with a polling interval of 5 seconds, to get the Blockdevice Name from a BlockDeviceClaim, before the BlockDeviceClaim is deleted. | "12" |
-| `openebsNDM.enabled`                        | Install openebs NDM dependency                    | `true`                          |
-| `rbac.create`                               | Enable RBAC Resources                             | `true`                          |
-| `rbac.pspEnabled`                           | Create pod security policy resources              | `false`                         |
+| Parameter                                   | Description                                   | Default                       |
+| ------------------------------------------- | --------------------------------------------- |-------------------------------|
+| `release.version`                           | LocalPV Provisioner release version               | `3.5.0`                       |
+| `analytics.enabled`                         | Enable sending stats to Google Analytics          | `true`                        |
+| `analytics.pingInterval`                    | Duration(hours) between sending ping stat         | `24h`                         |
+| `deviceClass.blockDeviceSelectors`          | Label key value pairs based on which BlockDevices on the node will be selected for provisioning   | `{}`                          |
+| `deviceClass.enabled`                       | Enables creation of default Device StorageClass   | `true`                        |
+| `deviceClass.fsType`                        | Filesystem type for openebs-device StorageClass   | `"ext4"`                      |
+| `deviceClass.isDefaultClass`                | Make openebs-device the default StorageClass      | `"false"`                     |
+| `deviceClass.nodeAffinityLabels`          | Custom node label(or labels) key to uniquely identify nodes. `kubernetes.io/hostname` is the default label key for node selection. | `[]`                          |
+| `deviceClass.reclaimPolicy`                 | ReclaimPolicy for Device PVs                      | `"Delete"`                    |
+| `helperPod.image.registry`                  | Registry for helper image                         | `""`                          |
+| `helperPod.image.repository`                | Image for helper pod                              | `"openebs/linux-utils"`       |
+| `helperPod.image.pullPolicy`                | Pull policy for helper pod                        | `"IfNotPresent"`              |
+| `helperPod.image.tag`                       | Image tag for helper image                        | `3.5.0`                       |
+| `hostpathClass.basePath`                    | BasePath for openebs-hostpath StorageClass        | `"/var/openebs/local"`        |
+| `hostpathClass.enabled`                     | Enables creation of default Hostpath StorageClass | `true`                        |
+| `hostpathClass.isDefaultClass`              | Make openebs-hostpath the default StorageClass    | `"false"`                     |
+| `hostpathClass.nodeAffinityLabels`          | Custom node label(or labels) key to uniquely identify nodes. `kubernetes.io/hostname` is the default label key for node selection. | `[]`                          |
+| `hostpathClass.xfsQuota.enabled`            | Enable XFS Quota (requires XFS filesystem)        | `false`                       |
+| `hostpathClass.ext4Quota.enabled`            | Enable EXT4 Quota (requires EXT4 filesystem)     | `false`                       |
+| `hostpathClass.reclaimPolicy`               | ReclaimPolicy for Hostpath PVs                    | `"Delete"`                    |
+| `imagePullSecrets`                          | Provides image pull secrect                       | `""`                          |
+| `localpv.enabled`                           | Enable LocalPV Provisioner                        | `true`                        |
+| `localpv.image.registry`                    | Registry for LocalPV Provisioner image            | `""`                          |
+| `localpv.image.repository`                  | Image repository for LocalPV Provisioner          | `openebs/localpv-provisioner` |
+| `localpv.image.pullPolicy`                  | Image pull policy for LocalPV Provisioner         | `IfNotPresent`                |
+| `localpv.image.tag`                         | Image tag for LocalPV Provisioner                 | `3.5.0`                       |
+| `localpv.updateStrategy.type`               | Update strategy for LocalPV Provisioner           | `RollingUpdate`               |
+| `localpv.annotations`                       | Annotations for LocalPV Provisioner metadata      | `""`                          |
+| `localpv.podAnnotations`                    | Annotations for LocalPV Provisioner pods metadata | `""`                          |
+| `localpv.privileged`                        | Run LocalPV Provisioner with extra privileges     | `true`                        |
+| `localpv.resources`                         | Resource and request and limit for containers     | `""`                          |
+| `localpv.podLabels`                         | Appends labels to the pods                        | `""`                          |
+| `localpv.nodeSelector`                      | Nodeselector for LocalPV Provisioner pods         | `""`                          |
+| `localpv.tolerations`                       | LocalPV Provisioner pod toleration values         | `""`                          |
+| `localpv.securityContext`                   | Seurity context for container                     | `""`                          |
+| `localpv.healthCheck.initialDelaySeconds`   | Delay before liveness probe is initiated          | `30`                          |
+| `localpv.healthCheck.periodSeconds`         | How often to perform the liveness probe           | `60`                          |
+| `localpv.replicas`                          | No. of LocalPV Provisioner replica                | `1`                           |
+| `localpv.enableLeaderElection`              | Enable leader election                            | `true`                        |
+| `localpv.affinity`                          | LocalPV Provisioner pod affinity                  | `{}`                          |
+| `localpv.waitForBDBindTimeoutRetryCount`    | This sets the number of times the provisioner should try with a polling interval of 5 seconds, to get the Blockdevice Name from a BlockDeviceClaim, before the BlockDeviceClaim is deleted. | "12"                          |
+| `openebsNDM.enabled`                        | Install openebs NDM dependency                    | `true`                        |
+| `rbac.create`                               | Enable RBAC Resources                             | `true`                        |
+| `rbac.pspEnabled`                           | Create pod security policy resources              | `false`                       |
 
 
 A YAML file that specifies the values for the parameters can be provided while installing the chart. For example,
