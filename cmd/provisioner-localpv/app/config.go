@@ -142,12 +142,6 @@ const (
 	// This is the cas-template key for all file permission 'data' keys
 	KeyFilePermissions = "FilePermissions"
 
-	// FsUID defines the user owner of the shared directory
-	KeyFsUID = "UID"
-
-	// FsGID defines the group owner of the shared directory
-	KeyFsGID = "GID"
-
 	// FSMode defines the file permission mode of the shared directory
 	KeyFsMode = "mode"
 )
@@ -383,36 +377,6 @@ func (c *VolumeConfig) IsPermissionEnabled() bool {
 	}
 
 	return permissionEnabledQuotaBool
-}
-
-// GetFsGID fetches the group owner's ID from
-// PVC annotation, if specified
-// NOT YET USED
-func (c *VolumeConfig) GetFsGID() string {
-	if c.IsPermissionEnabled() {
-		configData := c.getData(KeyFilePermissions)
-		if configData != nil {
-			if val, p := configData[KeyFsGID]; p {
-				return strings.TrimSpace(val)
-			}
-		}
-	}
-	return ""
-}
-
-// GetFsGID fetches the user owner's ID from
-// PVC annotation, if specified
-// NOT YET USED
-func (c *VolumeConfig) GetFsUID() string {
-	if c.IsPermissionEnabled() {
-		configData := c.getData(KeyFilePermissions)
-		if configData != nil {
-			if val, p := configData[KeyFsUID]; p {
-				return strings.TrimSpace(val)
-			}
-		}
-	}
-	return ""
 }
 
 // GetFsMode fetches the file mode from PVC
