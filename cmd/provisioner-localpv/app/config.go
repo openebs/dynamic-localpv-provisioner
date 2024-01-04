@@ -134,7 +134,6 @@ const (
 	// FilePermissions allows to define the default directory mode
 	// Exemple StorageClass snippet:
 	//    - name: FilePermissions
-	//      enabled: true
 	//      data:
 	//        UID: 1000
 	//        GID: 1000
@@ -362,32 +361,13 @@ func (c *VolumeConfig) IsExt4QuotaEnabled() bool {
 	return enableExt4QuotaBool
 }
 
-func (c *VolumeConfig) IsPermissionEnabled() bool {
-	permissionEnabled := c.getEnabled(KeyFilePermissions)
-	permissionEnabled = strings.TrimSpace(permissionEnabled)
-
-	permissionEnabledQuotaBool, err := strconv.ParseBool(permissionEnabled)
-	//Default case
-	// this means that we have hit either of the two cases below:
-	//     i. The value was something other than a straightforward
-	//        true or false
-	//    ii. The value was empty
-	if err != nil {
-		return false
-	}
-
-	return permissionEnabledQuotaBool
-}
-
 // GetFsMode fetches the file mode from PVC
 // or StorageClass annotation, if specified
 func (c *VolumeConfig) GetFsMode() string {
-	if c.IsPermissionEnabled() {
-		configData := c.getData(KeyFilePermissions)
-		if configData != nil {
-			if val, p := configData[KeyFsMode]; p {
-				return strings.TrimSpace(val)
-			}
+	configData := c.getData(KeyFilePermissions)
+	if configData != nil {
+		if val, p := configData[KeyFsMode]; p {
+			return strings.TrimSpace(val)
 		}
 	}
 	//Keep the original default mode

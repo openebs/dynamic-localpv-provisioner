@@ -107,7 +107,7 @@ func TestDataConfigToMap(t *testing.T) {
 
 func TestPermissionConfigToMap(t *testing.T) {
 	hostpathConfig := mconfig.Config{Name: "StorageType", Value: "hostpath"}
-	permissionConfig := mconfig.Config{Name: "FilePermissions", Enabled: "true",
+	permissionConfig := mconfig.Config{Name: "FilePermissions",
 		Data: map[string]string{
 			"mode": "0750",
 		},
