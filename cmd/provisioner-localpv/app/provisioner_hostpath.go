@@ -77,7 +77,12 @@ func (p *Provisioner) ProvisionHostPath(ctx context.Context, opts pvController.P
 	klog.Infof("Creating volume %v at node with labels {%v}, path:%v,ImagePullSecrets:%v", name, nodeAffinityLabels, path, imagePullSecrets)
 
 	//Before using the path for local PV, make sure it is created.
-	initCmdsForPath := []string{"mkdir", "-m", volumeConfig.GetFsMode(), "-p"}
+        fsMode := volumeConfig.GetFsMode()
+        // Set default value if FilePermissions mode is not specified.
+        if len(fsMode) == 0 {
+                fsMode = "0777"
+        }
+	initCmdsForPath := []string{"mkdir", "-m", fsMode, "-p"}
 	podOpts := &HelperPodOptions{
 		cmdsForPath:        initCmdsForPath,
 		name:               name,
