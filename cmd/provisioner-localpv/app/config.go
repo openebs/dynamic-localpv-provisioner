@@ -427,7 +427,7 @@ func (c *VolumeConfig) GetFsMode() string {
 		}
 	}
 	//Keep the original default mode
-	return "0777"
+	return ""
 }
 
 // getValue is a utility function to extract the value
