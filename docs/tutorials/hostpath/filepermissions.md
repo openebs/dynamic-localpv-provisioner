@@ -19,7 +19,6 @@ We allow to set file permissions using:
         - name: BasePath
           value: "/var/openebs/local"
         - name: FilePermissions
-          enabled: true
           data:
             mode: "0770"
   provisioner: openebs.io/local
@@ -40,7 +39,6 @@ metadata:
   annotations:
     cas.openebs.io/config: |
       - name: FilePermissions
-        enabled: true
         data:
           mode: "0770"
 spec:
