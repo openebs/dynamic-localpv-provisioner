@@ -197,7 +197,7 @@ func (p *Provisioner) GetVolumeConfig(ctx context.Context, pvName string, pvc *c
 	if len(strings.TrimSpace(pvcCASConfigStr)) != 0 {
 		pvcCASConfig, err := cast.UnMarshallToConfig(pvcCASConfigStr)
 		if err == nil {
-			pvConfig = cast.MergeConfig(pvcCASConfig, pvConfig)
+			pvConfig = cast.MergeConfig(pvConfig, pvcCASConfig)
 		} else {
 			return nil, errors.Wrapf(err, "failed to get config: invalid config {%v}"+
 				" in pvc {%v} in namespace {%v}",
