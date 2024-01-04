@@ -105,6 +105,43 @@ func TestDataConfigToMap(t *testing.T) {
 	}
 }
 
+func TestPermissionConfigToMap(t *testing.T) {
+	hostpathConfig := mconfig.Config{Name: "StorageType", Value: "hostpath"}
+	permissionConfig := mconfig.Config{Name: "FilePermissions", Enabled: "true",
+		Data: map[string]string{
+			"mode": "0750",
+		},
+	}
+
+	testCases := map[string]struct {
+		config        []mconfig.Config
+		expectedValue map[string]interface{}
+	}{
+		"nil 'Data' map": {
+			config: []mconfig.Config{hostpathConfig, permissionConfig},
+			expectedValue: map[string]interface{}{
+				"FilePermissions": map[string]string{
+					"mode": "0750",
+				},
+			},
+		},
+	}
+
+	for k, v := range testCases {
+		v := v
+		k := k
+		t.Run(k, func(t *testing.T) {
+			actualValue, err := dataConfigToMap(v.config)
+			if err != nil {
+				t.Errorf("expected error to be nil, but got %v", err)
+			}
+			if !reflect.DeepEqual(actualValue, v.expectedValue) {
+				t.Errorf("expected %v, but got %v", v.expectedValue, actualValue)
+			}
+		})
+	}
+}
+
 func Test_listConfigToMap(t *testing.T) {
 	tests := map[string]struct {
 		pvConfig      []mconfig.Config
