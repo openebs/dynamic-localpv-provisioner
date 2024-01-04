@@ -3,7 +3,7 @@
 Hostpath LocalPV will by default create folder with the following rights: `0777`. In some usecases, these rights are too wide and should be reduced.
 As an important point, when using hostpath the underlying PV will be a localpath whichs allows kubelet to chown the folder based on the [fsGroup](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#configure-volume-permission-and-ownership-change-policy-for-pods))
 
-We allow to reduce this filepermission using :
+We allow to set file permissions using:  
 
 ```yaml
   #This is a custom StorageClass template
