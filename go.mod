@@ -87,6 +87,7 @@ require (
 )
 
 replace (
+	github.com/Masterminds/goutils => github.com/Masterminds/goutils v1.1.1
 	k8s.io/api => k8s.io/api v0.25.16
 	k8s.io/apimachinery => k8s.io/apimachinery v0.25.16
 	k8s.io/client-go => k8s.io/client-go v0.25.16
