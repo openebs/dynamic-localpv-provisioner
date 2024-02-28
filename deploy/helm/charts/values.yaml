@@ -3,17 +3,13 @@
 # Declare variables to be passed into your templates.
 
 release:
-  version: "3.5.0"
+  version: "4.0.0"
 
 rbac:
   # rbac.create: `true` if rbac resources should be created
   create: true
   # rbac.pspEnabled: `true` if PodSecurityPolicy resources should be created
   pspEnabled: false
-
-# If false, openebs NDM sub-chart will not be installed
-openebsNDM:
-  enabled: true
 
 localpv:
   name: localpv-provisioner
@@ -23,7 +19,7 @@ localpv:
     # For example : quay.io/ is a correct value here and quay.io is incorrect
     registry:
     repository: openebs/provisioner-localpv
-    tag: 3.5.0
+    tag: 4.0.0
     pullPolicy: IfNotPresent
   updateStrategy:
     type: RollingUpdate
@@ -40,11 +36,6 @@ localpv:
   replicas: 1
   enableLeaderElection: true
   basePath: "/var/openebs/local"
-# This sets the number of times the provisioner should try
-# with a polling interval of 5 seconds, to get the Blockdevice
-# Name from a BlockDeviceClaim, before the BlockDeviceClaim
-# is deleted. E.g. 12 * 5 seconds = 60 seconds timeout
-  waitForBDBindTimeoutRetryCount: "12"
   resources:
   # We usually recommend not to specify default resources and to leave this as a conscious
   # choice for the user. This also increases chances charts run on environments with little
@@ -78,42 +69,6 @@ serviceAccount:
   # The name of the service account to use.
   # If not set and create is true, a name is generated using the fullname template
   name:
-
-deviceClass:
-  # Name of default device StorageClass.
-  name: openebs-device
-  # If true, enables creation of the openebs-device StorageClass
-  enabled: true
-  # Available reclaim policies: Delete/Retain, defaults: Delete.
-  reclaimPolicy: Delete
-  # If true, sets the openebs-device StorageClass as the default StorageClass
-  isDefaultClass: false
-  # Custom node affinity label(s) for example "openebs.io/node-affinity-value"
-  # that will be used instead of hostnames
-  # This helps in cases where the hostname changes when the node is removed and
-  # added back with the disks still intact.
-  # Example:
-  #          nodeAffinityLabels:
-  #            - "openebs.io/node-affinity-key-1"
-  #            - "openebs.io/node-affinity-key-2"
-  nodeAffinityLabels: []
-  # Sets the filesystem to be written to the blockdevice before
-  # mounting (filesystem volumes)
-  # This is only usable if the selected BlockDevice does not already
-  # have a filesystem
-  # Valid values: "ext4", "xfs"
-  fsType: "ext4"
-  # Label block devices in the cluster that you would like the openEBS localPV
-  # Provisioner to pick up those specific block devices available on the node.
-  # Set the label key and value as shown in the example below.
-  #
-  # To read more: https://github.com/openebs/dynamic-localpv-provisioner/blob/develop/docs/tutorials/device/blockdeviceselectors.md
-  #
-  # Example:
-  #          blockDeviceSelectors:
-  #            ndm.io/driveType: "SSD"
-  #            ndm.io/fsType: "none"
-  blockDeviceSelectors: {}
 
 hostpathClass:
   # Name of the default hostpath StorageClass
@@ -163,7 +118,7 @@ helperPod:
     repository: openebs/linux-utils
     pullPolicy: IfNotPresent
     # Overrides the image tag whose default is the chart appVersion.
-    tag: 3.5.0
+    tag: 4.0.0
 
 analytics:
   enabled: true

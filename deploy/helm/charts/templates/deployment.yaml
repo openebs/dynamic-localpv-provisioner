@@ -40,8 +40,6 @@ spec:
         imagePullPolicy: {{ .Values.localpv.image.pullPolicy }}
         resources:
 {{ toYaml .Values.localpv.resources | indent 10 }}
-        args:
-          - "--bd-time-out=$(BDC_BD_BIND_RETRIES)"
         env:
         # OPENEBS_IO_K8S_MASTER enables openebs provisioner to connect to K8s
         # based on this address. This is ignored if empty.
@@ -53,12 +51,6 @@ spec:
         # This is supported for openebs provisioner version 0.5.2 onwards
         #- name: OPENEBS_IO_KUBE_CONFIG
         #  value: "/home/ubuntu/.kube/config"
-        # This sets the number of times the provisioner should try
-        # with a polling interval of 5 seconds, to get the Blockdevice
-        # Name from a BlockDeviceClaim, before the BlockDeviceClaim
-        # is deleted. E.g. 12 * 5 seconds = 60 seconds timeout
-        - name: BDC_BD_BIND_RETRIES
-          value: "{{ .Values.localpv.waitForBDBindTimeoutRetryCount }}"
         - name: OPENEBS_NAMESPACE
           valueFrom:
             fieldRef:
