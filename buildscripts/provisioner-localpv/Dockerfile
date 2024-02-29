@@ -12,7 +12,7 @@
 #See the License for the specific language governing permissions and
 #limitations under the License.
 #
-FROM alpine:3.14.8
+FROM alpine:3.14.10
 
 RUN apk add --no-cache \
     iproute2 \

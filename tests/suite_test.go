@@ -16,7 +16,6 @@ package tests
 import (
 	"context"
 	"flag"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -37,7 +36,6 @@ const (
 	LocalPVProvisionerLabelSelector = "openebs.io/component-name=openebs-localpv-provisioner"
 	ndmLabelSelector                = "openebs.io/component-name=ndm"
 	ndmOperatorLabelSelector        = "openebs.io/component-name=ndm-operator"
-	ndmConfigLabelSelector          = "openebs.io/component-name=ndm-config"
 	openebsRootDir                  = "/var/openebs"
 	hostpathDirNamePrefix           = "localpv-integration-test"
 	loopHostpathDirName             = "loop-mountpoint"
@@ -53,7 +51,6 @@ var (
 	loopDiskImgDir   string
 	err              error
 	physicalDisk     = disk.Disk{}
-	ndmState         bool
 )
 
 func TestSource(t *testing.T) {
@@ -92,23 +89,16 @@ var _ = BeforeSuite(func() {
 	ops.NameSpace = namespaceObj.Name
 
 	By("creating a directory for hostpath tests")
-	hostpathDir, err = ioutil.TempDir(openebsRootDir, hostpathDirNamePrefix+"-*")
+	err = os.MkdirAll(openebsRootDir, 0750)
+	Expect(err).To(BeNil(), "when creating directory "+openebsRootDir)
+	hostpathDir, err = os.MkdirTemp(openebsRootDir, hostpathDirNamePrefix+"-*")
 	Expect(err).To(BeNil(), "when creating hostpath directory")
 	loopHostpathDir = filepath.Join(hostpathDir, loopHostpathDirName)
 	loopDiskImgDir = filepath.Join(hostpathDir, loopDiskImgDirName)
 
 	By("preparing the loop device for hostpath Quota tests")
-	//Checking if NDM might be used for LOCAL HOSTDEVICE tests
-	ndmState = ops.IsNdmPrerequisiteMet(openebsNamespace, ndmLabelSelector, ndmOperatorLabelSelector)
 	physicalDisk, err = disk.PrepareDisk(loopDiskImgDir, loopHostpathDir)
 	Expect(err).To(BeNil(), "while preparing disk {%+v}", physicalDisk)
-	if ndmState {
-		//Excluding loop device from being listed as a usable BlockDevice
-		// Using NDM Exclude path-filter
-		err = ops.PathFilterExclude(APPEND, openebsNamespace, ndmConfigLabelSelector, ndmLabelSelector, physicalDisk.DiskPath)
-		Expect(err).To(BeNil(), "when patching NDM config exclude path-filter with loop device path")
-	}
-
 })
 
 var _ = AfterSuite(func() {
@@ -129,10 +119,6 @@ var _ = AfterSuite(func() {
 	By("destroying the created disk")
 	err = physicalDisk.DestroyDisk(loopDiskImgDir, loopHostpathDir)
 	Expect(err).To(BeNil(), "while destroying the disk {%+v}", physicalDisk)
-	if ndmState {
-		err = ops.PathFilterExclude(REMOVE, openebsNamespace, ndmConfigLabelSelector, ndmLabelSelector, physicalDisk.DiskPath)
-		Expect(err).To(BeNil(), "when reverting changes that were made to NDM config path-filter")
-	}
 
 	By("removing the hostpath directory")
 	err = os.RemoveAll(hostpathDir)

@@ -55,10 +55,6 @@ func StartProvisioner() (*cobra.Command, error) {
 		},
 	}
 
-	// Add flags to the cobra command's FlagSet
-	cmd.Flags().IntVar(&WaitForBDTimeoutCounts, "bd-time-out", 12,
-		"Specifies the no. of 5s intervals to wait for BDC to be associated with a BD")
-
 	return cmd, nil
 }
 

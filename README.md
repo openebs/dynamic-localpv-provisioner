@@ -32,19 +32,10 @@ Some of the targetted applications are:
 ## Overview 
 
 Kubernetes Local persistent volumes allows users to access local storage through the
-standard PVC interface in a simple and portable way.  The PV contains node
+standard PVC interface in a simple and portable way. The PV contains node
 affinity information that the system uses to schedule pods to the correct
-nodes.
+nodes. Features:
 
-OpenEBS Dynamic Local PVs extends the capabilities provided by the Kubernetes Local PV
-by making use of the OpenEBS Node Storage Disk Manager (NDM), the significant
-differences include:
-- Users need not pre-format and mount the devices in the node.
-- Supports Dynamic Local PVs - where the devices can be used by CAS solutions
-  and also by applications. CAS solutions typically directly access a device.
-  OpenEBS Local PV ease the management of storage devices to be used between
-  CAS solutions (direct access) and applications (via PV), by making use of
-  BlockDeviceClaims supported by OpenEBS NDM.
 - Supports using hostpath as well for provisioning a Local PV. In fact in some
   cases, the Kubernetes nodes may have limited number of storage devices
   attached to the node and hostpath based Local PVs offer efficient management
@@ -52,13 +43,10 @@ differences include:
 
 ## Kubernetes Compatibility Matrix
 
-|          | Kubernetes <= 1.15 | Kubernetes 1.16 | Kubernetes 1.17 | Kubernetes 1.18 | Kubernetes 1.19 | Kubernetes 1.20 | Kubernetes 1.21 | Kubernetes 1.22 | Kubernetes 1.23 | Kubernetes 1.24 | Kubernetes 1.25 | Kubernetes 1.26 | Kubernetes 1.27 |
-|----------|--------------------|-----------------|-----------------|-----------------|-----------------|-----------------|-----------------|-----------------|-----------------|-----------------|-----------------|-----------------|-----------------|
-| `v3.3.x` | ✕                  | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               |
-| `v3.4.x` | ✕                  | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               |
-| `v3.5.x` | ✕                  | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               |
-| `HEAD`   | ✕                  | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               |
-
+|          | Kubernetes <= 1.18 | Kubernetes  1.19 | Kubernetes 1.20 | Kubernetes 1.21 | Kubernetes 1.22 | Kubernetes 1.23 | Kubernetes 1.24 | Kubernetes 1.25 | Kubernetes 1.26 | Kubernetes 1.27 |
+|----------|--------------------|------------------|-----------------|-----------------|-----------------|-----------------|-----------------|-----------------|-----------------|-----------------|
+| `v4.0.x` | ✕                  | ✓                | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               |
+| `HEAD`   | ✕                  | ✓                | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               |
 
 ## Install
 
