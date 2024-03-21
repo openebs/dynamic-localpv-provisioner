@@ -1,3 +1,7 @@
+v4.0.0 / 2024-03-21
+===================
+* revert!: disable localpv device ([#172](https://github.com/openebs/dynamic-localpv-provisioner/pull/172),[@Abhinandan-Purkait](https://github.com/Abhinandan-Purkait))
+
 v3.5.0 / 2023-12-12
 ===================
 * fix: quota is not calculated correctly ([#161](https://github.com/openebs/dynamic-localpv-provisioner/pull/161),[@MingZhang-YBPS](https://github.com/MingZhang-YBPS))
