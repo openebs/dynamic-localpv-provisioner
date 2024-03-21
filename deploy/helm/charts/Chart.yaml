@@ -16,9 +16,3 @@ keywords:
   - dynamic-localpv
 sources:
   - https://github.com/openebs/dynamic-localpv-provisioner
-
-maintainers:
-  - name: Niladri Halder
-    email: niladri.halder@datacore.com
-  - name: Abhinandan Purkait
-    email: abhinandan.purkait@datacore.com
