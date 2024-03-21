@@ -136,10 +136,7 @@ func (p *Provisioner) Provision(ctx context.Context, opts pvController.Provision
 	}
 	sendEventOrIgnore(pvc.Name, name, size.String(), stgType, analytics.VolumeProvision)
 
-	// StorageType: Device
-	if stgType == "device" {
-		return p.ProvisionBlockDevice(ctx, opts, pvCASConfig)
-	}
+	// todo: Disable the localpv device provisioning for now. Revisit later to remove the code path.
 
 	// EXCEPTION: Block VolumeMode
 	if *opts.PVC.Spec.VolumeMode == v1.PersistentVolumeBlock && stgType != "device" {
@@ -184,19 +181,7 @@ func (p *Provisioner) Delete(ctx context.Context, pv *v1.PersistentVolume) (err 
 			pvcName = pv.Spec.ClaimRef.Name
 		}
 		sendEventOrIgnore(pvcName, pv.Name, size.String(), pvType, analytics.VolumeDeprovision)
-		if pvType == "local-device" {
-			err := p.DeleteBlockDevice(ctx, pv)
-			if err != nil {
-				alertlog.Logger.Errorw("",
-					"eventcode", "local.pv.delete.failure",
-					"msg", "Failed to delete Local PV",
-					"rname", pv.Name,
-					"reason", "failed to delete block device",
-					"storagetype", pvType,
-				)
-			}
-			return err
-		}
+		// todo: Disable the localpv device deprovisioning for now. Revisit later to remove the code path.
 
 		err = p.DeleteHostPath(ctx, pv)
 		if err != nil {
