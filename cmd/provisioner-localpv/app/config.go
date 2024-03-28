@@ -130,6 +130,19 @@ const (
 
 	KeyQuotaSoftLimit = "softLimitGrace"
 	KeyQuotaHardLimit = "hardLimitGrace"
+
+	// FilePermissions allows to define the default directory mode
+	// Exemple StorageClass snippet:
+	//    - name: FilePermissions
+	//      data:
+	//        UID: 1000
+	//        GID: 1000
+	//        mode: g+s
+	// This is the cas-template key for all file permission 'data' keys
+	KeyFilePermissions = "FilePermissions"
+
+	// FSMode defines the file permission mode of the shared directory
+	KeyFsMode = "mode"
 )
 
 const (
@@ -170,15 +183,21 @@ func (p *Provisioner) GetVolumeConfig(ctx context.Context, pvName string, pvc *c
 	}
 
 	//TODO : extract and merge the cas volume config from pvc
-	//This block can be added once validation checks are added
+	// This block can be added once validation checks are added
 	// as to the type of config that can be passed via PVC
-	//pvcCASConfigStr := pvc.ObjectMeta.Annotations[string(mconfig.CASConfigKey)]
-	//if len(strings.TrimSpace(pvcCASConfigStr)) != 0 {
-	//	pvcCASConfig, err := cast.UnMarshallToConfig(pvcCASConfigStr)
-	//	if err == nil {
-	//		pvConfig = cast.MergeConfig(pvcCASConfig, pvConfig)
-	//	}
-	//}
+	pvcCASConfigStr := pvc.ObjectMeta.Annotations[string(mconfig.CASConfigKey)]
+	klog.V(4).Infof("PVC %v has config:%v", pvc.Name, pvcCASConfigStr)
+	if len(strings.TrimSpace(pvcCASConfigStr)) != 0 {
+		pvcCASConfig, err := cast.UnMarshallToConfig(pvcCASConfigStr)
+		if err == nil {
+			pvConfig = cast.MergeConfig(pvConfig, pvcCASConfig)
+		} else {
+			return nil, errors.Wrapf(err, "failed to get config: invalid config {%v}"+
+				" in pvc {%v} in namespace {%v}",
+				pvcCASConfigStr, pvc.Name, pvc.Namespace,
+			)
+		}
+	}
 
 	pvConfigMap, err := cast.ConfigToMap(pvConfig)
 	if err != nil {
@@ -340,6 +359,19 @@ func (c *VolumeConfig) IsExt4QuotaEnabled() bool {
 	}
 
 	return enableExt4QuotaBool
+}
+
+// GetFsMode fetches the file mode from PVC
+// or StorageClass annotation, if specified
+func (c *VolumeConfig) GetFsMode() string {
+	configData := c.getData(KeyFilePermissions)
+	if configData != nil {
+		if val, p := configData[KeyFsMode]; p {
+			return strings.TrimSpace(val)
+		}
+	}
+	//Keep the original default mode
+	return ""
 }
 
 // getValue is a utility function to extract the value

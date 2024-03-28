@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-A Kubernetes cluster with Kubernetes v1.16 or above. 
+A Kubernetes cluster with Kubernetes v1.16 or above.
 
 For more platform-specific installation instructions, [click here](./installation/platforms/).
 
@@ -13,12 +13,12 @@ Install OpenEBS Dynamic LocalPV Provisioner using the openebs helm chart. Sample
 #helm repo update
 helm install openebs openebs/openebs -n openebs --create-namespace
 ```
-	
+
 <details>
   <summary>Click here for configuration options.</summary>
 
-  1. Install OpenEBS Dynamic LocalPV Provisioner without NDM. 
-     
+  1. Install OpenEBS Dynamic LocalPV Provisioner without NDM.
+
      You may choose to exclude the NDM subchart from installation if...
      - you want to only use OpenEBS LocalPV Hostpath
      - you already have NDM installed. Check if NDM pods exist with the command `kubectl get pods -n openebs -l 'openebs.io/component-name in (ndm, ndm-operator)'`
@@ -35,7 +35,7 @@ helm install openebs openebs/openebs -n openebs --create-namespace \
 	--set ndmOperator.enabled=false \
 	--set localprovisioner.deviceClass.enabled=false
 ```
-  3. Install OpenEBS Dynamic LocalPV Provisioner with a custom hostpath directory. 
+  3. Install OpenEBS Dynamic LocalPV Provisioner with a custom hostpath directory.
      This will change the `BasePath` value for the 'openebs-hostpath' StorageClass.
 ```console
 helm install openebs openebs/openebs -n openebs --create-namespace \
@@ -92,6 +92,10 @@ You can provision LocalPV hostpath StorageType volumes dynamically using the def
        # hostpath directory
        #- name: BasePath
        #  value: "/var/openebs/local"
+       #Use this to set a specific mode for directory creation
+       #- name: FilePermissions
+       #  data:
+       #     mode: "0770"
   provisioner: openebs.io/local
   reclaimPolicy: Delete
   #It is necessary to have volumeBindingMode as WaitForFirstConsumer
