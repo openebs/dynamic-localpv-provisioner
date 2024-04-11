@@ -1,5 +1,5 @@
 ---
-title: Hostpath LocalPV Provisioner
+title: LocalPV Hostpath
 authors:
   - "@niladrih"
 owners:
@@ -8,11 +8,11 @@ creation-date: 2021-08-28
 last-updated: 2021-08-28
 ---
 
-# Hostpath LocalPV Provisioner
+# LocalPV Hostpath
 
 ## Table of Contents
 
-- [Hostpath LocalPV Provisioner](#hostpath-localpv-provisioner)
+- [LocalPV Hostpath](#localpv-hostpath)
   - [Table of Contents](#table-of-contents)
   - [Summary](#summary)
   - [Problem](#problem)

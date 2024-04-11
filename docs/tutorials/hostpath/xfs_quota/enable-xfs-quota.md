@@ -9,7 +9,7 @@
 >**Note:** You may [use a loop device with XFS filesystem](./use-xfs-fs-with-loop-device.md) for XFS Quota. With a loop device based setup, you don't have to have an XFS root filesystem or external disks with XFS.
 
 ### Install the OpenEBS Dynamic LocalPV Provisioner
-Install the OpenEBS Dynamic LocalPV Provisioner using the following given below. For more installation options, refer to [the quickstart guide](../../../quickstart.md).
+Install the OpenEBS LocalPV Hostpath Provisioner using the following given below. For more installation options, refer to [the quickstart guide](../../../quickstart.md).
 ```console
 kubectl apply -f https://openebs.github.io/charts/openebs-operator-lite.yaml
 ```
@@ -20,8 +20,6 @@ $ kubectl get pods -n openebs
 
 NAME                                           READY   STATUS    RESTARTS       AGE
 openebs-localpv-provisioner-6ddbd95d4d-htp7g   1/1     Running       0          7m12s
-openebs-ndm-operator-849d89cb87-djct8          1/1     Running       0          7m12s
-openebs-ndm-zd8lt                              1/1     Running       0          7m12s
 ```
 
 ### Create StorageClass
