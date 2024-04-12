@@ -1,70 +1,84 @@
-# OpenEBS LocalPV Helm Repository
+# OpenEBS Helm Repository
 
-<img width="300" align="right" alt="OpenEBS Logo" src="https://raw.githubusercontent.com/cncf/artwork/master/projects/openebs/stacked/color/openebs-stacked-color.png" xmlns="http://www.w3.org/1999/html">
+<img width="200" align="right" alt="OpenEBS Logo" src="https://raw.githubusercontent.com/cncf/artwork/master/projects/openebs/stacked/color/openebs-stacked-color.png" xmlns="http://www.w3.org/1999/html">
 
-[Helm3](https://helm.sh) must be installed to use the charts.
-Please refer to the official Helm [documentation](https://helm.sh/docs/) to get started.
+[OpenEBS](https://openebs.io) helps Developers and Platform SREs easily deploy Kubernetes Stateful Workloads that require fast and highly reliable container attached storage. OpenEBS can be deployed on any Kubernetes cluster - either in cloud, on-premise (virtual or bare metal) or developer laptop (minikube).
 
-Once Helm is set up properly, add the repo as follows:
+OpenEBS Data Engines and Control Plane are implemented as micro-services, deployed as containers and orchestrated by Kubernetes itself. An added advantage of being a completely Kubernetes native solution is that administrators and developers can interact and manage OpenEBS using all the wonderful tooling that is available for Kubernetes like kubectl, Helm, Prometheus, Grafana, etc.
 
-```console
-helm repo add openebs-localpv https://openebs.github.io/dynamic-localpv-provisioner
+OpenEBS turns any storage available on the Kubernetes worker nodes into local or distributed Kubernetes Persistent Volumes.
+* Local Volumes are accessible only from a single node in the cluster. Pods using Local Volume have to be scheduled on the node where volume is provisioned. Local Volumes are typically preferred for distributed workloads like Cassandra, MongoDB, Elastic, etc that are distributed in nature and have high availability built into them. Depending on the type of storage attached to your Kubernetes worker openebs offers different flavors of Local PV - Hostpath, LVM and  ZFS.
+* Replicated Volumes as the name suggests, are those that have their data synchronously replicated to multiple nodes. Volumes can sustain node failures. The replication also can be setup across availability zones helping applications move across availability zones. OpenEBS offers MayaStor as an replicated storage solution, which provides high availability and high performance.
+
+## Documentation and user guides
+
+You can run OpenEBS on any Kubernetes 1.23+ cluster in a matter of minutes. See the [Quickstart Guide to OpenEBS](https://openebs.io/docs/quickstart-guide/installation) for detailed instructions.
+
+## Getting started
+
+### How to customize OpenEBS Helm chart?
+
+OpenEBS helm chart is an umbrella chart that pulls together engine specific charts. The engine charts are included as dependencies. 
+arts/openebs/Chart.yaml). 
+
+```bash
+openebs
+├── (default) LocalPV HostPath
+├── (default) LocalPV LVM
+├── (default) LocalPV LVM
+└── (default) MayaStor (replicated)
 ```
 
-You can then run `helm search repo openebs-localpv` to see the charts.
+### Prerequisites
 
-#### Update OpenEBS LocalPV Repo
+- [LocalPV Hostpath Prerequisites](https://openebs.io/docs/user-guides/local-storage-user-guide/local-pv-hostpath/hostpath-installation#prerequisites)
+- [LocalPV LVM Prerequisites](https://openebs.io/docs/user-guides/local-storage-user-guide/local-pv-lvm/lvm-installation#prerequisites)
+- [LocalPV ZFS Prerequisites](https://openebs.io/docs/user-guides/local-storage-user-guide/local-pv-zfs/zfs-installation#prerequisites)
+- [Replicated Engine Prerequisites](https://openebs.io/docs/user-guides/replicated-storage-user-guide/rs-installation#prerequisites)
 
-Once OpenEBS LocalPV repository has been successfully fetched into the local system, it has to be updated to get the latest version. The LocalPV charts repo can be updated using the following command:
+### Setup Helm Repository
 
-```console
+Before installing OpenEBS Helm charts, you need to add the [OpenEBS Helm repository](https://openebs.github.io/openebs) to your Helm client.
+
+#### Setup helm repository
+
+```bash
+helm repo add openebs https://openebs.github.io/openebs
 helm repo update
 ```
 
-#### Install using Helm 3
+#### Install OpenEBS helm chart with default values.
 
-- Run the following command to install the OpenEBS Dynamic LocalPV Provisioner helm chart:
-```console
-helm install [RELEASE_NAME] openebs-localpv/localpv-provisioner --namespace [NAMESPACE] --create-namespace
+```bash
+helm install openebs --namespace openebs openebs/openebs --create-namespace
 ```
 
+The above commands will install OpenEBS LocalPV Hostpath, OpenEBS LocalPV LVM, OpenEBS LocalPV ZFS and OpenEBS Mayastor components in openebs namespace and chart name as openebs. 
 
-_See [helm install](https://helm.sh/docs/helm/helm_install/) for command documentation._
+If you want to not install OpenEBS Mayastor which is a replicated storage engine you can use the following command.
 
-## Dependencies
-
-By default this chart installs additional, dependent charts:
-
-| Repository | Name |
-|------------|------|
-| https://openebs.github.io/node-disk-manager | openebs-ndm |
-
-
-To disable the dependency during installation, set `openebsNDM.enabled` to `false`.
-
-_See [helm dependency](https://helm.sh/docs/helm/helm_dependency/) for command documentation._
-
-## Uninstall Chart
-
-```console
-# Helm
-helm uninstall [RELEASE_NAME] --namespace [NAMESPACE]
+```bash
+helm install openebs --namespace openebs openebs/openebs --set mayastor.enabled=false --create-namespace
 ```
 
-This removes all the Kubernetes components associated with the chart and deletes the release.
+To view the chart and get the following output.
 
-_See [helm uninstall](https://helm.sh/docs/helm/helm_uninstall/) for command documentation._
+```bash
+helm ls -n openebs 
 
-## Upgrading Chart
-
-```console
-# Helm
-helm upgrade [RELEASE_NAME] [CHART] --install --namespace [NAMESPACE]
+NAME    NAMESPACE       REVISION        UPDATED                                 STATUS          CHART           APP VERSION
+openebs openebs         1               2024-03-25 09:13:00.903321318 +0000 UTC deployed        openebs-4.0.0   4.0.0
 ```
 
+As a next step [verify your installation](https://openebs.io/docs/quickstart-guide/installation#verifying-openebs-installation) and do the [post installation](https://openebs.io/docs/quickstart-guide/installation#post-installation-considerations) steps.
 
-## Configuration
+For more details on customizing and installing OpenEBS please see the [chart values](https://github.com/openebs/openebs/tree/HEAD/charts/README.md).
 
-Refer to the OpenEBS Dynamic LocalPV Provisioner Helm chart [README.md file](https://github.com/openebs/dynamic-localpv-provisioner/blob/develop/deploy/helm/charts/README.md) for detailed configuration options.
+### To uninstall/delete instance with release name
 
-[Click here](https://github.com/openebs/dynamic-localpv-provisioner/blob/develop/docs/quickstart.md) for the Quickstart guide.
+```bash
+helm ls --all
+helm delete `<RELEASE NAME>` -n `<RELEASE NAMESPACE>`
+```
+
+> **Tip**: Prior to deleting the helm chart, make sure all the storage volumes and pools are deleted.
