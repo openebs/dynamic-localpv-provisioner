@@ -121,3 +121,6 @@ analytics:
   enabled: true
   # Specify in hours the duration after which a ping event needs to be sent.
   pingInterval: "24h"
+
+# Additional labels to add to all chart resources
+labels: {}
