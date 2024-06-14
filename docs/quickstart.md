@@ -16,7 +16,8 @@ helm install openebs openebs/openebs -n openebs --create-namespace
 	
 <details>
   <summary>Click here for configuration options.</summary>
-  1. Install OpenEBS LocalPV Hostpath Provisioner with a custom hostpath directory. 
+
+  1. Install OpenEBS Dynamic LocalPV Provisioner with a custom hostpath directory. 
      This will change the `BasePath` value for the 'openebs-hostpath' StorageClass.
 ```console
 helm install openebs openebs/openebs -n openebs --create-namespace \
