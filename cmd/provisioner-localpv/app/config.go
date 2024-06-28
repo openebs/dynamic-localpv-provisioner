@@ -142,7 +142,7 @@ const (
 	k8sNodeLabelKeyHostname = "kubernetes.io/hostname"
 )
 
-//GetVolumeConfig creates a new VolumeConfig struct by
+// GetVolumeConfig creates a new VolumeConfig struct by
 // parsing and merging the configuration provided in the PVC/SC
 // annotation - cas.openebs.io/config with the
 // default configuration of the provisioner.
@@ -169,28 +169,23 @@ func (p *Provisioner) GetVolumeConfig(ctx context.Context, pvName string, pvc *c
 		}
 	}
 
-	// extract and merge the cas config from persistentvolumeclaim
+	// Extract and merge the cas config from persistentvolumeclaim.
+	// TODO: Validation checks for what all cas-config options can be
+	// set on the PVC.
 	pvcCASConfigStr := pvc.Annotations[string(mconfig.CASConfigKey)]
 	klog.V(4).Infof("PVC %v has config:%v", pvc.Name, pvcCASConfigStr)
 	if len(strings.TrimSpace(pvcCASConfigStr)) != 0 {
 		pvcCASConfig, err := cast.UnMarshallToConfig(pvcCASConfigStr)
 		if err == nil {
-			pvConfig = cast.MergeConfig(pvcCASConfig, pvConfig)
+			// Config keys which already exist (SC config),
+			// will be skipped
+			// i.e. SC config will have precedence over PVC config,
+			// if both have the same keys
+			pvConfig = cast.MergeConfig(pvConfig, pvcCASConfig)
 		} else {
 			return nil, errors.Wrapf(err, "failed to get config: invalid pvc config {%v}", pvcCASConfigStr)
 		}
 	}
-
-	//TODO : extract and merge the cas volume config from pvc
-	//This block can be added once validation checks are added
-	// as to the type of config that can be passed via PVC
-	//pvcCASConfigStr := pvc.ObjectMeta.Annotations[string(mconfig.CASConfigKey)]
-	//if len(strings.TrimSpace(pvcCASConfigStr)) != 0 {
-	//	pvcCASConfig, err := cast.UnMarshallToConfig(pvcCASConfigStr)
-	//	if err == nil {
-	//		pvConfig = cast.MergeConfig(pvcCASConfig, pvConfig)
-	//	}
-	//}
 
 	pvConfigMap, err := cast.ConfigToMap(pvConfig)
 	if err != nil {
