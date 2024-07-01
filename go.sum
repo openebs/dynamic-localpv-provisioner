@@ -108,9 +108,9 @@ github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/dgrijalva/jwt-go v3.2.0+incompatible/go.mod h1:E3ru+11k8xSBh+hMPgOLZmtrrCbhqsmaPHjLKYnJCaQ=
 github.com/docker/go-units v0.4.0/go.mod h1:fgPhTUdO+D/Jk86RDLlptpiXQzgHJF7gydDDbaIK4Dk=
-github.com/docker/go-units v0.5.0 h1:69rxXcBk27SvSaaxTtLh/8llcHD8vYHT7WSdRZ/jvr4=
-github.com/docker/go-units v0.5.0/go.mod h1:fgPhTUdO+D/Jk86RDLlptpiXQzgHJF7gydDDbaIK4Dk=
 github.com/docopt/docopt-go v0.0.0-20180111231733-ee0de3bc6815/go.mod h1:WwZ+bS3ebgob9U8Nd0kOddGdZWjyMGR8Wziv+TBNwSE=
+github.com/dustin/go-humanize v1.0.1 h1:GzkhY7T5VNhEkwH0PVJgjz+fX1rhBrR7pRT3mDkpeCY=
+github.com/dustin/go-humanize v1.0.1/go.mod h1:Mu1zIs6XwVuF/gI1OepvI0qD18qycQx+mFykh5fBlto=
 github.com/elazarl/goproxy v0.0.0-20180725130230-947c36da3153 h1:yUdfgN0XgIJw7foRItutHYUIhlcKzcSf5vDpdhQAKTc=
 github.com/elazarl/goproxy v0.0.0-20180725130230-947c36da3153/go.mod h1:/Zj4wYkgs4iZTTu3o/KG3Itv/qCCa8VVMlb3i9OVuzc=
 github.com/emicklei/go-restful v0.0.0-20170410110728-ff4f55a20633/go.mod h1:otzb+WCGbkyDHkqmQmT5YD2WR4BBwUdeQoFo8l/7tVs=
@@ -391,8 +391,8 @@ github.com/onsi/gomega v1.19.0/go.mod h1:LY+I3pBVzYsTBU1AnDwOSxaYi9WoWiqgwooUqq9
 github.com/onsi/gomega v1.20.1/go.mod h1:DtrZpjmvpn2mPm4YWQa0/ALMDj9v4YxLgojwPeREyVo=
 github.com/onsi/gomega v1.27.4 h1:Z2AnStgsdSayCMDiCU42qIz+HLqEPcgiOCXjAU/w+8E=
 github.com/onsi/gomega v1.27.4/go.mod h1:riYq/GJKh8hhoM01HN6Vmuy93AarCXCBGpvFDK3q3fQ=
-github.com/openebs/google-analytics-4 v0.1.0 h1:6aUDbQoh1ezb+NU/MkapFKffogW4QK3WYt8g2UmENe8=
-github.com/openebs/google-analytics-4 v0.1.0/go.mod h1:3DkQfGCo79pZhL76Xtg0/R7LNLMttW6Bm/uP0yiZQHU=
+github.com/openebs/google-analytics-4 v0.2.1 h1:+DgJjcPM3uVyWp9VxvNQgNXCWWv0OFhopijFdPVVX9Q=
+github.com/openebs/google-analytics-4 v0.2.1/go.mod h1:lKjvRs6HAYOlOTYjtOUp35iTutoXzRL0hOeVAvLAfZI=
 github.com/openebs/lib-csi v0.8.2 h1:HmoiZX3VXFPglwqnRPnRus7K58ixDWBa19OpPZGk2Ws=
 github.com/openebs/lib-csi v0.8.2/go.mod h1:4yc0Q1thH+oU80z73zGELfrOw2yeLdLNIRmcrxBxsBc=
 github.com/openebs/maya v1.12.1-0.20211022052259-bd98908028af h1:ybONzwC+k/zvgDcsCAatvT6u2j75tIVNYu5jX1pTmJE=

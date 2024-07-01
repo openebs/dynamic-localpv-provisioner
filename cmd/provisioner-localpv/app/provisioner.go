@@ -1,20 +1,4 @@
 /*
-Copyright 2019 The OpenEBS Authors.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
-/*
 This file contains the volume creation and deletion handlers invoked by
 the github.com/kubernetes-sigs/sig-storage-lib-external-provisioner/controller.
 
@@ -50,10 +34,12 @@ import (
 const (
 	// Ping message
 	Ping string = "ping"
+	// Heartbeat message.
+	Heartbeat string = "heartbeat"
 	// DefaultCASType Event application name constant for volume event
-	DefaultCASType string = "localpv"
+	DefaultCASType string = "hostpath-localpv"
 	// DefaultUnknownReplicaCount is the default replica count
-	DefaultUnknownReplicaCount string = "replica:1"
+	DefaultUnknownReplicaCount string = "1"
 )
 
 // NewProvisioner will create a new Provisioner object and initialize
@@ -211,10 +197,10 @@ func sendEventOrIgnore(pvcName, pvName, capacity, stgType, method string) {
 	analytics.New().CommonBuild(stgType).ApplicationBuilder().
 		SetVolumeName(pvName).
 		SetVolumeClaimName(pvcName).
-		SetLabel(analytics.EventLabelCapacity).
-		SetAction(DefaultUnknownReplicaCount).
+		SetReplicaCount(DefaultUnknownReplicaCount).
 		SetCategory(method).
-		SetVolumeCapacity(capacity).Send()
+		SetVolumeCapacity(capacity).
+		Send()
 }
 
 // validateVolumeSource validates datasource field of the pvc.
