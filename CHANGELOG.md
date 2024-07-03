@@ -1,3 +1,8 @@
+v4.1.0 / 2024-07-03
+===================
+* feat(provisioner): update analytics pkg ([#188](https://github.com/openebs/dynamic-localpv-provisioner/pull/188),[@niladrih](https://github.com/niladrih))
+* build: update base alpine image version to 3.20.1 ([#189](https://github.com/openebs/dynamic-localpv-provisioner/pull/189),[@niladrih](https://github.com/niladrih))
+
 v4.0.0 / 2024-03-21
 ===================
 * revert!: disable localpv device ([#172](https://github.com/openebs/dynamic-localpv-provisioner/pull/172),[@Abhinandan-Purkait](https://github.com/Abhinandan-Purkait))
