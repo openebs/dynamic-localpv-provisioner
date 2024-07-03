@@ -124,7 +124,7 @@ testv: format
 # Requires KUBECONFIG env and Ginkgo binary
 .PHONY: integration-test
 integration-test:
-	@cd tests && sudo -E env "PATH=${PATH}" ginkgo -v -failFast
+	@cd tests && sudo -E env "PATH=${PATH}" ginkgo -v --fail-fast
 
 .PHONY: format
 format:

@@ -1,26 +1,9 @@
-/*
-Copyright 2019 The OpenEBS Authors
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
 package tests
 
 import (
 	"bytes"
 	"context"
 	"fmt"
-
 	//"sort"
 	"strconv"
 	"strings"
@@ -50,15 +33,15 @@ import (
 	"k8s.io/client-go/tools/remotecommand"
 
 	deploy "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/apps/v1/deployment"
-	container "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/container"
-	event "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/event"
+	"github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/container"
+	"github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/event"
 	pv "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/persistentvolume"
 	pvc "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/persistentvolumeclaim"
-	pod "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/pod"
+	"github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/pod"
 	pts "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/podtemplatespec"
 	k8svolume "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/volume"
 	sc "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/storage/v1/storageclass"
-	ndmconfig "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/ndmconfig"
+	"github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/ndmconfig"
 )
 
 const (
@@ -474,6 +457,24 @@ func (ops *Operations) GetPVNameFromPVCName(namespace, pvcName string) string {
 	p, err := ops.PVCClient.WithNamespace(namespace).Get(context.TODO(), pvcName, metav1.GetOptions{})
 	Expect(err).ShouldNot(HaveOccurred())
 	return p.Spec.VolumeName
+}
+
+// GetNodeAffinityLabelKeysFromPv returns the label keys for NodeSelector MatchExpressions in a PV.
+func (ops *Operations) GetNodeAffinityLabelKeysFromPv(pvName string) ([]string, error) {
+	pv, err := ops.PVClient.Get(context.TODO(), pvName, metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	var nodeAffinityLabelKeys []string
+
+	for _, selectorTerm := range pv.Spec.NodeAffinity.Required.NodeSelectorTerms {
+		for _, matchExpression := range selectorTerm.MatchExpressions {
+			nodeAffinityLabelKeys = append(nodeAffinityLabelKeys, matchExpression.Key)
+		}
+	}
+
+	return nodeAffinityLabelKeys, nil
 }
 
 // isNotFound returns true if the original
