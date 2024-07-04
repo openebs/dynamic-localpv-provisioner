@@ -120,10 +120,10 @@ helperPod:
     # Overrides the image tag whose default is the chart appVersion.
     tag: 4.0.0
 
+# Additional labels to add to all chart resources
+extraLabels: {}
+
 analytics:
   enabled: true
   # Specify in hours the duration after which a ping event needs to be sent.
   pingInterval: "24h"
-
-# Additional labels to add to all chart resources
-labels: {}

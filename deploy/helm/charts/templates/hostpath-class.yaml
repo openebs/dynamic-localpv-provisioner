@@ -34,9 +34,8 @@ metadata:
 {{- if .Values.hostpathClass.isDefaultClass }}
     storageclass.kubernetes.io/is-default-class: "true"
 {{- end }}
-{{- if (gt (len .Values.labels) 0) }}
-  labels:
-{{ toYaml .Values.labels | indent 4 }}
+{{- if .Values.extraLabels }}
+  labels: {{- toYaml .Values.extraLabels | nindent 4 -}}
 {{- end }}
 provisioner: openebs.io/local
 volumeBindingMode: WaitForFirstConsumer

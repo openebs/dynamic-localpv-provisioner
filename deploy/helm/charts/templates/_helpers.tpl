@@ -63,12 +63,7 @@ Common labels
 {{ include "localpv.common.metaLabels" . }}
 {{ include "localpv.selectorLabels" . }}
 {{ include "localpv.componentLabels" . }}
-{{- if (gt (len .Values.labels) 0) -}}
-{{ printf "\n"}}
-{{ .Values.labels | toYaml }}
 {{- end -}}
-{{- end -}}
-
 
 {{/*
 Create the name of the service account to use
