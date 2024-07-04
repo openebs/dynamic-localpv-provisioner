@@ -48,12 +48,11 @@ localpv:
   tolerations: []
   affinity: {}
   securityContext: {}
+  ## Sets priorityClassName in pod
+  priorityClassName: ""
 
 imagePullSecrets:
   # - name: img-pull-secret
-
-## Sets priorityClassName in pod
-priorityClassName: ""
 
 podSecurityContext: {}
   # fsGroup: 2000
