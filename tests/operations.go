@@ -1146,3 +1146,89 @@ func BuildPod(namespace, podName, pvcName string, labelselector map[string]strin
 		).
 		Build()
 }
+
+// createDeploymentWhichConsumesHostpath creates a single-replica Deployment whose Pod consumes hostpath PVC.
+func (ops *Operations) createDeploymentWhichConsumesHostpath(namePrefix, namespace, pvcName string) (*appsv1.Deployment, error) {
+	labelSelector := map[string]string{
+		"app": namePrefix,
+	}
+	deployment, err := deploy.NewBuilder().
+		WithGenerateName(namePrefix).
+		WithNamespace(namespace).
+		WithLabelsNew(labelSelector).
+		WithSelectorMatchLabelsNew(labelSelector).
+		WithPodTemplateSpecBuilder(
+			pts.NewBuilder().
+				WithLabelsNew(labelSelector).
+				WithContainerBuildersNew(
+					container.NewBuilder().
+						WithName("busybox").
+						WithImage("busybox").
+						WithCommandNew(
+							[]string{
+								"sleep",
+								"3600",
+							},
+						).
+						WithVolumeMountsNew(
+							[]corev1.VolumeMount{
+								{
+									Name:      "demo-vol1",
+									MountPath: "/mnt/store1",
+								},
+							},
+						),
+				).
+				WithVolumeBuilders(
+					k8svolume.NewBuilder().
+						WithName("demo-vol1").
+						WithPVCSource(pvcName),
+				),
+		).
+		Build()
+	if err != nil {
+		return nil, err
+	}
+
+	return ops.DeployClient.WithNamespace(namespace).Create(context.TODO(), deployment)
+}
+
+// isLabelSelectorsEqual compares two arrays of label selector keys.
+func isLabelSelectorsEqual(request, result []string) bool {
+	if len(request) != len(result) {
+		return false
+	}
+
+	ch := make(chan struct{}, 2)
+	collectFrequency := func(labelKeys []string, freq *map[string]int) {
+		for _, elem := range labelKeys {
+			(*freq)[elem]++
+		}
+
+		ch <- struct{}{}
+	}
+
+	// Maps to hold the frequency of strings in the string slices.
+	freqRequest := make(map[string]int)
+	freqResult := make(map[string]int)
+
+	go collectFrequency(request, &freqRequest)
+	go collectFrequency(result, &freqResult)
+
+	for i := 0; i < 2; i++ {
+		select {
+		case <-ch:
+			continue
+		}
+	}
+
+	// Compare frequencies
+	for key, countRequest := range freqRequest {
+		countResult, ok := freqResult[key]
+		if !ok || countRequest != countResult {
+			return false
+		}
+	}
+
+	return true
+}

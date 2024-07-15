@@ -7,105 +7,14 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	mayav1alpha1 "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	"golang.org/x/net/context"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/yaml"
 
-	deploy "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/apps/v1/deployment"
-	"github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/container"
 	pvc "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/persistentvolumeclaim"
-	pts "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/podtemplatespec"
-	k8svolume "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/volume"
 	sc "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/storage/v1/storageclass"
 )
-
-// createDeploymentWhichConsumesHostpath creates a single-replica Deployment whose Pod consumes hostpath PVC.
-func createDeploymentWhichConsumesHostpath(namePrefix, namespace, pvcName string) (*appsv1.Deployment, error) {
-	labelSelector := map[string]string{
-		"app": namePrefix,
-	}
-	deployment, err := deploy.NewBuilder().
-		WithGenerateName(namePrefix).
-		WithNamespace(namespace).
-		WithLabelsNew(labelSelector).
-		WithSelectorMatchLabelsNew(labelSelector).
-		WithPodTemplateSpecBuilder(
-			pts.NewBuilder().
-				WithLabelsNew(labelSelector).
-				WithContainerBuildersNew(
-					container.NewBuilder().
-						WithName("busybox").
-						WithImage("busybox").
-						WithCommandNew(
-							[]string{
-								"sleep",
-								"3600",
-							},
-						).
-						WithVolumeMountsNew(
-							[]corev1.VolumeMount{
-								{
-									Name:      "demo-vol1",
-									MountPath: "/mnt/store1",
-								},
-							},
-						),
-				).
-				WithVolumeBuilders(
-					k8svolume.NewBuilder().
-						WithName("demo-vol1").
-						WithPVCSource(pvcName),
-				),
-		).
-		Build()
-	if err != nil {
-		return nil, err
-	}
-
-	return ops.DeployClient.WithNamespace(namespaceObj.Name).Create(context.TODO(), deployment)
-}
-
-// isLabelSelectorsEqual compares two arrays of label selector keys.
-func isLabelSelectorsEqual(request, result []string) bool {
-	if len(request) != len(result) {
-		return false
-	}
-
-	ch := make(chan struct{}, 2)
-	collectFrequency := func(labelKeys []string, freq *map[string]int) {
-		for _, elem := range labelKeys {
-			(*freq)[elem]++
-		}
-
-		ch <- struct{}{}
-	}
-
-	// Maps to hold the frequency of strings in the string slices.
-	freqRequest := make(map[string]int)
-	freqResult := make(map[string]int)
-
-	go collectFrequency(request, &freqRequest)
-	go collectFrequency(result, &freqResult)
-
-	for i := 0; i < 2; i++ {
-		select {
-		case <-ch:
-			continue
-		}
-	}
-
-	// Compare frequencies
-	for key, countRequest := range freqRequest {
-		countResult, ok := freqResult[key]
-		if !ok || countRequest != countResult {
-			return false
-		}
-	}
-
-	return true
-}
 
 var _ = Describe("VOLUME PROVISIONING/DE-PROVISIONING WITH ADDITIVE CAS-CONFIGS ON PVC AND SC", func() {
 	var (
@@ -125,7 +34,7 @@ var _ = Describe("VOLUME PROVISIONING/DE-PROVISIONING WITH ADDITIVE CAS-CONFIGS 
 		It("should provision the volume", func() {
 			By("creating the StorageClass with cas-config", func() {
 				storageClass, err := sc.NewStorageClass(
-					sc.WithGenerateName("sc-additive-cas-config"),
+					sc.WithGenerateName(scNamePrefix),
 					sc.WithLabels(map[string]string{
 						"openebs.io/test-sc": "true",
 					}),
@@ -185,7 +94,7 @@ var _ = Describe("VOLUME PROVISIONING/DE-PROVISIONING WITH ADDITIVE CAS-CONFIGS 
 				pvcName = pvc.Name
 			})
 			By("creating a bound PV", func() {
-				deployment, err = createDeploymentWhichConsumesHostpath(deployNamePrefix, namespaceObj.Name,
+				deployment, err = ops.createDeploymentWhichConsumesHostpath(deployNamePrefix, namespaceObj.Name,
 					pvcName)
 				Expect(err).To(
 					BeNil(),
@@ -272,7 +181,7 @@ var _ = Describe("VOLUME PROVISIONING/DE-PROVISIONING WITH CONFLICTING CAS-CONFI
 		It("should provision the volume", func() {
 			By("creating the StorageClass with cas-config", func() {
 				storageClass, err := sc.NewStorageClass(
-					sc.WithGenerateName("sc-conflicting-cas-config"),
+					sc.WithGenerateName(scNamePrefix),
 					sc.WithLabels(map[string]string{
 						"openebs.io/test-sc": "true",
 					}),
@@ -332,7 +241,7 @@ var _ = Describe("VOLUME PROVISIONING/DE-PROVISIONING WITH CONFLICTING CAS-CONFI
 				pvcName = pvc.Name
 			})
 			By("creating a bound PV", func() {
-				deployment, err = createDeploymentWhichConsumesHostpath(deployNamePrefix, namespaceObj.Name,
+				deployment, err = ops.createDeploymentWhichConsumesHostpath(deployNamePrefix, namespaceObj.Name,
 					pvcName)
 				Expect(err).To(
 					BeNil(),
