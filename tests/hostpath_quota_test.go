@@ -164,7 +164,7 @@ var _ = Describe("TEST HOSTPATH XFS QUOTA LOCAL PV WITH UNSUPPORTED FILESYSTEM",
 			)
 
 			By("deleting above PVC")
-			err = ops.PVCClient.Delete(context.TODO(), pvcName, &metav1.DeleteOptions{})
+			err = ops.PVCClient.WithNamespace(namespaceObj.Name).Delete(context.TODO(), pvcName, &metav1.DeleteOptions{})
 			Expect(err).To(
 				BeNil(),
 				"while deleting pvc {%s} in namespace {%s}",
@@ -357,7 +357,7 @@ var _ = Describe("TEST HOSTPATH XFS QUOTA LOCAL PV WITH XFS FILESYSTEM", func() 
 			)
 
 			By("deleting above PVC")
-			err = ops.PVCClient.Delete(context.TODO(), pvcName, &metav1.DeleteOptions{})
+			err = ops.PVCClient.WithNamespace(namespaceObj.Name).Delete(context.TODO(), pvcName, &metav1.DeleteOptions{})
 			Expect(err).To(
 				BeNil(),
 				"while deleting pvc {%s} in namespace {%s}",
@@ -543,7 +543,7 @@ var _ = Describe("TEST HOSTPATH EXT4 QUOTA LOCAL PV WITH UNSUPPORTED FILESYSTEM"
 			)
 
 			By("deleting above PVC")
-			err = ops.PVCClient.Delete(context.TODO(), pvcName, &metav1.DeleteOptions{})
+			err = ops.PVCClient.WithNamespace(namespaceObj.Name).Delete(context.TODO(), pvcName, &metav1.DeleteOptions{})
 			Expect(err).To(
 				BeNil(),
 				"while deleting pvc {%s} in namespace {%s}",
@@ -736,7 +736,7 @@ var _ = Describe("TEST HOSTPATH EXT4 QUOTA LOCAL PV WITH EXT4 FILESYSTEM", func(
 			)
 
 			By("deleting above PVC")
-			err = ops.PVCClient.Delete(context.TODO(), pvcName, &metav1.DeleteOptions{})
+			err = ops.PVCClient.WithNamespace(namespaceObj.Name).Delete(context.TODO(), pvcName, &metav1.DeleteOptions{})
 			Expect(err).To(
 				BeNil(),
 				"while deleting pvc {%s} in namespace {%s}",
