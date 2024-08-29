@@ -4,10 +4,10 @@ description: Helm chart for OpenEBS Dynamic Local PV. For instructions to instal
 type: application
 # This is the chart version. This version number should be incremented each time you make changes
 # to the chart and its templates, including the app version.
-version: 4.1.0
+version: 4.1.1
 # This is the version number of the application being deployed. This version number should be
 # incremented each time you make changes to the application.
-appVersion: 4.1.0
+appVersion: 4.1.1
 icon: https://raw.githubusercontent.com/cncf/artwork/master/projects/openebs/icon/color/openebs-icon-color.png
 home: http://www.openebs.io/
 keywords:
