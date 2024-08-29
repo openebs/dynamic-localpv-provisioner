@@ -5,7 +5,7 @@ go 1.19
 require (
 	github.com/onsi/ginkgo/v2 v2.14.0
 	github.com/onsi/gomega v1.30.0
-	github.com/openebs/google-analytics-4 v0.2.1
+	github.com/openebs/google-analytics-4 v0.3.0
 	github.com/openebs/maya v1.12.1-0.20211022052259-bd98908028af
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.1.3

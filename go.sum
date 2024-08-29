@@ -391,8 +391,8 @@ github.com/onsi/gomega v1.19.0/go.mod h1:LY+I3pBVzYsTBU1AnDwOSxaYi9WoWiqgwooUqq9
 github.com/onsi/gomega v1.20.1/go.mod h1:DtrZpjmvpn2mPm4YWQa0/ALMDj9v4YxLgojwPeREyVo=
 github.com/onsi/gomega v1.30.0 h1:hvMK7xYz4D3HapigLTeGdId/NcfQx1VHMJc60ew99+8=
 github.com/onsi/gomega v1.30.0/go.mod h1:9sxs+SwGrKI0+PWe4Fxa9tFQQBG5xSsSbMXOI8PPpoQ=
-github.com/openebs/google-analytics-4 v0.2.1 h1:+DgJjcPM3uVyWp9VxvNQgNXCWWv0OFhopijFdPVVX9Q=
-github.com/openebs/google-analytics-4 v0.2.1/go.mod h1:lKjvRs6HAYOlOTYjtOUp35iTutoXzRL0hOeVAvLAfZI=
+github.com/openebs/google-analytics-4 v0.3.0 h1:rAv9BC476ennyGPWAy4D3vU7TlxEKiynbLUP3VgeBUc=
+github.com/openebs/google-analytics-4 v0.3.0/go.mod h1:lKjvRs6HAYOlOTYjtOUp35iTutoXzRL0hOeVAvLAfZI=
 github.com/openebs/lib-csi v0.8.2 h1:HmoiZX3VXFPglwqnRPnRus7K58ixDWBa19OpPZGk2Ws=
 github.com/openebs/lib-csi v0.8.2/go.mod h1:4yc0Q1thH+oU80z73zGELfrOw2yeLdLNIRmcrxBxsBc=
 github.com/openebs/maya v1.12.1-0.20211022052259-bd98908028af h1:ybONzwC+k/zvgDcsCAatvT6u2j75tIVNYu5jX1pTmJE=
