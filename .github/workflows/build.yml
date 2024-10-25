@@ -59,6 +59,11 @@ jobs:
 
       - name: Upload Coverage Report
         uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          file: ./coverage.txt
+          name: coverage-$(date +%s)
+          flags: unittests
 
   provisioner-localpv:
     runs-on: ubuntu-latest
@@ -189,4 +194,3 @@ jobs:
       - name: Integration test
         run: |
           make integration-test
-

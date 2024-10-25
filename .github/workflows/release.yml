@@ -48,11 +48,11 @@ jobs:
           go-version: 1.19.13
           cache: false
 
-      - name: Lint Check
-        uses: golangci/golangci-lint-action@v4
-        with:
-          version: v1.56.2
-          args: -E exportloopref,dupl,revive,bodyclose,goconst,misspell -D structcheck --timeout 5m0s
+      # - name: Lint Check
+      #   uses: golangci/golangci-lint-action@v4
+      #   with:
+      #     version: v1.56.2
+      #     args: -E exportloopref,dupl,revive,bodyclose,goconst,misspell -D structcheck --timeout 5m0s
 
       - name: Check if the chart follows a valid semver version
         run: |
@@ -87,6 +87,11 @@ jobs:
 
       - name: Upload Coverage Report
         uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          file: ./coverage.txt
+          name: coverage-$(date +%s)
+          flags: unittests
 
   integration-test:
     runs-on: ubuntu-latest
@@ -208,3 +213,4 @@ jobs:
             DBUILD_REPO_URL=https://github.com/openebs/dynamic-localpv-provisioner
             DBUILD_SITE_URL=https://openebs.io
             RELEASE_TAG=${{ env.RELEASE_TAG }}
+

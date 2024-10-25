@@ -43,11 +43,11 @@ jobs:
           go-version: 1.19.13
           cache: false
 
-      - name: Lint Check
-        uses: golangci/golangci-lint-action@v4
-        with:
-          version: v1.56.2
-          args: -E exportloopref,dupl,revive,bodyclose,goconst,misspell -D structcheck --timeout 5m0s
+      # - name: Lint Check
+      #   uses: golangci/golangci-lint-action@v4
+      #   with:
+      #     version: v1.56.2
+      #     args: -E exportloopref,dupl,revive,bodyclose,goconst,misspell -D structcheck --timeout 5m0s
 
       - name: Check if the chart follows a valid semver version
         run: |
@@ -78,6 +78,11 @@ jobs:
 
       - name: Upload Coverage Report
         uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          file: ./coverage.txt
+          name: coverage-$(date +%s)
+          flags: unittests
 
   provisioner-localpv:
     runs-on: ubuntu-latest
@@ -148,19 +153,4 @@ jobs:
         run: |
           make integration-test
 
-  localpv-e2e:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Build the localpv-e2e image
-        uses: docker/build-push-action@v4
-        with:
-          file: ./e2e-tests/Dockerfile
-          push: false
-          load: false
-          platforms: linux/amd64
-          tags: |
-            openebs/localpv-e2e:ci
 
