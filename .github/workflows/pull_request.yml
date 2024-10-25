@@ -130,8 +130,11 @@ jobs:
         with:
           go-version: 1.19.13
 
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Build images locally
-        run: make provisioner-localpv || exit 1;
+        run: make provisioner-localpv-image || exit 1;
 
       - name: Setup Minikube-Kubernetes
         uses: medyagh/setup-minikube@latest
@@ -152,5 +155,4 @@ jobs:
       - name: Integration test
         run: |
           make integration-test
-
 

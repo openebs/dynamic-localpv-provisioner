@@ -101,3 +101,4 @@ elif [[ "$BRANCH_NAME" =~ ^(release/[0-9]+\.[0-9]+)$ ]]; then
 else
    die "Unknown branch name: $BRANCH_NAME"
 fi
+
