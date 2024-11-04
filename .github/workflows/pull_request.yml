@@ -115,8 +115,8 @@ jobs:
           push: false
           load: false
           platforms: linux/amd64, linux/arm64, linux/arm/v7, linux/ppc64le
-          tags: |
-            openebs/provisioner-localpv:ci
+          # tags: |
+          #   openebs/provisioner-localpv:ci
 
   integration-test:
     runs-on: ubuntu-latest

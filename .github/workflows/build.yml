@@ -82,11 +82,9 @@ jobs:
 
       - name: Set CI Tag
         run: |
-          BRANCH="${GITHUB_REF##*/}"
-          CI_TAG=${BRANCH#v}-ci
-          if [ ${BRANCH} = "develop" ]; then
-            CI_TAG="ci"
-          fi
+          ROOT_DIR:=$(dir $(realpath $(firstword $(MAKEFILE_LIST))))
+          CHART_YAML:=${ROOT_DIR}/deploy/helm/charts/Chart.yaml
+          CI_TAG := $(shell awk -F': ' '/^version:/ {print $$2}' $(CHART_YAML))
           echo "TAG=${CI_TAG}" >> $GITHUB_ENV
 
       - name: Set Build Date
