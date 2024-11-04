@@ -46,16 +46,14 @@ endif
 # If IMAGE_TAG is mentioned then TAG will be set to IMAGE_TAG
 # If RELEASE_TAG is mentioned then TAG will be set to RELEAE_TAG
 # If both are mentioned then TAG will be set to RELEASE_TAG
-TAG=ci
 
 # Set the path to the Chart.yaml file
 ROOT_DIR:=$(dir $(realpath $(firstword $(MAKEFILE_LIST))))
 CHART_YAML:=${ROOT_DIR}/deploy/helm/charts/Chart.yaml
+TAG := $(shell awk -F': ' '/^version:/ {print $$2}' $(CHART_YAML))
 
 ifneq (${IMAGE_TAG}, )
-  IMAGE_TAG := $(shell awk -F': ' '/^version:/ {print $$2}' $(CHART_YAML))
-  TAG=${IMAGE_TAG :}
-  export TAG
+  TAG=${IMAGE_TAG:v%=%}
 endif
 
 ifeq (${RELEASE_TAG}, )
