@@ -52,12 +52,13 @@ endif
 ROOT_DIR:=$(dir $(realpath $(firstword $(MAKEFILE_LIST))))
 CHART_YAML:=${ROOT_DIR}/deploy/helm/charts/Chart.yaml
 
-ifneq (${IMAGE_TAG}, )
+ifeq (${IMAGE_TAG}, )
   IMAGE_TAG := $(shell awk -F': ' '/^version:/ {print $$2}' $(CHART_YAML))
+  echo ${IMAGE_TAG}
   export IMAGE_TAG
 endif
 
-ifneq (${RELEASE_TAG}, )
+ifeq (${RELEASE_TAG}, )
   IMAGE_TAG=${RELEASE_TAG:v%=%}
 endif
 
