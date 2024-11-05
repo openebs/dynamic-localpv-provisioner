@@ -1,4 +1,4 @@
-name: build
+name: Build and Push
 
 on:
   create:
@@ -9,7 +9,6 @@ on:
     paths-ignore:
       - '**.md'
       - 'changelogs/**'
-      - 'deploy/helm/**'
       - 'docs/**'
       - 'design/**'
       - 'LICENSE'
@@ -17,8 +16,6 @@ on:
 
 jobs:
   lint:
-    # to ignore builds on release
-    if: ${{ (github.event.ref_type != 'tag') }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -39,9 +36,8 @@ jobs:
           ct lint --config ct.yaml
 
   unit-test:
-    # to ignore builds on release
-    if: ${{ (github.event.ref_type != 'tag') }}
     runs-on: ubuntu-latest
+    needs: ['lint']
     steps:
       - name: Set up Go 1.19
         uses: actions/setup-go@v5
@@ -65,9 +61,49 @@ jobs:
           name: coverage-$(date +%s)
           flags: unittests
 
-  provisioner-localpv:
+  integration-test:
     runs-on: ubuntu-latest
     needs: ['lint', 'unit-test']
+    strategy:
+      matrix:
+        kubernetes: [v1.27.2]
+    steps:
+      - name: Set up Go 1.19
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.19.13
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build images locally
+        run: make provisioner-localpv-image || exit 1;
+
+      - name: Setup Minikube-Kubernetes
+        uses: medyagh/setup-minikube@latest
+        with:
+          cache: false
+          minikube-version: 1.31.1
+          driver: none
+          kubernetes-version: ${{ matrix.kubernetes }}
+          cni: calico
+          start-args: '--install-addons=false'
+
+      - name: Set up infra for integration test
+        run: |
+          OPENEBS_NAMESPACE="openebs"
+          sudo apt-get update && sudo apt-get install -y xfsprogs quota linux-modules-extra-`uname -r`
+          go install -mod=mod github.com/onsi/ginkgo/v2/ginkgo@v2.14.0
+          helm install localpv-provisioner ./deploy/helm/charts -n $OPENEBS_NAMESPACE --create-namespace --set localpv.image.pullPolicy=Never --set analytics.enabled=false
+          kubectl get pods -A
+
+      - name: Integration test
+        run: |
+          make integration-test
+
+  provisioner-localpv:
+    runs-on: ubuntu-latest
+    needs: ['integration-test']
     steps:
       - name: Set up Go 1.19
         uses: actions/setup-go@v5
@@ -158,42 +194,13 @@ jobs:
             DBUILD_REPO_URL=https://github.com/openebs/dynamic-localpv-provisioner
             DBUILD_SITE_URL=https://openebs.io
 
-  integration-test:
+  release-chart:
     runs-on: ubuntu-latest
-    needs: ['lint', 'unit-test']
-    strategy:
-      matrix:
-        kubernetes: [v1.27.2]
+    needs: ['provisioner-localpv']
     steps:
-      - name: Set up Go 1.19
-        uses: actions/setup-go@v5
+      - uses: actions/checkout@v4
+      - name: Publish provisioner-localpv develop or prerelease helm chart
+        uses: stefanprodan/helm-gh-pages@master
         with:
-          go-version: 1.19.13
-
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Build images locally
-        run: make provisioner-localpv-image || exit 1;
-
-      - name: Setup Minikube-Kubernetes
-        uses: medyagh/setup-minikube@latest
-        with:
-          cache: false
-          minikube-version: 1.31.1
-          driver: none
-          kubernetes-version: ${{ matrix.kubernetes }}
-          cni: calico
-          start-args: '--install-addons=false'
-
-      - name: Set up infra for integration test
-        run: |
-          OPENEBS_NAMESPACE="openebs"
-          sudo apt-get update && sudo apt-get install -y xfsprogs quota linux-modules-extra-`uname -r`
-          go install -mod=mod github.com/onsi/ginkgo/v2/ginkgo@v2.14.0
-          helm install localpv-provisioner ./deploy/helm/charts -n $OPENEBS_NAMESPACE --create-namespace --set localpv.image.pullPolicy=Never --set analytics.enabled=false
-          kubectl get pods -A
-
-      - name: Integration test
-        run: |
-          make integration-test
+          token: ${{ secrets.GITHUB_TOKEN }}
+          charts_dir: ./deploy/helm

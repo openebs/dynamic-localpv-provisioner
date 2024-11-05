@@ -20,7 +20,6 @@ on:
       - 'created'
 
 jobs:
-
   lint:
     runs-on: ubuntu-latest
     steps:
@@ -48,12 +47,6 @@ jobs:
           go-version: 1.19.13
           cache: false
 
-      # - name: Lint Check
-      #   uses: golangci/golangci-lint-action@v4
-      #   with:
-      #     version: v1.56.2
-      #     args: -E exportloopref,dupl,revive,bodyclose,goconst,misspell -D structcheck --timeout 5m0s
-
       - name: Check if the chart follows a valid semver version
         run: |
           branch_name="${{ github.event.pull_request.base.ref }}"
@@ -70,6 +63,7 @@ jobs:
 
   unit-test:
     runs-on: ubuntu-latest
+    needs: ['lint']
     steps:
       - name: Set up Go 1.19
         uses: actions/setup-go@v5
@@ -134,7 +128,7 @@ jobs:
           make integration-test
 
   provisioner-localpv:
-    if: contains(github.ref, 'tags/v')
+    needs: ['integration-test']
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -222,7 +216,6 @@ jobs:
             DBUILD_SITE_URL=https://openebs.io
             RELEASE_TAG=${{ env.RELEASE_TAG }}
 
-
   release-chart:
     runs-on: ubuntu-latest
     needs: ["provisioner-localpv"]
@@ -241,11 +234,8 @@ jobs:
           TAG=${{ github.event.release.tag_name }}
           nix-shell --pure --run "./scripts/update-chart-version.sh --tag $TAG --publish-release" ./shell.nix
 
-      - name: Publish zfs localpv develop or prerelease helm chart
+      - name: Publish dynamic localpv develop or prerelease helm chart
         uses: stefanprodan/helm-gh-pages@master
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           charts_dir: ./deploy/helm
-
-          
-

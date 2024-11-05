@@ -2,9 +2,6 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
-release:
-  version: "4.2.0"
-
 rbac:
   # rbac.create: `true` if rbac resources should be created
   create: true
