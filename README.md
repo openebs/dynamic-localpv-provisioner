@@ -1,13 +1,10 @@
 # Dynamic Kubernetes Local Persistent Volumes
-[![GitHub release (latest by date)](https://img.shields.io/github/v/release/openebs/dynamic-localpv-provisioner?color=orange&style=for-the-badge)](https://github.com/openebs/dynamic-localpv-provisioner/blob/develop/docs/quickstart.md)<br>
-[![GitHub build (develop)](https://github.com/openebs/dynamic-localpv-provisioner/actions/workflows/build.yml/badge.svg?branch=develop)](https://github.com/openebs/dynamic-localpv-provisioner/actions/workflows/build.yml)
-[![GitHub go.mod Go version (develop)](https://img.shields.io/github/go-mod/go-version/openebs/dynamic-localpv-provisioner/develop?style=flat)](https://github.com/openebs/dynamic-localpv-provisioner/blob/develop/go.mod)
-[![codecov](https://codecov.io/gh/openebs/dynamic-localpv-provisioner/branch/develop/graph/badge.svg)](https://codecov.io/gh/openebs/dynamic-localpv-provisioner)
-[![Go Report Card](https://goreportcard.com/badge/github.com/openebs/maya)](https://goreportcard.com/report/github.com/openebs/maya)
-![stability-GA](https://img.shields.io/badge/stability-GA-33bbff.svg)
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/openebs/dynamic-localpv-provisioner/blob/develop/LICENSE)
-[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fopenebs%2Fdynamic-localpv-provisioner.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fopenebs%2Fdynamic-localpv-provisioner?ref=badge_shield)
 
+[![Slack](https://img.shields.io/badge/chat-slack-ff1493.svg?style=flat-square)](https://kubernetes.slack.com/messages/openebs)
+[![Community Meetings](https://img.shields.io/badge/Community-Meetings-blue)](https://us05web.zoom.us/j/87535654586?pwd=CigbXigJPn38USc6Vuzt7qSVFoO79X.1)
+[![Go Report Card](https://goreportcard.com/badge/github.com/openebs/dynamic-localpv-provisioner)](https://goreportcard.com/report/github.com/openebs/dynamic-localpv-provisioner)
+[![FOSSA Status](https://app.fossa.com/api/projects/custom%2B162%2Fgithub.com%2Fopenebs%2Fdynamic-localpv-provisioner.svg?type=shield&issueType=license)](https://app.fossa.com/projects/custom%2B162%2Fgithub.com%2Fopenebs%2Fdynamic-localpv-provisioner?ref=badge_shield&issueType=license)
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/9666/badge)](https://www.bestpractices.dev/projects/9666)
 
 <img width="300" align="right" alt="OpenEBS Logo" src="https://raw.githubusercontent.com/cncf/artwork/master/projects/openebs/stacked/color/openebs-stacked-color.png" xmlns="http://www.w3.org/1999/html">
 
@@ -88,5 +85,5 @@ OpenEBS Local PV has been inspired by the prior work done by the following the K
 - https://github.com/rancher/local-path-provisioner
 
 
-## License
-[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fopenebs%2Fdynamic-localpv-provisioner.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fopenebs%2Fdynamic-localpv-provisioner?ref=badge_large)
+## License Compliance
+[![FOSSA Status](https://app.fossa.com/api/projects/custom%2B162%2Fgithub.com%2Fopenebs%2Fdynamic-localpv-provisioner.svg?type=large&issueType=license)](https://app.fossa.com/projects/custom%2B162%2Fgithub.com%2Fopenebs%2Fdynamic-localpv-provisioner?ref=badge_large&issueType=license)
