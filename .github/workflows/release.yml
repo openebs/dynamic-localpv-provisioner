@@ -117,10 +117,9 @@ jobs:
 
       - name: Set up infra for integration test
         run: |
-          OPENEBS_NAMESPACE="openebs"
           sudo apt-get update && sudo apt-get install -y xfsprogs quota linux-modules-extra-`uname -r`
           go install -mod=mod github.com/onsi/ginkgo/v2/ginkgo@v2.14.0
-          helm install localpv-provisioner ./deploy/helm/charts -n $OPENEBS_NAMESPACE --create-namespace --set localpv.image.pullPolicy=Never --set analytics.enabled=false
+          helm install localpv-provisioner ./deploy/helm/charts -n openebs --create-namespace --set localpv.image.pullPolicy=Never --set analytics.enabled=false
           kubectl get pods -A
 
       - name: Integration test
@@ -142,9 +141,7 @@ jobs:
 
       - name: Set Release Tag
         run: |
-          ROOT_DIR:=$(dir $(realpath $(firstword $(MAKEFILE_LIST))))
-          CHART_YAML:=${ROOT_DIR}/deploy/helm/charts/Chart.yaml
-          TAG := $(shell awk -F': ' '/^version:/ {print $$2}' $(CHART_YAML))
+          TAG := $(shell awk -F': ' '/^version:/ {print $$2}' deploy/helm/charts/Chart.yaml)
           TAG="${GITHUB_REF#refs/*/v}"
           echo "RELEASE_TAG=${TAG}" >> $GITHUB_ENV
 
