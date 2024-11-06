@@ -48,7 +48,9 @@ if [ -n "$RELEASE_TAG" ]; then
     # Example: v1.10.0-custom maps to 1.10.0-custom
     VERSION="${RELEASE_TAG#v}"
 else
-    VERSION="ci"
+    BUILDDATE="$(date +%m-%d-%Y)"
+	SHORT_COMMIT="$(git rev-parse --short HEAD)"
+	VERSION="$CURRENT_BRANCH-$SHORT_COMMIT:$BUILDDATE"
 fi
 
 echo "Building for ${VERSION} VERSION"

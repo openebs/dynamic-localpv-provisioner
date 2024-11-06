@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: release
+name: Release Images and Charts
 
 on:
   release:
@@ -20,8 +20,122 @@ on:
       - 'created'
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Shellcheck
+        uses: reviewdog/action-shellcheck@v1
+        with:
+          github_token: ${{ secrets.github_token }}
+          reporter: github-pr-review
+          path: "."
+          pattern: "*.sh"
+
+      - uses: cachix/install-nix-action@v22
+      - uses: rrbutani/use-nix-shell-action@v1.1.0
+        with:
+          file: shell.nix
+
+      - name: Set up Go 1.19
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.19.13
+          cache: false
+
+      - name: Check if the chart follows a valid semver version
+        run: |
+          branch_name="${{ github.event.pull_request.base.ref }}"
+          ./scripts/validate-chart-version.sh --branch $branch_name
+
+      - name: Check if the chart is publishable
+        run: |
+          TAG=${{ github.event.release.tag_name }}
+          ./scripts/update-chart-version.sh --tag $TAG --publish-release
+
+      - name: Run chart-testing lint
+        run: |
+          ct lint --config ct.yaml
+
+  unit-test:
+    runs-on: ubuntu-latest
+    needs: ['lint']
+    steps:
+      - name: Set up Go 1.19
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.19.13
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Unit test
+        run: make test
+
+      - name: Verify corrections
+        run: make verify-src
+
+      - name: Upload Coverage Report
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          file: ./coverage.txt
+          name: coverage-$(date +%s)
+          flags: unittests
+
+  integration-test:
+    runs-on: ubuntu-latest
+    needs: ['lint', 'unit-test']
+    strategy:
+      matrix:
+        kubernetes: [v1.27.2]
+    steps:
+      - name: Set up Go 1.19
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.19.13
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build images locally
+        run: make provisioner-localpv-image || exit 1;
+
+      - name: Setup Minikube-Kubernetes
+        uses: medyagh/setup-minikube@latest
+        with:
+          cache: false
+          minikube-version: 1.31.1
+          driver: none
+          kubernetes-version: ${{ matrix.kubernetes }}
+          cni: calico
+          start-args: '--install-addons=false'
+
+      - name: Set up infra for integration test
+        run: |
+          sudo apt-get update && sudo apt-get install -y xfsprogs quota linux-modules-extra-`uname -r`
+          go install -mod=mod github.com/onsi/ginkgo/v2/ginkgo@v2.14.0
+          helm install localpv-provisioner ./deploy/helm/charts -n openebs --create-namespace --set localpv.image.pullPolicy=Never --set analytics.enabled=false
+          kubectl get pods -A
+
+      - name: Integration test
+        run: |
+          make integration-test
+
+      - name: Upload Integration Test Coverage Report
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          file: ./tests/integration_coverage.txt
+          name: coverage-integration-test-$(date +%s)
+          flags: integrationtests
+
   provisioner-localpv:
-    if: contains(github.ref, 'tags/v')
+    needs: ['integration-test']
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -35,6 +149,7 @@ jobs:
 
       - name: Set Release Tag
         run: |
+          TAG=$(shell awk -F': ' '/^version:/ {print $$2}' deploy/helm/charts/Chart.yaml)
           TAG="${GITHUB_REF#refs/*/v}"
           echo "RELEASE_TAG=${TAG}" >> $GITHUB_ENV
 
@@ -105,3 +220,27 @@ jobs:
             DBUILD_REPO_URL=https://github.com/openebs/dynamic-localpv-provisioner
             DBUILD_SITE_URL=https://openebs.io
             RELEASE_TAG=${{ env.RELEASE_TAG }}
+
+  release-chart:
+    runs-on: ubuntu-latest
+    needs: ["provisioner-localpv"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: cachix/install-nix-action@v22
+      - name: Pre-populate nix-shell
+        run: |
+          export NIX_PATH=nixpkgs=$(jq '.nixpkgs.url' nix/sources.json -r)
+          echo "NIX_PATH=$NIX_PATH" >> $GITHUB_ENV
+          nix-shell --pure --run "echo" ./shell.nix
+
+      - name: Check if the chart is publishable
+        run: |
+          TAG=${{ github.event.release.tag_name }}
+          nix-shell --pure --run "./scripts/update-chart-version.sh --tag $TAG --publish-release" ./shell.nix
+
+      - name: Publish dynamic localpv develop or prerelease helm chart
+        uses: stefanprodan/helm-gh-pages@master
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          charts_dir: ./deploy/helm

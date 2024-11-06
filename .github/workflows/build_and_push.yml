@@ -1,15 +1,14 @@
-name: build
+name: Build and Push
 
 on:
   create:
   push:
     branches:
       - 'develop'
-      - 'v*'
+      - 'release/**'
     paths-ignore:
       - '**.md'
       - 'changelogs/**'
-      - 'deploy/helm/**'
       - 'docs/**'
       - 'design/**'
       - 'LICENSE'
@@ -17,20 +16,31 @@ on:
 
 jobs:
   lint:
-    # to ignore builds on release
-    if: ${{ (github.event.ref_type != 'tag') }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      
+      - uses: cachix/install-nix-action@v22
+      - uses: rrbutani/use-nix-shell-action@v1.1.0
+        with:
+          file: shell.nix
+
+      - name: Check if the chart follows a valid semver version
+        run: |
+          BRANCH=${{ github.ref_name }}
+          ./scripts/validate-chart-version.sh --branch $BRANCH
+
+      - name: Run chart-testing lint
+        run: |
+          ct lint --config ct.yaml
 
   unit-test:
-    # to ignore builds on release
-    if: ${{ (github.event.ref_type != 'tag') }}
     runs-on: ubuntu-latest
+    needs: ['lint']
     steps:
       - name: Set up Go 1.19
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
           go-version: 1.19.13
 
@@ -44,14 +54,66 @@ jobs:
         run: make verify-src
 
       - name: Upload Coverage Report
-        uses: codecov/codecov-action@v1
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          file: ./coverage.txt
+          name: coverage-$(date +%s)
+          flags: unittests
+
+  integration-test:
+    runs-on: ubuntu-latest
+    needs: ['lint', 'unit-test']
+    strategy:
+      matrix:
+        kubernetes: [v1.27.2]
+    steps:
+      - name: Set up Go 1.19
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.19.13
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build images locally
+        run: make provisioner-localpv-image || exit 1;
+
+      - name: Setup Minikube-Kubernetes
+        uses: medyagh/setup-minikube@latest
+        with:
+          cache: false
+          minikube-version: 1.31.1
+          driver: none
+          kubernetes-version: ${{ matrix.kubernetes }}
+          cni: calico
+          start-args: '--install-addons=false'
+
+      - name: Set up infra for integration test
+        run: |
+          sudo apt-get update && sudo apt-get install -y xfsprogs quota linux-modules-extra-`uname -r`
+          go install -mod=mod github.com/onsi/ginkgo/v2/ginkgo@v2.14.0
+          helm install localpv-provisioner ./deploy/helm/charts -n openebs --create-namespace --set localpv.image.pullPolicy=Never --set analytics.enabled=false
+          kubectl get pods -A
+
+      - name: Integration test
+        run: |
+          make integration-test
+
+      - name: Upload Integration Test Coverage Report
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          file: ./tests/integration_coverage.txt
+          name: coverage-integration-test-$(date +%s)
+          flags: integrationtests
 
   provisioner-localpv:
     runs-on: ubuntu-latest
-    needs: ['lint', 'unit-test']
+    needs: ['integration-test']
     steps:
       - name: Set up Go 1.19
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
           go-version: 1.19.13
           
@@ -63,11 +125,7 @@ jobs:
 
       - name: Set CI Tag
         run: |
-          BRANCH="${GITHUB_REF##*/}"
-          CI_TAG=${BRANCH#v}-ci
-          if [ ${BRANCH} = "develop" ]; then
-            CI_TAG="ci"
-          fi
+          CI_TAG=$(shell awk -F': ' '/^version:/ {print $$2}' deploy/helm/charts/Chart.yaml)
           echo "TAG=${CI_TAG}" >> $GITHUB_ENV
 
       - name: Set Build Date
@@ -141,84 +199,13 @@ jobs:
             DBUILD_REPO_URL=https://github.com/openebs/dynamic-localpv-provisioner
             DBUILD_SITE_URL=https://openebs.io
 
-  integration-test:
+  release-chart:
     runs-on: ubuntu-latest
-    needs: ['lint', 'unit-test']
-    strategy:
-      matrix:
-        kubernetes: [v1.27.2]
+    needs: ['provisioner-localpv']
     steps:
-      - name: Set up Go 1.19
-        uses: actions/setup-go@v4
+      - uses: actions/checkout@v4
+      - name: Publish provisioner-localpv develop or prerelease helm chart
+        uses: stefanprodan/helm-gh-pages@master
         with:
-          go-version: 1.19.13
-
-      - name: Set up Docker Buildx
-        id: buildx
-        uses: docker/setup-buildx-action@v2
-        with:
-          version: v0.5.1
-
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Build Image
-        uses: docker/build-push-action@v4
-        with:
-          context: .
-          file: ./buildscripts/provisioner-localpv/provisioner-localpv.Dockerfile
-          push: false
-          load: true
-          platforms: linux/amd64
-          tags: |
-            openebs/provisioner-localpv:ci
-
-      - name: Setup Minikube-Kubernetes
-        uses: medyagh/setup-minikube@latest
-        with:
-          cache: false
-          minikube-version: 1.31.1
-          driver: none
-          kubernetes-version: ${{ matrix.kubernetes }}
-          cni: calico
-          start-args: '--install-addons=false'
-
-      - name: Set up infra for integration test
-        run: |
-          sudo apt-get update && sudo apt-get install -y xfsprogs quota linux-modules-extra-`uname -r`
-          go install -mod=mod github.com/onsi/ginkgo/v2/ginkgo@v2.14.0
-          sed -e '/openebs-provisioner-hostpath/{N;s/IfNotPresent/Never/}' deploy/kubectl/openebs-operator-lite.yaml | kubectl apply -f -
-
-      - name: Integration test
-        run: |
-          make integration-test
-
-  localpv-e2e:
-    # to ignore builds on release AND build only if the branch is develop
-    if: ${{ (github.event.ref_type != 'tag') && (github.ref == 'refs/heads/develop') }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set Image Org
-        # sets the default IMAGE_ORG to openebs
-        run: |
-          [ -z "${{ secrets.IMAGE_ORG }}" ] && IMAGE_ORG=openebs || IMAGE_ORG=${{ secrets.IMAGE_ORG}}
-          echo "IMAGE_ORG=${IMAGE_ORG}" >> $GITHUB_ENV
-      - name: Login to Docker Hub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Build and push the localpv-e2e image
-        uses: docker/build-push-action@v4
-        with:
-          file: ./e2e-tests/Dockerfile
-          push: true
-          load: false
-          platforms: linux/amd64
-          tags: |
-            ${{ env.IMAGE_ORG }}/localpv-e2e:ci
-
+          token: ${{ secrets.GITHUB_TOKEN }}
+          charts_dir: ./deploy/helm

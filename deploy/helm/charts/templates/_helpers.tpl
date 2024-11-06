@@ -38,7 +38,6 @@ Meta labels
 {{- define "localpv.common.metaLabels" -}}
 chart: {{ template "localpv.chart" . }}
 heritage: {{ .Release.Service }}
-openebs.io/version: {{ .Values.release.version | quote }}
 {{- end -}}
 
 {{/*
