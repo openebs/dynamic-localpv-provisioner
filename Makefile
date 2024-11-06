@@ -128,7 +128,7 @@ testv: format
 # Requires KUBECONFIG env and Ginkgo binary
 .PHONY: integration-test
 integration-test:
-	@cd tests && sudo -E env "PATH=${PATH}" ginkgo -v --fail-fast -coverprofile="../coverage.txt" -covermode=atomic; 
+	@cd tests && sudo -E env "PATH=${PATH}" ginkgo -v --fail-fast -coverprofile="integration_coverage.txt" -covermode=atomic; 
 
 .PHONY: format
 format:
