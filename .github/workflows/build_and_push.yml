@@ -112,6 +112,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: ['integration-test']
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Set up Go 1.19
         uses: actions/setup-go@v5
         with:
@@ -125,6 +128,8 @@ jobs:
 
       - name: Set CI Tag
         run: |
+          BRANCH=${{ github.ref_name }}
+          echo "BRANCH=$BRANCH" >> $GITHUB_ENV
           CI_TAG=$(awk -F': ' '/^version:/ {print $2}' deploy/helm/charts/Chart.yaml)
           echo "TAG=${CI_TAG}" >> $GITHUB_ENV
 
@@ -146,8 +151,9 @@ jobs:
             type=raw,value=latest,enable=false
             type=raw,value=${{ env.TAG }}
 
-      - name: Print Tags
+      - name: Print Tag info
         run: |
+          echo "BRANCH: ${{ env.BRANCH }}"
           echo "${{ steps.docker_meta.outputs.tags }}"
 
       - name: Set up QEMU
@@ -198,6 +204,7 @@ jobs:
             DBUILD_DATE=${{ steps.date.outputs.DATE }}
             DBUILD_REPO_URL=https://github.com/openebs/dynamic-localpv-provisioner
             DBUILD_SITE_URL=https://openebs.io
+            BRANCH=${{ env.BRANCH }}
 
   release-chart:
     runs-on: ubuntu-latest
