@@ -125,7 +125,7 @@ jobs:
 
       - name: Set CI Tag
         run: |
-          CI_TAG=$(shell awk -F': ' '/^version:/ {print $$2}' deploy/helm/charts/Chart.yaml)
+          CI_TAG=$(awk -F': ' '/^version:/ {print $2}' deploy/helm/charts/Chart.yaml)
           echo "TAG=${CI_TAG}" >> $GITHUB_ENV
 
       - name: Set Build Date
