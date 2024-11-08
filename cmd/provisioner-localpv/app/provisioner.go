@@ -23,6 +23,7 @@ import (
 	analytics "github.com/openebs/google-analytics-4/usage"
 	"github.com/openebs/maya/pkg/alertlog"
 	mconfig "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	menv "github.com/openebs/maya/pkg/env/v1alpha1"
 	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -192,15 +193,17 @@ func (p *Provisioner) Delete(ctx context.Context, pv *v1.PersistentVolume) (err 
 
 // sendEventOrIgnore sends anonymous local-pv provision/delete events
 func sendEventOrIgnore(pvcName, pvName, capacity, stgType, method string) {
-	stgType = "local-" + stgType
+	if menv.Truthy(menv.OpenEBSEnableAnalytics) {
+		stgType = "local-" + stgType
 
-	analytics.New().CommonBuild(stgType).ApplicationBuilder().
-		SetVolumeName(pvName).
-		SetVolumeClaimName(pvcName).
-		SetReplicaCount(DefaultUnknownReplicaCount).
-		SetCategory(method).
-		SetVolumeCapacity(capacity).
-		Send()
+		analytics.New().CommonBuild(stgType).ApplicationBuilder().
+			SetVolumeName(pvName).
+			SetVolumeClaimName(pvcName).
+			SetReplicaCount(DefaultUnknownReplicaCount).
+			SetCategory(method).
+			SetVolumeCapacity(capacity).
+			Send()
+	}
 }
 
 // validateVolumeSource validates datasource field of the pvc.
