@@ -1,7 +1,6 @@
 name: Build and Push
 
 on:
-  create:
   push:
     branches:
       - 'develop'
