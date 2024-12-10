@@ -2,6 +2,7 @@ package app
 
 import (
 	menv "github.com/openebs/maya/pkg/env/v1alpha1"
+	k8sEnv "k8s.io/utils/env"
 )
 
 //This file defines the environement variable names that are specific
@@ -21,7 +22,7 @@ const (
 
 	// ProvisionerHelperPodHostNetwork is the environment variable that provides the
 	// host network mode to be used to launch the help pods
-	ProvisionerHelperPodHostNetwork menv.ENVKey = "OPENEBS_IO_HELPER_POD_HOST_NETWORK"
+	ProvisionerHelperPodHostNetwork string = "OPENEBS_IO_HELPER_POD_HOST_NETWORK"
 
 	// ProvisionerBasePath is the environment variable that provides the
 	// default base path on the node where host-path PVs will be provisioned.
@@ -44,10 +45,8 @@ func getDefaultHelperImage() string {
 	return menv.GetOrDefault(ProvisionerHelperImage, string(defaultHelperImage))
 }
 func getHelperPodHostNetwork() bool {
-	if hostNetwork := menv.GetOrDefault(ProvisionerHelperPodHostNetwork, "false"); hostNetwork == "true" {
-		return true
-	}
-	return false
+	val, _ := k8sEnv.GetBool(ProvisionerHelperPodHostNetwork, false)
+	return val
 }
 
 func getDefaultBasePath() string {
