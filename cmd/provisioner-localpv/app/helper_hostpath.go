@@ -12,6 +12,7 @@ import (
 	hostpath "github.com/openebs/maya/pkg/hostpath/v1alpha1"
 	errors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
+	k8serror "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
 
@@ -215,7 +216,7 @@ func (p *Provisioner) createCleanupPod(ctx context.Context, pOpts *HelperPodOpti
 	config.pOpts.cmdsForPath = append(config.pOpts.cmdsForPath, filepath.Join("/data/", config.volumeDir))
 
 	cPod, err := p.launchPod(ctx, config)
-	if err != nil {
+	if err != nil && !k8serror.IsAlreadyExists(err) {
 		return err
 	}
 
@@ -287,7 +288,7 @@ func (p *Provisioner) createQuotaPod(ctx context.Context, pOpts *HelperPodOption
 	config.pOpts.cmdsForPath = []string{"sh", "-c", fs + checkQuota}
 
 	qPod, err := p.launchPod(ctx, config)
-	if err != nil {
+	if err != nil && !k8serror.IsAlreadyExists(err) {
 		return err
 	}
 
