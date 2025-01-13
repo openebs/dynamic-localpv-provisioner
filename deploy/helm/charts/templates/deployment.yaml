@@ -45,7 +45,7 @@ spec:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
       - name: {{ template "localpv.fullname" . }}
-        image: "{{ .Values.localpv.image.registry }}{{ .Values.localpv.image.repository }}:{{ .Values.localpv.image.tag }}"
+        image: "{{ with .Values.localpv.image.registry | default .Values.global.imageRegistry | trimSuffix "/" }}{{ . }}/{{ end }}{{ .Values.localpv.image.repository }}:{{ .Values.localpv.image.tag }}"
         imagePullPolicy: {{ .Values.localpv.image.pullPolicy }}
         resources:
 {{ toYaml .Values.localpv.resources | indent 10 }}
@@ -89,7 +89,7 @@ spec:
         - name: OPENEBS_IO_BASE_PATH
           value: "{{ .Values.localpv.basePath }}"
         - name: OPENEBS_IO_HELPER_IMAGE
-          value: "{{ .Values.helperPod.image.registry }}{{ .Values.helperPod.image.repository }}:{{ .Values.helperPod.image.tag }}"
+          value: "{{ with .Values.helperPod.image.registry | default .Values.global.imageRegistry | trimSuffix "/" }}{{ . }}/{{ end }}{{ .Values.helperPod.image.repository }}:{{ .Values.helperPod.image.tag }}"
         - name: OPENEBS_IO_HELPER_POD_HOST_NETWORK
           value: "{{ .Values.helperPod.hostNetwork }}"
         - name: OPENEBS_IO_INSTALLER_TYPE

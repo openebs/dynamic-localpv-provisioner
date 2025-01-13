@@ -2,6 +2,11 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
+global:
+  # Used as default image registry, values supplied by localpv.image.registry
+  # and helperPod.image.registry override this value.
+  imageRegistry: ""
+
 rbac:
   # rbac.create: `true` if rbac resources should be created
   create: true
@@ -12,9 +17,7 @@ localpv:
   name: localpv-provisioner
   enabled: true
   image:
-    # Make sure that registry name end with a '/'.
-    # For example : quay.io/ is a correct value here and quay.io is incorrect
-    registry:
+    registry: ""
     repository: openebs/provisioner-localpv
     tag: 4.2.0-develop
     pullPolicy: IfNotPresent
