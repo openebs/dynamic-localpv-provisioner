@@ -2,7 +2,6 @@ package app
 
 import (
 	"context"
-	"k8s.io/apimachinery/pkg/labels"
 	"math"
 	"path/filepath"
 	"regexp"
@@ -14,6 +13,7 @@ import (
 	errors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/klog/v2"
 
 	"github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/container"
@@ -308,6 +308,7 @@ func (p *Provisioner) launchPod(ctx context.Context, config podConfig) (*corev1.
 	matchLabels := map[string]string{
 		"openebs.io/pvc-name":      config.pOpts.name,
 		"openebs.io/pvc-namespace": p.namespace,
+		"openebs.io/helper-type":   "hostpath-" + config.podName,
 	}
 	podList, err := p.kubeClient.CoreV1().Pods(p.namespace).List(ctx, metav1.ListOptions{
 		LabelSelector: labels.Set(matchLabels).String(),
@@ -316,6 +317,8 @@ func (p *Provisioner) launchPod(ctx context.Context, config podConfig) (*corev1.
 		return nil, err
 	}
 	if podList.Items != nil && len(podList.Items) != 0 {
+		klog.Infof("existing helper podList length: %d", len(podList.Items))
+		klog.Infof("existing helper pod: %v", podList.Items[0])
 		return &podList.Items[0], nil
 	}
 
