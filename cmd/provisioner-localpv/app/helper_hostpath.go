@@ -174,12 +174,12 @@ func (p *Provisioner) createInitPod(ctx context.Context, pOpts *HelperPodOptions
 
 	config.pOpts.cmdsForPath = append(config.pOpts.cmdsForPath, filepath.Join("/data/", config.volumeDir))
 
-	_, err := p.launchPod(ctx, config)
+	iPod, err := p.launchPod(ctx, config)
 	if err != nil {
 		return err
 	}
 
-	if err := p.exitPod(ctx, config.podName+"-"+config.pOpts.name); err != nil {
+	if err := p.exitPod(ctx, iPod); err != nil {
 		return err
 	}
 
@@ -215,12 +215,12 @@ func (p *Provisioner) createCleanupPod(ctx context.Context, pOpts *HelperPodOpti
 
 	config.pOpts.cmdsForPath = append(config.pOpts.cmdsForPath, filepath.Join("/data/", config.volumeDir))
 
-	_, err := p.launchPod(ctx, config)
+	cPod, err := p.launchPod(ctx, config)
 	if err != nil {
 		return err
 	}
 
-	if err := p.exitPod(ctx, config.podName+"-"+config.pOpts.name); err != nil {
+	if err := p.exitPod(ctx, cPod); err != nil {
 		return err
 	}
 	return nil
@@ -287,12 +287,12 @@ func (p *Provisioner) createQuotaPod(ctx context.Context, pOpts *HelperPodOption
 		"  rm -rf " + filepath.Join("/data/", config.volumeDir) + " ; exit 1; fi"
 	config.pOpts.cmdsForPath = []string{"sh", "-c", fs + checkQuota}
 
-	_, err := p.launchPod(ctx, config)
+	qPod, err := p.launchPod(ctx, config)
 	if err != nil {
 		return err
 	}
 
-	if err := p.exitPod(ctx, config.podName+"-"+config.pOpts.name); err != nil {
+	if err := p.exitPod(ctx, qPod); err != nil {
 		return err
 	}
 
@@ -371,9 +371,9 @@ func (p *Provisioner) launchPod(ctx context.Context, config podConfig) (*corev1.
 	return hPod, err
 }
 
-func (p *Provisioner) exitPod(ctx context.Context, hPodName string) error {
+func (p *Provisioner) exitPod(ctx context.Context, hPod *corev1.Pod) error {
 	defer func() {
-		e := p.kubeClient.CoreV1().Pods(p.namespace).Delete(ctx, hPodName, metav1.DeleteOptions{})
+		e := p.kubeClient.CoreV1().Pods(p.namespace).Delete(ctx, hPod.Name, metav1.DeleteOptions{})
 		if e != nil {
 			klog.Errorf("unable to delete the helper pod: %v", e)
 		}
@@ -382,7 +382,7 @@ func (p *Provisioner) exitPod(ctx context.Context, hPodName string) error {
 	//Wait for the helper pod to complete it job and exit
 	completed := false
 	for i := 0; i < CmdTimeoutCounts; i++ {
-		checkPod, err := p.kubeClient.CoreV1().Pods(p.namespace).Get(ctx, hPodName, metav1.GetOptions{})
+		checkPod, err := p.kubeClient.CoreV1().Pods(p.namespace).Get(ctx, hPod.Name, metav1.GetOptions{})
 		if err != nil {
 			return err
 		} else if checkPod.Status.Phase == corev1.PodSucceeded {
