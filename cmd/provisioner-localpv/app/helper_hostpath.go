@@ -317,8 +317,8 @@ func (p *Provisioner) launchPod(ctx context.Context, config podConfig) (*corev1.
 		return nil, err
 	}
 	if podList.Items != nil && len(podList.Items) != 0 {
-		klog.Infof("existing helper podList length: %d", len(podList.Items))
-		klog.Infof("existing helper pod: %v", podList.Items[0])
+		klog.V(2).Infof("existing helper podList length: %d", len(podList.Items))
+		klog.V(2).Infof("existing helper pod: %s/%s", podList.Items[0].Namespace, podList.Items[0].Name)
 		return &podList.Items[0], nil
 	}
 
