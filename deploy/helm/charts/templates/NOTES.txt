@@ -8,5 +8,5 @@ blockdevices attached to the Kubernetes cluster nodes.
 Get started with the Dynamic LocalPV Provisioner Quickstart guide at:
 https://github.com/openebs/dynamic-localpv-provisioner/blob/develop/docs/quickstart.md
 
-For more information, visit our Slack at https://openebs.io/community or view 
+For more information, visit our Slack at https://kubernetes.slack.com/messages/openebs or view
 the OpenEBS documentation online at https://openebs.io/docs
