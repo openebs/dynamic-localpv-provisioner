@@ -48,6 +48,8 @@ localpv:
   tolerations: []
   affinity: {}
   securityContext: {}
+  ## Sets priorityClassName in pod
+  priorityClassName: ""
 
 imagePullSecrets:
   # - name: img-pull-secret
@@ -116,6 +118,9 @@ helperPod:
     pullPolicy: IfNotPresent
     # Overrides the image tag whose default is the chart appVersion.
     tag: 4.0.0
+
+# Additional labels to add to all chart resources
+extraLabels: {}
 
 analytics:
   enabled: true

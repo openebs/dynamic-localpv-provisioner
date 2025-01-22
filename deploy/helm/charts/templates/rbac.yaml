@@ -5,6 +5,9 @@ metadata:
   name: {{ include "localpv.serviceAccountName" . }}
   labels:
     {{- include "localpv.labels" . | nindent 4 }}
+    {{- if .Values.extraLabels -}}
+      {{- toYaml .Values.extraLabels | nindent 4 }}
+    {{- end }}
   {{- with .Values.serviceAccount.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
@@ -21,6 +24,9 @@ metadata:
   {{- end }}
   labels:
     {{- include "localpv.labels" . | nindent 4 }}
+    {{- if .Values.extraLabels -}}
+      {{- toYaml .Values.extraLabels | nindent 4 }}
+    {{- end }}
 rules:
 - apiGroups: ["*"]
   resources: ["nodes"]
@@ -55,6 +61,9 @@ metadata:
   {{- end }}
   labels:
     {{- include "localpv.labels" . | nindent 4 }}
+    {{- if .Values.extraLabels -}}
+      {{- toYaml .Values.extraLabels | nindent 4 }}
+    {{- end }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
@@ -74,6 +83,9 @@ metadata:
   {{- end }}
   labels:
     {{- include "localpv.labels" . | nindent 4 }}
+    {{- if .Values.extraLabels -}}
+      {{- toYaml .Values.extraLabels | nindent 4 }}
+    {{- end }}
 rules:
 - apiGroups: ['policy']
   resources: ['podsecuritypolicies']
@@ -90,6 +102,9 @@ metadata:
   {{- end }}
   labels:
     {{- include "localpv.labels" . | nindent 4 }}
+    {{- if .Values.extraLabels -}}
+      {{- toYaml .Values.extraLabels | nindent 4 }}
+    {{- end }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole

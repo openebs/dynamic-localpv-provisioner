@@ -8,6 +8,9 @@ metadata:
   {{- end }}
   labels:
     {{- include "localpv.labels" . | nindent 4 }}
+    {{- if .Values.extraLabels -}}
+      {{- toYaml .Values.extraLabels | nindent 4 }}
+    {{- end }}
 spec:
   replicas: {{ .Values.localpv.replicas }}
   strategy:
@@ -23,10 +26,16 @@ spec:
       {{- end }}
       labels:
         {{- include "localpv.labels" . | nindent 8 }}
+        {{- if .Values.extraLabels -}}
+          {{- toYaml .Values.extraLabels | nindent 8 }}
+        {{- end }}
         {{- with .Values.localpv.podLabels }}
-        {{ toYaml . | nindent 8 }}
+          {{- toYaml . | nindent 8 }}
         {{- end }}
     spec:
+    {{- with .Values.localpv.priorityClassName }}
+      priorityClassName: {{ . }}
+    {{- end }}
     {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}

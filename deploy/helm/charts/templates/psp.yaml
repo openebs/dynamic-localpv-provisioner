@@ -8,6 +8,9 @@ metadata:
   {{- end }}
   labels:
     {{- include "localpv.labels" . | nindent 4 }}
+    {{- if .Values.extraLabels -}}
+      {{- toYaml .Values.extraLabels | nindent 4 }}
+    {{- end }}
 spec:
   privileged: {{ .Values.localpv.privileged }}
   allowPrivilegeEscalation: true
