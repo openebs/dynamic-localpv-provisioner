@@ -16,7 +16,7 @@ localpv:
     # For example : quay.io/ is a correct value here and quay.io is incorrect
     registry:
     repository: openebs/provisioner-localpv
-    tag: 4.1.4-prerelease
+    tag: 4.1.5-prerelease
     pullPolicy: IfNotPresent
   updateStrategy:
     type: RollingUpdate
