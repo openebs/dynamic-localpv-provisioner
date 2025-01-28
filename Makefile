@@ -124,6 +124,11 @@ bootstrap:
 clean:
 	go clean -testcache
 	rm -rf bin
+	./ci/ci-test.sh clean
+	chmod -R u+w ${GOPATH}/bin/${PROVISIONER_LOCALPV} 2>/dev/null || true
+	chmod -R u+w ${GOPATH}/pkg/* 2>/dev/null || true
+	rm -rf ${GOPATH}/bin/${PROVISIONER_LOCALPV}
+	rm -rf ${GOPATH}/pkg/*
 
 .PHONY: test
 test: format vet

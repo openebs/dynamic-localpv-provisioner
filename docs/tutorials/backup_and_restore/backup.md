@@ -21,6 +21,7 @@ You will need Velero with Restic to create backups. In this guide, we'll use the
 We will 'exec' into the Velero container's shell and run the following commands.
 
 Get the Pod name for the Velero Pod running in 'velero' namespace.
+
 ```console
 $ kubectl -n velero get pods
 
@@ -31,11 +32,13 @@ velero-7dd57b857-2gd25        1/1     Running   0          7h12m
 ```
 
 'Exec' into the Pod's velero container.
+
 ```console
-$ kubectl -n velero exec -it velero-7dd57b857-2gd25 -c velero -- /bin/bash
+kubectl -n velero exec -it velero-7dd57b857-2gd25 -c velero -- /bin/bash
 ```
 
 Verify if the following command lists the backup-location 'default' as 'Available'.
+
 ```console
 $ ./velero backup-location get
 
@@ -44,6 +47,7 @@ default   aws        velero          Available   2021-09-04 01:05:06 +0000 UTC  
 ```
 
 Create a backup. We will use the `--default-volumes-to-restic` to use the Restic plugin for volumes. Use the `--wait` flag to wait for the backup to complete or fail before the command returns.
+
 ```console
 $ ./velero create backup my-localpv-backup --include-namespaces <app-namespace> --default-volumes-to-restic --wait
 
@@ -54,6 +58,7 @@ Backup completed with status: Completed. You may check for more information usin
 ```
 
 Verify the status of the backup using the following command...
+
 ```console
 $ ./velero backup get
 NAME                STATUS      ERRORS   WARNINGS   CREATED                         EXPIRES   STORAGE LOCATION   SELECTOR
@@ -61,7 +66,7 @@ my-localpv-backup   Completed   0        0          2021-09-04 01:13:36 +0000 UT
 ```
 
 ```console
-$ exit
+exit
 ```
 
 For more information on using Velero, refer to the Velero documentation at [velero.io/docs](https://velero.io/docs).

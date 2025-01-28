@@ -135,19 +135,11 @@ run_test_suit() {
   echo "running ginkgo test case with coverage"
 
   # --focus="TEST HOSTPATH EXT4 QUOTA LOCAL PV WITH UNSUPPORTED FILESYSTEM"
-  if [ -n "${CI_HACK_SUDO:-}" ]; then
-    if ! sudo -E env "PATH=${PATH}" ginkgo -v -coverprofile="integration_coverage.txt" -covermode=atomic; then
-      return 0
-    fi
-  else
-    if ginkgo -v -coverprofile="integration_coverage.txt" -covermode=atomic; then
-      return 0
-    fi
+  if ! sudo -E env "PATH=${PATH}" ginkgo -v -coverprofile="integration_coverage.txt" -covermode=atomic; then
+    dump_logs
+    [ "$CLEAN_AFTER" = "true" ] && cleanup
+    exit 1
   fi
-
-  dump_logs
-  [ "$CLEAN_AFTER" = "true" ] && cleanup
-  exit 1
 }
 
 run() {

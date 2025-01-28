@@ -97,7 +97,7 @@ jobs:
         run: |
           make bootstrap
           make helm-install
-          CI_HACK_SUDO="true" make integration-test
+          make integration-test
 
       - name: Upload Integration Test Coverage Report
         uses: codecov/codecov-action@v4

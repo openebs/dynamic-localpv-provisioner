@@ -7,9 +7,11 @@ Follow the steps below to install Velero with Restic. We will use the velero-plu
 We will use the 'mc' MinIO client to create a bucket to store our volume backups.
 
 Execute the following kubectl command to run the 'minio/mc' container in the MinIO instance's namespace. We will execute the commands in a TTY shell inside the container.
+
 ```console
-$ kubectl -n velero run minio-client --image=minio/mc --rm -it --command -- /bin/sh
+kubectl -n velero run minio-client --image=minio/mc --rm -it --command -- /bin/sh
 ```
+
 You should be inside the container and able to run commands in the shell. Run the following commands to configure the MinIO client and create the bucket 'velero'.
 
 ```console
@@ -29,7 +31,7 @@ Bucket created successfully `velero/velero`.
 ```
 
 ```console
-$ exit
+exit
 ```
 
 ## Step 2: Create a file to store the MinIO credentials
@@ -52,25 +54,26 @@ Install Velero using the vmware-tanzu/velero helm chart. We are creating a relea
 $ #helm repo add vmware-tanzu https://vmware-tanzu.github.io/helm-charts
 $ #helm repo update
 $ helm install velero vmware-tanzu/velero \
-	--namespace velero \
-	--create-namespace \
-	--set-file credentials.secretContents.cloud=$(pwd)/minio-credentials \
-	--set configuration.provider="aws" \
-	--set configuration.backupStorageLocation.name="default" \
-	--set configuration.backupStorageLocation.bucket="velero" \
-	--set configuration.backupStorageLocation.config.region="minio" \
-	--set configuration.backupStorageLocation.config.s3ForcePathStyle="true" \
-	--set configuration.backupStorageLocation.config.s3Url="http://minio.velero.svc:80" \
-	--set backupsEnabled=true \
-	--set snapshotsEnabled=false \
-	--set deployRestic=true \
-	--set initContainers[0].name=velero-plugin-for-aws \
-	--set initContainers[0].image=velero/velero-plugin-for-aws:latest \
-	--set initContainers[0].volumeMounts[0].mountPath=/target \
-	--set initContainers[0].volumeMounts[0].name=plugins
+ --namespace velero \
+ --create-namespace \
+ --set-file credentials.secretContents.cloud=$(pwd)/minio-credentials \
+ --set configuration.provider="aws" \
+ --set configuration.backupStorageLocation.name="default" \
+ --set configuration.backupStorageLocation.bucket="velero" \
+ --set configuration.backupStorageLocation.config.region="minio" \
+ --set configuration.backupStorageLocation.config.s3ForcePathStyle="true" \
+ --set configuration.backupStorageLocation.config.s3Url="http://minio.velero.svc:80" \
+ --set backupsEnabled=true \
+ --set snapshotsEnabled=false \
+ --set deployRestic=true \
+ --set initContainers[0].name=velero-plugin-for-aws \
+ --set initContainers[0].image=velero/velero-plugin-for-aws:latest \
+ --set initContainers[0].volumeMounts[0].mountPath=/target \
+ --set initContainers[0].volumeMounts[0].name=plugins
 ```
 
 Verify if the Velero and Restic components got created.
+
 ```console
 $ kubectl get secrets,backupstoragelocations,pods -n velero
 
@@ -93,5 +96,5 @@ pod/restic-2xwsf                  1/1     Running   0          6h57m
 pod/velero-7dd57b857-2gd25        1/1     Running   0          6h57m
 ```
 
-You can use the 'velero' CLI tool to use Velero if your MinIO service is exposed (NodePort or LocalBalancer service) and is reachable from your shell. 
+You can use the 'velero' CLI tool to use Velero if your MinIO service is exposed (NodePort or LocalBalancer service) and is reachable from your shell.
 We will use Velero from inside the 'velero' container's shell.

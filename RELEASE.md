@@ -1,9 +1,11 @@
 # Release Process
+
 OpenEBS Dynamic Local PV Provisioner follows a monthly release cadence. The scope of the release is determined by contributor availability. The scope is published in the [Release Tracker Projects](https://github.com/orgs/openebs/projects).
 
 ## Release Candidate Verification Checklist
 
 Every release has release candidate builds that are created starting from the third week into the release. These release candidate builds help to freeze the scope and maintain the quality of the release. The release candidate builds will go through:
+
 - Platform Verification
 - Regression and Feature Verification Automated tests.
 - Exploratory testing by QA engineers
@@ -31,10 +33,11 @@ Once the release is triggered, Github Actions release workflow has to be monitor
 Images for the different components are published at the following location:
 
 - Dynamic LocalPV Provisioner <br />
-    https://quay.io/repository/openebs/provisioner-localpv?tab=tags <br />
-    https://hub.docker.com/r/openebs/provisioner-localpv/tags <br />
+    <https://quay.io/repository/openebs/provisioner-localpv?tab=tags> <br />
+    <https://hub.docker.com/r/openebs/provisioner-localpv/tags> <br />
 
 Once a release is created, update the release description with the changelog mentioned in `changelog/v1.9.x`. Once the changelogs are updated in the release, the repo owner needs to create a PR to `develop` with the following details:
+
 1. update the changelog from `changelog/v1.9.x` to `CHANGELOG.md`
 2. If a release is not an RC tag then PR should include the changes to remove `changelog/v1.9.x` folder.
 3. If a release is an RC tag then PR should include the changes to remove the changelog from `changelog/v1.9.x` which are already mentioned in `CHANGELOG.md` as part of step number 1.

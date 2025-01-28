@@ -9,24 +9,25 @@
 <img width="300" align="right" alt="OpenEBS Logo" src="https://raw.githubusercontent.com/cncf/artwork/master/projects/openebs/stacked/color/openebs-stacked-color.png" xmlns="http://www.w3.org/1999/html">
 
 <p align="justify">
-<strong>OpenEBS Dynamic Local PV provisioner</strong> can be used to dynamically provision 
-Kubernetes Local Volumes using different kinds of storage available on the Kubernetes nodes. 
+<strong>OpenEBS Dynamic Local PV provisioner</strong> can be used to dynamically provision
+Kubernetes Local Volumes using different kinds of storage available on the Kubernetes nodes.
 <br>
 </p>
 
 ## Project Status: GA
 
-Local Persistent Volumes are great for distributed cloud native data services that can handle resiliency and availability and expect low-latency access to the storage. Local Persistent Volumes can be provisioned using the hostpath, NVMe or PCIe based SSDs, Hard Disks or on top of other filesystems like ZFS, LVM. 
+Local Persistent Volumes are great for distributed cloud native data services that can handle resiliency and availability and expect low-latency access to the storage. Local Persistent Volumes can be provisioned using the hostpath, NVMe or PCIe based SSDs, Hard Disks or on top of other filesystems like ZFS, LVM.
 
 Some of the targetted applications are:
+
 - Distributed SQL Databases like PostgreSQL
 - Distributed No-SQL Databases like MongoDB, Cassandra
 - Distributed Object Storages like MinIO (distributed mode)
-- Distributed Streaming services like Apache Kakfa, 
+- Distributed Streaming services like Apache Kakfa,
 - Distributed Logging and search services like ElasticSearch, Solr
 - AI/ML workloads
 
-## Overview 
+## Overview
 
 Kubernetes Local persistent volumes allows users to access local storage through the
 standard PVC interface in a simple and portable way. The PV contains node
@@ -56,21 +57,21 @@ Head over to the [CONTRIBUTING.md](./CONTRIBUTING.md) page.
 
 ## Roadmap
 
-Find the Dynamic Local PV roadmap items at the [OpenEBS Roadmap page](https://github.com/openebs/openebs/blob/master/ROADMAP.md#dynamic-local-pvs).
+Find the Dynamic Local PV roadmap items at the [OpenEBS Roadmap page](https://github.com/openebs/openebs/blob/HEAD/ROADMAP.md#dynamic-local-pvs).
 
 ## OpenEBS Adopters
 
-Check out the list of organizations and users who have chosen OpenEBS to run their stateful workloads, over at the [OpenEBS Adopters page](https://github.com/openebs/openebs/blob/master/ADOPTERS.md).
+Check out the list of organizations and users who have chosen OpenEBS to run their stateful workloads, over at the [OpenEBS Adopters page](https://github.com/openebs/openebs/blob/HEAD/ADOPTERS.md).
 
 ## Community, discussion, and support
 
-Learn how to engage with the OpenEBS community on the [community page](https://github.com/openebs/openebs/tree/master/community).
+Learn how to engage with the OpenEBS community on the [community page](https://github.com/openebs/openebs/tree/HEAD/community).
 
 You can reach the maintainers of this project at:
 
-- [Kubernetes Slack](http://slack.k8s.io/) channels: 
-      * [#openebs](https://kubernetes.slack.com/messages/openebs/)
-      * [#openebs-dev](https://kubernetes.slack.com/messages/openebs-dev/)
+- [Kubernetes Slack](http://slack.k8s.io/) channels:
+  - [#openebs](https://kubernetes.slack.com/messages/openebs/)
+  - [#openebs-dev](https://kubernetes.slack.com/messages/openebs-dev/)
 - [Mailing List](https://lists.cncf.io/g/cncf-openebs-users)
 
 ### Code of conduct
@@ -80,10 +81,11 @@ Participation in the OpenEBS community is governed by the [CNCF Code of Conduct]
 ## Inspiration/Credit
 
 OpenEBS Local PV has been inspired by the prior work done by the following the Kubernetes projects:
-- https://github.com/kubernetes-sigs/sig-storage-lib-external-provisioner/tree/master/examples/hostpath-provisioner
-- https://github.com/kubernetes-sigs/sig-storage-local-static-provisioner
-- https://github.com/rancher/local-path-provisioner
 
+- <https://github.com/kubernetes-sigs/sig-storage-lib-external-provisioner/tree/HEAD/examples/hostpath-provisioner>
+- <https://github.com/kubernetes-sigs/sig-storage-local-static-provisioner>
+- <https://github.com/rancher/local-path-provisioner>
 
 ## License Compliance
+
 [![FOSSA Status](https://app.fossa.com/api/projects/custom%2B162%2Fgithub.com%2Fopenebs%2Fdynamic-localpv-provisioner.svg?type=large&issueType=license)](https://app.fossa.com/projects/custom%2B162%2Fgithub.com%2Fopenebs%2Fdynamic-localpv-provisioner?ref=badge_large&issueType=license)
