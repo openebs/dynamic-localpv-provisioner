@@ -372,6 +372,11 @@ func (p *Provisioner) exitPod(ctx context.Context, hPod *corev1.Pod) error {
 		} else if checkPod.Status.Phase == corev1.PodSucceeded {
 			completed = true
 			break
+		} else {
+			// Currently we use `RestartPolicyNever`, if this changes we may need a different logic here, ex: x many restarts.
+			if checkPod.Spec.RestartPolicy == corev1.RestartPolicyNever && checkPod.Status.Phase == corev1.PodFailed {
+				return errors.Errorf("pod %v has failed", checkPod.Name)
+			}
 		}
 		time.Sleep(1 * time.Second)
 	}

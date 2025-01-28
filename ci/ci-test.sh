@@ -53,7 +53,6 @@ cleanup() {
   if kubectl get nodes 2>/dev/null; then
     kubectl delete deployment -lrole=test -A
     kubectl delete pod -lrole=test --force -A
-    kubectl delete pvc -n "$OPENEBS_NAMESPACE" --all
 
     sleep 3
 
@@ -135,6 +134,7 @@ run_test_suit() {
 
   echo "running ginkgo test case with coverage"
 
+  # --focus="TEST HOSTPATH EXT4 QUOTA LOCAL PV WITH UNSUPPORTED FILESYSTEM"
   if [ -n "${CI_HACK_SUDO:-}" ]; then
     if ! sudo -E env "PATH=${PATH}" ginkgo -v -coverprofile="integration_coverage.txt" -covermode=atomic; then
       return 0
