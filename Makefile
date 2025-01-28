@@ -91,6 +91,9 @@ ifeq (${KUBECONFIG}, )
   export KUBECONFIG
 endif
 
+EXTERNAL_TOOLS=\
+	github.com/onsi/ginkgo/v2/ginkgo@v2.14.0
+
 export DBUILD_ARGS=--build-arg DBUILD_DATE=${DBUILD_DATE} --build-arg DBUILD_REPO_URL=${DBUILD_REPO_URL} --build-arg DBUILD_SITE_URL=${DBUILD_SITE_URL} --build-arg BRANCH=${BRANCH} --build-arg RELEASE_TAG=${RELEASE_TAG}
 
 .PHONY: all
@@ -109,6 +112,13 @@ verify-deps: deps
 	@if !(git diff --quiet HEAD -- go.sum go.mod); then \
 		echo "go module files are out of date, please commit the changes to go.mod and go.sum"; exit 1; \
 	fi
+
+.PHONY: bootstrap
+bootstrap:
+	@for tool in  $(EXTERNAL_TOOLS) ; do \
+		echo "+ Installing $$tool" ; \
+		GO111MODULE=on go install -mod=mod $$tool; \
+	done
 
 .PHONY: clean
 clean:

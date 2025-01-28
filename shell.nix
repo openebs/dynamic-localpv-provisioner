@@ -43,6 +43,8 @@ pkgs.mkShell {
       rm $(pwd)/nix/bins/sudo 2>/dev/null || :
       rmdir $(pwd)/nix/bins 2>/dev/null || :
     fi
+
+    make bootstrap
   '';
 }
 
