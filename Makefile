@@ -23,21 +23,21 @@ PACKAGES = $(shell go list ./... | grep -v '/pkg/version\|tests')
 PACKAGES_IT = $(shell go list ./... | grep -v 'pkg/client/generated' | grep 'tests')
 
 # The images can be pushed to any docker/image registeries
-# like docker hub, quay. The registries are specified in 
+# like docker hub, quay. The registries are specified in
 # the `buildscripts/push` script.
 #
 # The images of a project or company can then be grouped
 # or hosted under a unique organization key like `openebs`
 #
-# Each component (container) will be pushed to a unique 
-# repository under an organization. 
-# Putting all this together, an unique uri for a given 
+# Each component (container) will be pushed to a unique
+# repository under an organization.
+# Putting all this together, an unique uri for a given
 # image comprises of:
 #   <registry url>/<image org>/<image repo>:<image-tag>
 #
-# IMAGE_ORG can be used to customize the organization 
-# under which images should be pushed. 
-# By default the organization name is `openebs`. 
+# IMAGE_ORG can be used to customize the organization
+# under which images should be pushed.
+# By default the organization name is `openebs`.
 
 ifeq (${IMAGE_ORG}, )
   IMAGE_ORG = openebs
@@ -84,7 +84,7 @@ ifeq (${DBUILD_SITE_URL}, )
   export DBUILD_SITE_URL
 endif
 
-# Specify the kubeconfig path to a Kubernetes cluster 
+# Specify the kubeconfig path to a Kubernetes cluster
 # to run Hostpath integration tests
 ifeq (${KUBECONFIG}, )
   KUBECONFIG=${HOME}/.kube/config
@@ -100,7 +100,7 @@ all: test provisioner-localpv-image
 deps:
 	@echo "--> Tidying up submodules"
 	@go mod tidy
-	@echo "--> Veryfying submodules"
+	@echo "--> Verifying submodules"
 	@go mod verify
 
 
@@ -111,14 +111,14 @@ verify-deps: deps
 	fi
 
 .PHONY: clean
-clean: 
+clean:
 	go clean -testcache
 	rm -rf bin
 
 .PHONY: test
 test: format vet
 	@echo "--> Running go test";
-	$(PWD)/buildscripts/test.sh ${XC_ARCH}
+	./buildscripts/test.sh ${XC_ARCH}
 
 .PHONY: testv
 testv: format
@@ -128,7 +128,7 @@ testv: format
 # Requires KUBECONFIG env and Ginkgo binary
 .PHONY: integration-test
 integration-test:
-	@cd tests && sudo -E env "PATH=${PATH}" ginkgo -v --fail-fast -coverprofile="integration_coverage.txt" -covermode=atomic; 
+	@cd tests && sudo -E env "PATH=${PATH}" ginkgo -v --fail-fast -coverprofile="integration_coverage.txt" -covermode=atomic;
 
 .PHONY: format
 format:
@@ -142,9 +142,9 @@ vet:
 	@go list ./... | xargs go vet -composites
 
 .PHONY: verify-src
-verify-src: 
+verify-src:
 	@echo "--> Checking for git changes post running tests";
-	$(PWD)/buildscripts/check-diff.sh "format"
+	./buildscripts/check-diff.sh "format"
 
 
 #Use this to build provisioner-localpv
@@ -153,7 +153,7 @@ provisioner-localpv:
 	@echo "----------------------------"
 	@echo "--> provisioner-localpv    "
 	@echo "----------------------------"
-	@PNAME=${PROVISIONER_LOCALPV} CTLNAME=${PROVISIONER_LOCALPV} sh -c "'$(PWD)/buildscripts/build.sh'"
+	@PNAME=${PROVISIONER_LOCALPV} CTLNAME=${PROVISIONER_LOCALPV} sh -c "'./buildscripts/build.sh'"
 
 .PHONY: provisioner-localpv-image
 provisioner-localpv-image: provisioner-localpv
