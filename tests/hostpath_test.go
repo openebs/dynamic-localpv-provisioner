@@ -32,6 +32,7 @@ var _ = Describe("TEST HOSTPATH LOCAL PV", func() {
 		deployObj     *appsv1.Deployment
 		labelselector = map[string]string{
 			"demo": "hostpath-deployment",
+			"role": "test",
 		}
 	)
 	When("a StorageClass is created", func() {

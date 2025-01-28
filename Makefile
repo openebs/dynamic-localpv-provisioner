@@ -135,10 +135,13 @@ testv: format
 	@echo "--> Running go test verbose" ;
 	@go test -v $(PACKAGES)
 
-# Requires KUBECONFIG env and Ginkgo binary
+.PHONY: helm-install
+helm-install:
+	./ci/ci-test.sh install
+
 .PHONY: integration-test
 integration-test:
-	@cd tests && sudo -E env "PATH=${PATH}" ginkgo -v --fail-fast -coverprofile="integration_coverage.txt" -covermode=atomic;
+	./ci/ci-test.sh run -t
 
 .PHONY: format
 format:
@@ -174,6 +177,17 @@ provisioner-localpv-image: provisioner-localpv
 	@cd buildscripts/provisioner-localpv && docker build -t ${PROVISIONER_LOCALPV_IMAGE_TAG} ${DBUILD_ARGS} . --no-cache
 	@rm buildscripts/provisioner-localpv/${PROVISIONER_LOCALPV}
 
+.PHONY: image-tag
+image-tag:
+	@echo ${TAG}
+
+.PHONY: image-repo
+image-repo:
+	@echo ${IMAGE_ORG}/${PROVISIONER_LOCALPV_IMAGE}
+
+.PHONY: image-ref
+image-ref:
+	@echo ${IMAGE_ORG}/${PROVISIONER_LOCALPV_IMAGE}:${TAG}
 
 .PHONY: push
 push:

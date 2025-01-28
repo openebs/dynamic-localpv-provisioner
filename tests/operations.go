@@ -1151,6 +1151,7 @@ func BuildPod(namespace, podName, pvcName string, labelselector map[string]strin
 func (ops *Operations) createDeploymentWhichConsumesHostpath(namePrefix, namespace, pvcName string) (*appsv1.Deployment, error) {
 	labelSelector := map[string]string{
 		"app": namePrefix,
+		"role": "test",
 	}
 	deployment, err := deploy.NewBuilder().
 		WithGenerateName(namePrefix).
