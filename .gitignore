@@ -15,3 +15,5 @@ tests/tests.test
 
 /tests/integration_coverage.txt
 
+/nixos.qcow2
+
