@@ -57,8 +57,7 @@ echo "Building for ${VERSION} VERSION"
 
 # Determine the arch/os combos we're building for
 UNAME=$(uname)
-ARCH=$(uname -m)
-if [ "$UNAME" != "Linux" -a "$UNAME" != "Darwin" ] ; then
+if [ "$UNAME" != "Linux" ] && [ "$UNAME" != "Darwin" ] ; then
     echo "Sorry, this OS is not supported yet."
     exit 1
 fi
@@ -84,8 +83,8 @@ fi
 
 # Delete the old dir
 echo "==> Removing old directory..."
-rm -rf bin/${PNAME}/*
-mkdir -p bin/${PNAME}/
+rm -rf bin/"$PNAME"/*
+mkdir -p bin/"$PNAME"/
 
 # If its dev mode, only build for ourself
 if [[ "${DEV}" ]]; then
@@ -98,18 +97,18 @@ echo "==> Building ${CTLNAME} using $(go version)... "
 
 GOOS="${XC_OS}"
 GOARCH="${XC_ARCH}"
-output_name="bin/${PNAME}/"$GOOS"_"$GOARCH"/"$CTLNAME
+output_name=bin/"$PNAME"/"$GOOS"_"$GOARCH"/$CTLNAME
 
-if [ $GOOS = "windows" ]; then
+if [ "$GOOS" = "windows" ]; then
     output_name+='.exe'
 fi
 
-env GOOS=$GOOS GOARCH=$GOARCH go build ${BUILD_TAG} -ldflags \
+env GOOS="$GOOS" GOARCH="$GOARCH" CGO_ENABLED=0 go build -ldflags \
     "-X github.com/openebs/maya/pkg/version.GitCommit=${GIT_COMMIT} \
     -X main.CtlName='${CTLNAME}' \
     -X github.com/openebs/maya/pkg/version.Version=${VERSION}" \
-    -o $output_name\
-    ./cmd/${CTLNAME}
+    -o "$output_name"\
+    ./cmd/"${CTLNAME}"
 
 echo ""
 
@@ -117,24 +116,25 @@ echo ""
 GOPATH=${GOPATH:-$(go env GOPATH)}
 case $(uname) in
     CYGWIN*)
-        GOPATH="$(cygpath $GOPATH)"
+        GOPATH=$(cygpath "$GOPATH")
         ;;
 esac
 OLDIFS=$IFS
-IFS=: MAIN_GOPATH=($GOPATH)
+IFS=: MAIN_GOPATH="$GOPATH"
 IFS=$OLDIFS
 
 # Create the gopath bin if not already available
-mkdir -p ${MAIN_GOPATH}/bin/
+mkdir -p "${MAIN_GOPATH}"/bin/
 
 # Copy our OS/Arch to the bin/ directory
-DEV_PLATFORM="./bin/${PNAME}/$(go env GOOS)_$(go env GOARCH)"
-for F in $(find ${DEV_PLATFORM} -mindepth 1 -maxdepth 2 -type f); do
-    cp ${F} bin/${PNAME}/
-    cp ${F} ${MAIN_GOPATH}/bin/
+DEV_PLATFORM=./bin/"${PNAME}"/$(go env GOOS)_$(go env GOARCH)
+find "${DEV_PLATFORM}" -mindepth 1 -maxdepth 1 -type f -print0 | while IFS= read -r -d '' file
+do
+    cp "$file" bin/"${PNAME}"/
+    cp "$file" "${MAIN_GOPATH}"/bin/
 done
 
 # Done!
 echo
 echo "==> Results:"
-ls -hl bin/${PNAME}/
+ls -hl bin/"${PNAME}"/
