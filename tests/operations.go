@@ -1081,6 +1081,7 @@ func (ops *Operations) BuildAndDeployBusyBoxPod(
 							},
 						),
 				).
+				WithTerminationGracePeriodSeconds(5).
 				WithVolumeBuilders(
 					k8svolume.NewBuilder().
 						WithName("datavol1").
@@ -1144,13 +1145,14 @@ func BuildPod(namespace, podName, pvcName string, labelselector map[string]strin
 				WithName("demo-vol1").
 				WithPVCSource(pvcName),
 		).
+		WithTerminationGracePeriodSeconds(5).
 		Build()
 }
 
 // createDeploymentWhichConsumesHostpath creates a single-replica Deployment whose Pod consumes hostpath PVC.
 func (ops *Operations) createDeploymentWhichConsumesHostpath(namePrefix, namespace, pvcName string) (*appsv1.Deployment, error) {
 	labelSelector := map[string]string{
-		"app": namePrefix,
+		"app":  namePrefix,
 		"role": "test",
 	}
 	deployment, err := deploy.NewBuilder().
@@ -1180,6 +1182,7 @@ func (ops *Operations) createDeploymentWhichConsumesHostpath(namePrefix, namespa
 							},
 						),
 				).
+				WithTerminationGracePeriodSeconds(5).
 				WithVolumeBuilders(
 					k8svolume.NewBuilder().
 						WithName("demo-vol1").

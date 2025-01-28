@@ -123,6 +123,7 @@ var _ = Describe("TEST HOSTPATH LOCAL PV", func() {
 									},
 								),
 						).
+						WithTerminationGracePeriodSeconds(5).
 						WithVolumeBuilders(
 							volume.NewBuilder().
 								WithName("demo-vol1").

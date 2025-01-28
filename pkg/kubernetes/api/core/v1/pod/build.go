@@ -118,6 +118,14 @@ func (b *Builder) WithContainerBuilder(
 	return b
 }
 
+// WithTerminationGracePeriodSeconds adds the terminationGracePeriodSeconds
+func (b *Builder) WithTerminationGracePeriodSeconds(
+	period int64,
+) *Builder {
+	b.pod.object.Spec.TerminationGracePeriodSeconds = &period
+	return b
+}
+
 // WithVolumeBuilder sets Volumes field of deployment.
 func (b *Builder) WithVolumeBuilder(volumeBuilder *volume.Builder) *Builder {
 	vol, err := volumeBuilder.Build()
