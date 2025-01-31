@@ -1,3 +1,15 @@
+v4.2.0 / 2025-02-01
+===================
+* Merge cas-config from PVC ([#190](https://github.com/openebs/dynamic-localpv-provisioner/pull/238),[@nobiit](https://github.com/nobiit))
+* Add option for helperPod to use hostNetwork ([#224](https://github.com/openebs/dynamic-localpv-provisioner/pull/224),[@mchtech](https://github.com/mchtech))
+* Add global.imageRegistry Helm chart parameter ([#227](https://github.com/openebs/dynamic-localpv-provisioner/pull/227),[@lkummer](https://github.com/lkummer))
+* Add timeout to helperPod wait if the launchPod failed ([#237](https://github.com/openebs/dynamic-localpv-provisioner/pull/237),[@tiagolobocastro](https://github.com/tiagolobocastro))
+* Add eviction tolerations to the provisioner pod ([#238](https://github.com/openebs/dynamic-localpv-provisioner/pull/238),[@niladrih](https://github.com/niladrih))
+
+v4.1.4 / 2025-01-23
+===================
+* Let helm chart generate priorityClassName from go-template ([#236](https://github.com/openebs/dynamic-localpv-provisioner/pull/236),[@niladrih](https://github.com/niladrih))
+
 v4.1.3 / 2025-01-22
 ===================
 * Add pod priorityClassName to prevent race condition due to pod eviction ([#182](https://github.com/openebs/dynamic-localpv-provisioner/pull/182),[@bernardgut](https://github.com/bernardgut))
