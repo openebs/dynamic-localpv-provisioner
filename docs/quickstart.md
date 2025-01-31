@@ -2,32 +2,37 @@
 
 ## Prerequisites
 
-A Kubernetes cluster with Kubernetes v1.23 or above. 
+A Kubernetes cluster with Kubernetes v1.23 or above.
 
 For more platform-specific installation instructions, [click here](./installation/platforms/).
 
 ## Install using Helm chart
+
 Install OpenEBS LocalPV Hostpath using the openebs helm chart. Sample command:
+
 ```console
 #helm repo add openebs https://openebs.github.io/openebs
 #helm repo update
 helm install openebs openebs/openebs -n openebs --create-namespace
 ```
-	
+
 <details>
   <summary>Click here for configuration options.</summary>
 
-  1. Install OpenEBS Dynamic LocalPV Provisioner with a custom hostpath directory. 
+  1. Install OpenEBS Dynamic LocalPV Provisioner with a custom hostpath directory.
      This will change the `BasePath` value for the 'openebs-hostpath' StorageClass.
+
 ```console
 helm install openebs openebs/openebs -n openebs --create-namespace \
-	--set localpv-provisioner.hostpathClass.basePath=<custom-hostpath>
+ --set localpv-provisioner.hostpathClass.basePath=<custom-hostpath>
 ```
+
 </details>
 
 [Click here](https://github.com/openebs/openebs/tree/HEAD/charts) for detailed instructions on using the Helm chart.
 
 You are ready to provision LocalPV volumes once the pods in 'openebs' namespace report RUNNING status.
+
 ```console
 $ kubectl get pods -n openebs -l openebs.io/component-name=openebs-localpv-provisioner
 
@@ -72,11 +77,13 @@ You can provision LocalPV hostpath StorageType volumes dynamically using the def
   #     - worker-1
   #     - worker-2
   ```
+
 </details><br>
 
 For more advanced tutorials, visit [./tutorials/hostpath](./tutorials/hostpath).
 
 Create a PVC with the StorageClass.
+
 ```yaml
 kind: PersistentVolumeClaim
 apiVersion: v1
@@ -91,7 +98,9 @@ spec:
       #Set capacity here
       storage: 5Gi
 ```
+
 The PVC will be in 'Pending' state until the volume is mounted.
+
 ```console
 $ kubectl get pvc
 
@@ -102,6 +111,7 @@ localpv-vol   Pending                                      openebs-hostpath   21
 ## Mount the volume
 
 Mount the volume to the application pod container. The PVC status will change to 'Bound' when the volume is mounted to a container. A sample BusyBox Pod template is given below.
+
 ```yaml
 apiVersion: v1
 kind: Pod
@@ -123,7 +133,6 @@ spec:
     persistentVolumeClaim:
       claimName: localpv-vol
 ```
-
 
 Visit the official [OpenEBS documentation](https://openebs.io/docs/) for more information.
 

@@ -29,6 +29,7 @@ var _ = Describe("TEST HOSTPATH XFS QUOTA LOCAL PV WITH UNSUPPORTED FILESYSTEM",
 		podObj        *corev1.Pod
 		labelselector = map[string]string{
 			"demo": "hostpath-pod",
+			"role": "test",
 		}
 	)
 
@@ -207,6 +208,7 @@ var _ = Describe("TEST HOSTPATH XFS QUOTA LOCAL PV WITH XFS FILESYSTEM", func() 
 		podObj        *corev1.Pod
 		labelselector = map[string]string{
 			"demo": "hostpath-pod",
+			"role": "test",
 		}
 	)
 
@@ -408,6 +410,7 @@ var _ = Describe("TEST HOSTPATH EXT4 QUOTA LOCAL PV WITH UNSUPPORTED FILESYSTEM"
 		podObj        *corev1.Pod
 		labelselector = map[string]string{
 			"demo": "hostpath-pod",
+			"role": "test",
 		}
 	)
 
@@ -586,6 +589,7 @@ var _ = Describe("TEST HOSTPATH EXT4 QUOTA LOCAL PV WITH EXT4 FILESYSTEM", func(
 		podObj        *corev1.Pod
 		labelselector = map[string]string{
 			"demo": "hostpath-pod",
+			"role": "test",
 		}
 	)
 

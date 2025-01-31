@@ -8,3 +8,12 @@ cmd/provisioner-localpv/start.sh
 
 # Ginkgo test
 tests/tests.test
+
+# Nix-Shell Go
+/nix/.go/
+/nix/.tmp/
+
+/tests/integration_coverage.txt
+
+/nixos.qcow2
+

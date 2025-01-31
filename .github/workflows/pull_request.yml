@@ -93,7 +93,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Build images locally
-        run: make provisioner-localpv-image || exit 1;
+        run: make provisioner-localpv-image
 
       - name: Setup Minikube-Kubernetes
         uses: medyagh/setup-minikube@latest
@@ -106,14 +106,12 @@ jobs:
           start-args: '--install-addons=false'
 
       - name: Set up infra for integration test
-        run: |
-          sudo apt-get update && sudo apt-get install -y xfsprogs quota linux-modules-extra-`uname -r`
-          go install -mod=mod github.com/onsi/ginkgo/v2/ginkgo@v2.14.0
-          helm install localpv-provisioner ./deploy/helm/charts -n openebs --create-namespace --set localpv.image.pullPolicy=Never --set analytics.enabled=false
-          kubectl get pods -A
+        run: sudo apt-get update && sudo apt-get install -y xfsprogs quota linux-modules-extra-`uname -r`
 
       - name: Integration test
         run: |
+          make bootstrap
+          make helm-install
           make integration-test
 
       - name: Upload Integration Test Coverage Report
