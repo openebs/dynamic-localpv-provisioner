@@ -1,3 +1,7 @@
+v4.1.4 / 2025-01-23
+===================
+* Let helm chart generate priorityClassName from go-template ([#236](https://github.com/openebs/dynamic-localpv-provisioner/pull/236),[@niladrih](https://github.com/niladrih))
+
 v4.1.3 / 2025-01-22
 ===================
 * Add pod priorityClassName to prevent race condition due to pod eviction ([#182](https://github.com/openebs/dynamic-localpv-provisioner/pull/182),[@bernardgut](https://github.com/bernardgut))
