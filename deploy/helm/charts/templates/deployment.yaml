@@ -120,9 +120,8 @@ spec:
       nodeSelector:
 {{ toYaml .Values.localpv.nodeSelector | indent 8 }}
 {{- end }}
-{{- if .Values.localpv.tolerations }}
-      tolerations:
-{{ toYaml .Values.localpv.tolerations | indent 8 }}
+{{- if $tolerations := include "tolerations_with_early_eviction" . }}
+      tolerations: {{ $tolerations }}
 {{- end }}
 {{- if .Values.localpv.affinity }}
       affinity:
