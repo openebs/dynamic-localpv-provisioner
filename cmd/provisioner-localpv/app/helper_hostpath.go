@@ -12,8 +12,8 @@ import (
 	hostpath "github.com/openebs/maya/pkg/hostpath/v1alpha1"
 	errors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
+	k8serror "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/klog/v2"
 
 	"github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/container"
@@ -175,7 +175,7 @@ func (p *Provisioner) createInitPod(ctx context.Context, pOpts *HelperPodOptions
 	config.pOpts.cmdsForPath = append(config.pOpts.cmdsForPath, filepath.Join("/data/", config.volumeDir))
 
 	iPod, err := p.launchPod(ctx, config)
-	if err != nil {
+	if err != nil && !k8serror.IsAlreadyExists(err) {
 		return err
 	}
 
@@ -216,7 +216,7 @@ func (p *Provisioner) createCleanupPod(ctx context.Context, pOpts *HelperPodOpti
 	config.pOpts.cmdsForPath = append(config.pOpts.cmdsForPath, filepath.Join("/data/", config.volumeDir))
 
 	cPod, err := p.launchPod(ctx, config)
-	if err != nil {
+	if err != nil && !k8serror.IsAlreadyExists(err) {
 		return err
 	}
 
@@ -288,7 +288,7 @@ func (p *Provisioner) createQuotaPod(ctx context.Context, pOpts *HelperPodOption
 	config.pOpts.cmdsForPath = []string{"sh", "-c", fs + checkQuota}
 
 	qPod, err := p.launchPod(ctx, config)
-	if err != nil {
+	if err != nil && !k8serror.IsAlreadyExists(err) {
 		return err
 	}
 
@@ -304,23 +304,6 @@ func (p *Provisioner) launchPod(ctx context.Context, config podConfig) (*corev1.
 	// nodes, pods without privileged access cannot write to the host directory.
 	// Helper pods need to create and delete directories on the host.
 	privileged := true
-
-	matchLabels := map[string]string{
-		"openebs.io/pvc-name":      config.pOpts.name,
-		"openebs.io/pvc-namespace": p.namespace,
-		"openebs.io/helper-type":   "hostpath-" + config.podName,
-	}
-	podList, err := p.kubeClient.CoreV1().Pods(p.namespace).List(ctx, metav1.ListOptions{
-		LabelSelector: labels.Set(matchLabels).String(),
-	})
-	if err != nil {
-		return nil, err
-	}
-	if podList.Items != nil && len(podList.Items) != 0 {
-		klog.V(2).Infof("existing helper podList length: %d", len(podList.Items))
-		klog.V(2).Infof("existing helper pod: %s/%s", podList.Items[0].Namespace, podList.Items[0].Name)
-		return &podList.Items[0], nil
-	}
 
 	helperPod, err := pod.NewBuilder().
 		WithName(config.podName + "-" + config.pOpts.name).
@@ -360,7 +343,6 @@ func (p *Provisioner) launchPod(ctx context.Context, config podConfig) (*corev1.
 				WithHostDirectory("/dev/"),
 		).
 		WithHostNetwork(config.pOpts.hostNetwork).
-		WithLabels(matchLabels).
 		Build()
 
 	if err != nil {
