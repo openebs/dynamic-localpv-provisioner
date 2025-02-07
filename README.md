@@ -10,20 +10,18 @@
 [![CLOMonitor](https://img.shields.io/endpoint?url=https://clomonitor.io/api/projects/cncf/openebs/badge)](https://clomonitor.io/projects/cncf/openebs)
 [![Artifact HUB](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/openebs)](https://artifacthub.io/packages/helm/openebs/openebs)
 
-### Overview
-
-### What is OpenEBS Dynamic LocalPV Provisioner?
+## Overview
 
 OpenEBS Dynamic LocalPV Provisioner is an open‐source Kubernetes component that automates the dynamic provisioning of local persistent volumes. It converts local storage available on Kubernetes nodes, such as hostPath directories into persistent volumes accessible via PVCs. The provisioner automatically assigns node affinity metadata, ensuring that pods run on the node hosting the storage. The tool simplifies local storage management by automating volume creation, binding, and cleanup processes for hostpaths. It overcomes challenges of static provisioning by dynamically allocating storage on demand. Overall, the provisioner offers a robust, scalable solution for managing local persistent hostpath volumes in Kubernetes.
 
-### Why OpenEBS Dynamic LocalPV Provisioner?
+## Why OpenEBS Dynamic LocalPV Provisioner?
 
 - <b>Dynamic Provisioning</b>: Automatically creates persistent hostpath volumes on demand from local node storage, reducing manual configuration. 
 - <b>Seamless Kubernetes Integration</b>: Uses node affinity to ensure pods are scheduled on the node where the volume is located, maintaining data consistency.  
 - <b>Customizable Storage Behavior</b>: Offers flexible configuration through StorageClasses, supporting hostpath features like quota enforcement etc.
 - <b>Optimized for High Performance</b>: Ideal for high-performance, low-latency, stateful applications like replicated databases which need local storage. 
 
-# Architecture
+## Architecture
 
 ```mermaid
 
@@ -79,7 +77,7 @@ Please check [here](./design/hostpath_localpv_provisioner.md) for complete desig
 | `v4.2.x` | ✕                  | ✓                 |
 | `HEAD`   | ✕                  | ✓                 |
 
-### Documents
+## Documents
 
 - [Prerequisites](./docs/quickstart.md#prerequisites)
 - [Quickstart](./docs/quickstart.md#quickstart)
