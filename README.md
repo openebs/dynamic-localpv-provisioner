@@ -1,82 +1,103 @@
-# Dynamic Kubernetes Local Persistent Volumes
+# OpenEBS Dynamic LocalPV Provisioner
 
+[![CNCF Status](https://img.shields.io/badge/cncf%20status-sandbox-blue.svg)](https://www.cncf.io/projects/openebs/)
+[![LICENSE](https://img.shields.io/github/license/openebs/openebs.svg)](./LICENSE)
 [![Slack](https://img.shields.io/badge/chat-slack-ff1493.svg?style=flat-square)](https://kubernetes.slack.com/messages/openebs)
 [![Community Meetings](https://img.shields.io/badge/Community-Meetings-blue)](https://us05web.zoom.us/j/87535654586?pwd=CigbXigJPn38USc6Vuzt7qSVFoO79X.1)
 [![Go Report Card](https://goreportcard.com/badge/github.com/openebs/dynamic-localpv-provisioner)](https://goreportcard.com/report/github.com/openebs/dynamic-localpv-provisioner)
 [![FOSSA Status](https://app.fossa.com/api/projects/custom%2B162%2Fgithub.com%2Fopenebs%2Fdynamic-localpv-provisioner.svg?type=shield&issueType=license)](https://app.fossa.com/projects/custom%2B162%2Fgithub.com%2Fopenebs%2Fdynamic-localpv-provisioner?ref=badge_shield&issueType=license)
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/9666/badge)](https://www.bestpractices.dev/projects/9666)
-
-<img width="300" align="right" alt="OpenEBS Logo" src="https://raw.githubusercontent.com/cncf/artwork/master/projects/openebs/stacked/color/openebs-stacked-color.png" xmlns="http://www.w3.org/1999/html">
-
-<p align="justify">
-<strong>OpenEBS Dynamic Local PV provisioner</strong> can be used to dynamically provision
-Kubernetes Local Volumes using different kinds of storage available on the Kubernetes nodes.
-<br>
-</p>
-
-## Project Status: GA
-
-Local Persistent Volumes are great for distributed cloud native data services that can handle resiliency and availability and expect low-latency access to the storage. Local Persistent Volumes can be provisioned using the hostpath, NVMe or PCIe based SSDs, Hard Disks or on top of other filesystems like ZFS, LVM.
-
-Some of the targetted applications are:
-
-- Distributed SQL Databases like PostgreSQL
-- Distributed No-SQL Databases like MongoDB, Cassandra
-- Distributed Object Storages like MinIO (distributed mode)
-- Distributed Streaming services like Apache Kakfa,
-- Distributed Logging and search services like ElasticSearch, Solr
-- AI/ML workloads
+[![CLOMonitor](https://img.shields.io/endpoint?url=https://clomonitor.io/api/projects/cncf/openebs/badge)](https://clomonitor.io/projects/cncf/openebs)
+[![Artifact HUB](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/openebs)](https://artifacthub.io/packages/helm/openebs/openebs)
 
 ## Overview
 
-Kubernetes Local persistent volumes allows users to access local storage through the
-standard PVC interface in a simple and portable way. The PV contains node
-affinity information that the system uses to schedule pods to the correct
-nodes. Features:
+OpenEBS Dynamic LocalPV Provisioner is an open‐source Kubernetes component that automates the dynamic provisioning of local persistent volumes. It converts local storage available on Kubernetes nodes, such as hostPath directories into persistent volumes accessible via PVCs. The provisioner automatically assigns node affinity metadata, ensuring that pods run on the node hosting the storage. The tool simplifies local storage management by automating volume creation, binding, and cleanup processes for hostpaths. It overcomes challenges of static provisioning by dynamically allocating storage on demand. Overall, the provisioner offers a robust, scalable solution for managing local persistent hostpath volumes in Kubernetes.
 
-- Supports using hostpath as well for provisioning a Local PV. In fact in some
-  cases, the Kubernetes nodes may have limited number of storage devices
-  attached to the node and hostpath based Local PVs offer efficient management
-  of the storage available on the node.
+## Why OpenEBS Dynamic LocalPV Provisioner?
+
+- <b>Dynamic Provisioning</b>: Automatically creates persistent hostpath volumes on demand from local node storage, reducing manual configuration. 
+- <b>Seamless Kubernetes Integration</b>: Uses node affinity to ensure pods are scheduled on the node where the volume is located, maintaining data consistency.  
+- <b>Customizable Storage Behavior</b>: Offers flexible configuration through StorageClasses, supporting hostpath features like quota enforcement etc.
+- <b>Optimized for High Performance</b>: Ideal for high-performance, low-latency, stateful applications like replicated databases which need local storage. 
+
+## Architecture
+
+```mermaid
+
+graph TD
+    %% Define Styles with Black Text
+    style kubelet fill:#ffcc00,stroke:#d4a017,stroke-width:2px,color:#000
+    style Provisioner fill:#66ccff,stroke:#3388cc,stroke-width:2px,color:#000
+    style HelperPod fill:#99ff99,stroke:#44aa44,stroke-width:2px,color:#000
+    style App fill:#ff9999,stroke:#cc6666,stroke-width:2px,color:#000
+    style Hostpath fill:#ffdd99,stroke:#d4a017,stroke-width:2px,color:#000
+    style PVC fill:#ffdd99,stroke:#d4a017,stroke-width:2px,color:#000
+    style PV fill:#d9b3ff,stroke:#9955cc,stroke-width:2px,color:#000
+
+    subgraph "Kubernetes Cluster"
+        subgraph "Kubelet"
+            kubelet["Kubelet"]
+        end
+        subgraph "OpenEBS LocalPV"
+            Provisioner["LocalPV Provisioner"]
+            HelperPod["Helper Pod (Creates/Cleanup Directory)"]
+        end
+        subgraph "Worker Node"
+            App["Application Pod"]
+            PVC["Persistent Volume Claim"]
+            PV["Persistent Volume"]
+            Hostpath["[User-defined path on host]"]
+        end
+    end
+
+    %% Storage Flow
+    App -->|Requests Storage| PVC
+    PVC -->|Binds to| PV
+    PV -->|Mounted on| Hostpath
+    kubelet -->|Mounts Path| Hostpath
+
+    %% Provisioning Flow
+    Provisioner -->|Launches| HelperPod
+    Provisioner -->|Watches PVC Requests| Provisioner
+    Provisioner -->|Creates PV| PV
+    HelperPod -->|Creates Directory| Hostpath
+    PV -->|Bound to| PVC
+
+```
+
+Please check [here](./design/hostpath_localpv_provisioner.md) for complete design and architecture.
 
 ## Kubernetes Compatibility Matrix
 
-|          | Kubernetes <= 1.18 | Kubernetes  1.19 | Kubernetes 1.20 | Kubernetes 1.21 | Kubernetes 1.22 | Kubernetes 1.23 | Kubernetes 1.24 | Kubernetes 1.25 | Kubernetes 1.26 | Kubernetes 1.27 | Kubernetes 1.28 | Kubernetes 1.29 | Kubernetes 1.30 |
-|----------|--------------------|------------------|-----------------|-----------------|-----------------|-----------------|-----------------|-----------------|-----------------|-----------------|-----------------|-----------------|-----------------|
-| `v4.0.x` | ✕                  | ✓                | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               |
-| `v4.1.x` | ✕                  | ✓                | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               |
-| `HEAD`   | ✕                  | ✓                | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               |
+|          | Kubernetes <= 1.18 | Kubernetes >=1.19 |
+|----------|--------------------|-------------------|
+| `v4.0.x` | ✕                  | ✓                 | 
+| `v4.1.x` | ✕                  | ✓                 |
+| `v4.2.x` | ✕                  | ✓                 |
+| `HEAD`   | ✕                  | ✓                 |
 
-## Install
+## Documents
 
-Please refer to our [Quickstart](https://github.com/openebs/dynamic-localpv-provisioner/blob/develop/docs/quickstart.md) and the [OpenEBS Documentation](http://openebs.io/docs/).
+- [Prerequisites](./docs/quickstart.md#prerequisites)
+- [Quickstart](./docs/quickstart.md#quickstart)
+- [Developer Setup](./docs/developer.md)
+- [Testing](./docs/developer-setup.md#testing)
+- [Contibuting Guidelines](./CONTRIBUTING.md)
+- [Governance](./GOVERNANCE.md)
+- [Changelog](./CHANGELOG.md)
+- [Release Process](./RELEASE.md)
 
-## Contributing
+## Features
 
-Head over to the [CONTRIBUTING.md](./CONTRIBUTING.md) page.
-
-## Roadmap
-
-Find the Dynamic Local PV roadmap items at the [OpenEBS Roadmap page](https://github.com/openebs/openebs/blob/HEAD/ROADMAP.md#dynamic-local-pvs).
-
-## OpenEBS Adopters
-
-Check out the list of organizations and users who have chosen OpenEBS to run their stateful workloads, over at the [OpenEBS Adopters page](https://github.com/openebs/openebs/blob/HEAD/ADOPTERS.md).
-
-## Community, discussion, and support
-
-Learn how to engage with the OpenEBS community on the [community page](https://github.com/openebs/openebs/tree/HEAD/community).
-
-You can reach the maintainers of this project at:
-
-- [Kubernetes Slack](http://slack.k8s.io/) channels:
-  - [#openebs](https://kubernetes.slack.com/messages/openebs/)
-  - [#openebs-dev](https://kubernetes.slack.com/messages/openebs-dev/)
-- [Mailing List](https://lists.cncf.io/g/cncf-openebs-users)
-
-### Code of conduct
-
-Participation in the OpenEBS community is governed by the [CNCF Code of Conduct](CODE-OF-CONDUCT.md).
+- [x] Access Modes
+    - [x] ReadWriteOnce
+    - ~~ReadOnlyMany~~
+    - ~~ReadWriteMany~~
+- [x] Volume modes
+    - [x] `Filesystem` mode
+    - [ ] `Block` mode
+- [x] [Volume Resize(Via Quotas)](./docs/tutorials/hostpath/xfs_quota/)
 
 ## Inspiration/Credit
 
@@ -86,6 +107,14 @@ OpenEBS Local PV has been inspired by the prior work done by the following the K
 - <https://github.com/kubernetes-sigs/sig-storage-local-static-provisioner>
 - <https://github.com/rancher/local-path-provisioner>
 
+## Dev Activity dashboard
+
+![Alt](https://repobeats.axiom.co/api/embed/d990adda232a580d4c0fd9b98d6557079bb3bf4a.svg "Repobeats analytics image")
+
 ## License Compliance
 
 [![FOSSA Status](https://app.fossa.com/api/projects/custom%2B162%2Fgithub.com%2Fopenebs%2Fdynamic-localpv-provisioner.svg?type=large&issueType=license)](https://app.fossa.com/projects/custom%2B162%2Fgithub.com%2Fopenebs%2Fdynamic-localpv-provisioner?ref=badge_large&issueType=license)
+
+## OpenEBS is a [CNCF Sandbox Project](https://www.cncf.io/projects/openebs)
+
+![OpenEBS is a CNCF Sandbox Project](https://github.com/cncf/artwork/blob/main/other/cncf/horizontal/color/cncf-color.png)

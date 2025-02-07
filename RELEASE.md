@@ -1,43 +1,81 @@
 # Release Process
 
-OpenEBS Dynamic Local PV Provisioner follows a monthly release cadence. The scope of the release is determined by contributor availability. The scope is published in the [Release Tracker Projects](https://github.com/orgs/openebs/projects).
+Local PV Hostpath tries to follow semantic versioning principles as specified here https://semver.org. It follows a on quarterly release cadence for minor version releases. The scope of the release is determined by contributor availability. The scope is published in the [Release Tracker Projects](https://github.com/orgs/openebs/projects/78).
 
-## Release Candidate Verification Checklist
+## Pre-release Candidate Verification Checklist
 
-Every release has release candidate builds that are created starting from the third week into the release. These release candidate builds help to freeze the scope and maintain the quality of the release. The release candidate builds will go through:
+Every release has a pre-release version that gets created on branch creation, explained further below. This pre-release version is meant for all the below action items throughout the release process:
 
 - Platform Verification
-- Regression and Feature Verification Automated tests.
-- Exploratory testing by QA engineers
-- Strict security scanners on the container images
-- Upgrade from previous releases
-- Beta testing by users on issues that they are interested in.
-- Dogfooding on OpenEBS workload and e2e infrastructure clusters.
+- Automated Regression & Feature Testing
+- Exploratory Testing by QA engineers
+- Strict Security Scanning on container images
+- Upgrade Testing from previous releases
+- Beta Testing by users on relevant issues
 
-If any issues are found during the above stages, they are fixed and a new release candidate builds are generated.
+If any issues are found during the above stages, they are fixed and the prerelease version is overridden by the newer changes and are up for above action items again.
 
-Once all the above tests are completed, a main release tagged image is published.
+Once all the above tests are completed, a main release is created.
 
 ## Release Tagging
 
-Dynamic Local PV Provisioner is released as a set of container images with a versioned tag.
+Local PV Hostpath is released with container images and a respective helm chart as the only recommended way of installation.
 
-Before creating a release, the repo owner needs to create a separate branch from the active branch, which is `develop`. Name of the branch should follow the naming convention of `v1.9.x` if the release is for v1.9.0.
+Before creating a release, the repo owner needs to create a separate branch from the active branch, which is `develop`. Name of the branch should follow the naming convention of `release/2.7` if release is for `2.7.x`.
 
-Once the release branch is created, changelog from `changelogs/unreleased` needs to be moved to release specific folder `changelogs/v1.9.x`, if release branch is `v1.10.x` then folder will be `changelogs/v1.10.x`.
+Upon creation of a release branch ex. `release/2.7`, two automated PRs open up to change the chart versions of the charts in `release/2.7` branch to `2.7.0-prerelease` and `develop` to `2.8.0-develop`. Post merge of these two PRs, the `2.7.0-prerelease` and `2.8.0-develop` versions are pushed to respective docker registries and also the respective helm charts against these versions are published. The prerelease versions increment via automated PRs on every release creation. For example once `2.7.0` is published a `2.7.1-prerelease` image and chart would be published to allow testing of further patch releases and so on.
 
-The format of the release tag is either "Release-Name-RC1" or "Release-Name" depending on whether the tag is a release candidate or a release. (Example: v1.9.0-RC1 is a GitHub release tag for the release build. v1.9.0 is the release tag that is created after the release criteria are satisfied by the release candidate builds.)
+The format of the release tag follows semver versioning. The final release tag is of format `X.Y.Z` and the respective prerelease and develop versions are `X.Y.Z-prerelease` and `X.Y+1.0-develop`.
 
-Once the release is triggered, Github Actions release workflow has to be monitored. Once the release workflow is passed images are pushed to docker hub and quay.io. Images can be verified by going through docker hub and quay.io. Also the images shouldn't have any high-level vulnerabilities.
+Once the release is triggered, the unchanged code undergoes stages as such linting, unit-tests and bdd-tests and the code coverage is updated accordingly. Post the former jobs, the image build is triggered with the specified tag, the images are published and the chart is run though scripts that update the image tags at the relevant places and eventually helm charts are published.
 
-Images for the different components are published at the following location:
+The helm charts are hosted on github deployments for the corresponding releases.
 
-- Dynamic LocalPV Provisioner <br />
-    <https://quay.io/repository/openebs/provisioner-localpv?tab=tags> <br />
-    <https://hub.docker.com/r/openebs/provisioner-localpv/tags> <br />
+2. **Automated Version Updates:**
+   - Two automated PRs update chart versions:
+     - `release/2.7` branch → `2.7.0-prerelease`
+     - `develop` branch → `2.8.0-develop`
+   - Once merged, the updated images and Helm charts are published for testing.
 
-Once a release is created, update the release description with the changelog mentioned in `changelog/v1.9.x`. Once the changelogs are updated in the release, the repo owner needs to create a PR to `develop` with the following details:
+3. **Final Release Creation:**
+   - When the release branch is ready, the repo owner **creates a release with tag `X.Y.Z`** (e.g., `2.7.0`).
+   - The release process includes:
+     - Linting, unit tests, and BDD tests
+     - Code coverage updates
+     - Image builds with the specific tag (e.g., `2.7.0`)
+     - Helm chart updates and publishing
 
-1. update the changelog from `changelog/v1.9.x` to `CHANGELOG.md`
-2. If a release is not an RC tag then PR should include the changes to remove `changelog/v1.9.x` folder.
-3. If a release is an RC tag then PR should include the changes to remove the changelog from `changelog/v1.9.x` which are already mentioned in `CHANGELOG.md` as part of step number 1.
+4. **Post-GA Version Increments:**
+   - After the release is GA (General Availability):
+     - The next **pre-release version** (`2.7.1-prerelease`) is published.
+     - The **develop branch** continues with `2.8.0-develop` for the next major/minor release cycle.
+
+### Patch Release Process
+
+1. **Branching & Changes:**
+   - Patch releases are made against the existing release branch (e.g., `release/2.7`).
+   - All merged changes are available for testing via the **prerelease version** (`2.7.1-prerelease`).
+
+2. **Final Patch Release Creation:**
+   - When ready, the repo owner **creates a release with tag `X.Y.Z+1`** (e.g., `2.7.1`).
+   - The release process includes:
+     - Linting, unit tests, and BDD tests
+     - Code coverage updates
+     - Image builds with the specific tag (e.g., `2.7.1`)
+     - Helm chart updates and publishing
+
+3. **Post-GA Version Increments:**
+   - Once the patch is GA:
+     - The next **pre-release version** (`2.7.2-prerelease`) is published.
+     - The **develop branch** continues with `2.8.0-develop` for the next major/minor release cycle.
+
+## Release Artifacts
+
+- **Container Images:** Published at [Docker Hub](https://hub.docker.com/r/openebs/provisioner-localpv/tags)
+- **Helm Charts:** Hosted on [GitHub Deployments](https://github.com/openebs/dynamic-localpv-provisioner/tree/gh-pages)
+
+Before finalizing a release or patch release, it is ensured that **all significant changes** are documented in `CHANGELOG.md`.
+
+---
+
+This document streamlines the release process it ensuring all necessary details remain intact.
