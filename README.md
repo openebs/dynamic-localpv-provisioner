@@ -109,7 +109,7 @@ OpenEBS Local PV has been inspired by the prior work done by the following the K
 
 ## Dev Activity dashboard
 
-![Alt](https://repobeats.axiom.co/api/embed/d990adda232a580d4c0fd9b98d6557079bb3bf4a.svg "Repobeats analytics image")
+![Alt](https://repobeats.axiom.co/api/embed/d7011cfd2ca7cfc49674fc2b64c587adf20862e2.svg "Repobeats analytics image")
 
 ## License Compliance
 
