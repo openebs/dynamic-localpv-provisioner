@@ -1,6 +1,6 @@
 v4.2.0 / 2025-02-01
 ===================
-* Merge cas-config from PVC ([#190](https://github.com/openebs/dynamic-localpv-provisioner/pull/238),[@nobiit](https://github.com/nobiit))
+* Merge cas-config from PVC ([#190](https://github.com/openebs/dynamic-localpv-provisioner/pull/190),[@nobiit](https://github.com/nobiit))
 * Add option for helperPod to use hostNetwork ([#224](https://github.com/openebs/dynamic-localpv-provisioner/pull/224),[@mchtech](https://github.com/mchtech))
 * Add global.imageRegistry Helm chart parameter ([#227](https://github.com/openebs/dynamic-localpv-provisioner/pull/227),[@lkummer](https://github.com/lkummer))
 * Add timeout to helperPod wait if the launchPod failed ([#237](https://github.com/openebs/dynamic-localpv-provisioner/pull/237),[@tiagolobocastro](https://github.com/tiagolobocastro))
