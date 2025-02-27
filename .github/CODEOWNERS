@@ -1,5 +1,5 @@
 # Default code owners
-*                           @openebs/localpv-hostpath-approvers @openebs/org-maintainers
+*                           @openebs/localpv-hostpath-approvers
 
 # CODEOWNERS file owners
 /.github/CODEOWNERS         @openebs/org-maintainers
