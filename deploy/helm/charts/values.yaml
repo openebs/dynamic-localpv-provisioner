@@ -136,6 +136,9 @@ helperPod:
 # Additional labels to add to all chart resources
 extraLabels: {}
 
+loggingLabels:
+  openebs.io/logging: "true"
+
 analytics:
   enabled: true
   # Specify in hours the duration after which a ping event needs to be sent.

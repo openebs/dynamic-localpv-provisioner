@@ -32,6 +32,9 @@ spec:
         {{- with .Values.localpv.podLabels }}
           {{- toYaml . | nindent 8 }}
         {{- end }}
+        {{- with .Values.loggingLabels}}
+          {{ toYaml . | nindent 8 -}}
+        {{- end}}
     spec:
     {{- if .Values.localpv.priorityClassName }}
       priorityClassName: {{ tpl .Values.localpv.priorityClassName . }}
