@@ -138,6 +138,14 @@ update_chart_yaml() {
 
   yq_ibl ".version = \"$VERSION\" | .appVersion = \"$APP_VERSION\"" "$CHART_YAML"
   yq_ibl ".localpv.image.tag = \"$VERSION\"" "$VALUES_YAML"
+
+  if sed --version >/dev/null 2>&1; then
+    # GNU sed
+    sed -i "s/| \`localpv\.image\.tag\`[[:space:]]*| Image tag for LocalPV Provisioner[[:space:]]*| \`[^\\\`]*\`[[:space:]]*|/| \`localpv.image.tag\`                         | Image tag for LocalPV Provisioner                                                                                                                                                           | \`$APP_VERSION\`                       |/" "$README_MD"
+  else
+    # BSD/macOS sed
+    sed -i '' "s/| \`localpv\.image\.tag\`[[:space:]]*| Image tag for LocalPV Provisioner[[:space:]]*| \`[^\\\`]*\`[[:space:]]*|/| \`localpv.image.tag\`                         | Image tag for LocalPV Provisioner                                                                                                                                                           | \`$APP_VERSION\`                       |/" "$README_MD"
+  fi
 }
 
 set -euo pipefail
@@ -151,6 +159,7 @@ SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE[0]:-"$0"}")")"
 ROOT_DIR="$SCRIPT_DIR/.."
 CHART_DIR="$ROOT_DIR/deploy/helm/charts"
 CHART_YAML="$CHART_DIR/Chart.yaml"
+README_MD="$CHART_DIR/README.md"
 VALUES_YAML="$CHART_DIR/values.yaml"
 
 # Final computed version to be set in this.
