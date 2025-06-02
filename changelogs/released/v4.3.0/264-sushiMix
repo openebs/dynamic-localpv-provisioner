@@ -1,0 +1,2 @@
+add support for configuring file system mode for the hostpath directory
+add support for adding cas-config on PVC annotation
