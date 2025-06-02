@@ -65,6 +65,10 @@ You can provision LocalPV hostpath StorageType volumes dynamically using the def
        # hostpath directory
        #- name: BasePath
        #  value: "/var/openebs/local"
+       #Use this to set a specific mode for directory creation
+       #- name: FilePermissions
+       #  data:
+       #     mode: "0770"
   provisioner: openebs.io/local
   reclaimPolicy: Delete
   #It is necessary to have volumeBindingMode as WaitForFirstConsumer

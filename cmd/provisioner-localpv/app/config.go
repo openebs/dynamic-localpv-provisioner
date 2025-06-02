@@ -2,11 +2,11 @@ package app
 
 import (
 	"context"
+	"gopkg.in/yaml.v3"
 	"strconv"
 	"strings"
 
 	mconfig "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	cast "github.com/openebs/maya/pkg/castemplate/v1alpha1"
 	hostpath "github.com/openebs/maya/pkg/hostpath/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
 	"github.com/pkg/errors"
@@ -113,6 +113,17 @@ const (
 
 	KeyQuotaSoftLimit = "softLimitGrace"
 	KeyQuotaHardLimit = "hardLimitGrace"
+
+	// FilePermissions allows to define the default directory mode
+	// Exemple StorageClass snippet:
+	//    - name: FilePermissions
+	//      data:
+	//        mode: g+s
+	// This is the cas-template key for all file permission 'data' keys
+	KeyFilePermissions = "FilePermissions"
+
+	// FSMode defines the file permission mode of the shared directory
+	KeyFsMode = "mode"
 )
 
 const (
@@ -131,7 +142,7 @@ const (
 // default configuration of the provisioner.
 func (p *Provisioner) GetVolumeConfig(ctx context.Context, pvName string, pvc *corev1.PersistentVolumeClaim) (*VolumeConfig, error) {
 
-	pvConfig := p.defaultConfig
+	var pvConfig []Config
 
 	//Fetch the SC
 	scName := GetStorageClassName(pvc)
@@ -142,35 +153,36 @@ func (p *Provisioner) GetVolumeConfig(ctx context.Context, pvName string, pvc *c
 
 	// extract and merge the cas config from storageclass
 	scCASConfigStr := sc.ObjectMeta.Annotations[string(mconfig.CASConfigKey)]
+	var scConfig []Config
 	klog.V(4).Infof("SC %v has config:%v", *scName, scCASConfigStr)
 	if len(strings.TrimSpace(scCASConfigStr)) != 0 {
-		scCASConfig, err := cast.UnMarshallToConfig(scCASConfigStr)
+		err = yaml.Unmarshal([]byte(scCASConfigStr), &scConfig)
 		if err == nil {
-			pvConfig = cast.MergeConfig(scCASConfig, pvConfig)
+			pvConfig = MergeConfigs(scConfig, pvConfig)
 		} else {
 			return nil, errors.Wrapf(err, "failed to get config: invalid sc config {%v}", scCASConfigStr)
 		}
 	}
 
-	// Extract and merge the cas config from persistentvolumeclaim.
-	// TODO: Validation checks for what all cas-config options can be
-	// set on the PVC.
-	pvcCASConfigStr := pvc.Annotations[string(mconfig.CASConfigKey)]
+	//TODO : extract and merge the cas volume config from pvc
+	// This block can be added once validation checks are added
+	// as to the type of config that can be passed via PVC
+	var pvcConfig []Config
+	pvcCASConfigStr := pvc.ObjectMeta.Annotations[string(mconfig.CASConfigKey)]
 	klog.V(4).Infof("PVC %v has config:%v", pvc.Name, pvcCASConfigStr)
 	if len(strings.TrimSpace(pvcCASConfigStr)) != 0 {
-		pvcCASConfig, err := cast.UnMarshallToConfig(pvcCASConfigStr)
+		err = yaml.Unmarshal([]byte(pvcCASConfigStr), &pvcConfig)
 		if err == nil {
-			// Config keys which already exist (SC config),
-			// will be skipped
-			// i.e. SC config will have precedence over PVC config,
-			// if both have the same keys
-			pvConfig = cast.MergeConfig(pvConfig, pvcCASConfig)
+			pvConfig = MergeConfigs(pvConfig, pvcConfig)
 		} else {
-			return nil, errors.Wrapf(err, "failed to get config: invalid pvc config {%v}", pvcCASConfigStr)
+			return nil, errors.Wrapf(err, "failed to get config: invalid config {%v}"+
+				" in pvc {%v} in namespace {%v}",
+				pvcCASConfigStr, pvc.Name, pvc.Namespace,
+			)
 		}
 	}
 
-	pvConfigMap, err := cast.ConfigToMap(pvConfig)
+	pvConfigMap, err := ConfigToMap(pvConfig)
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to read volume config: pvc {%v}", pvc.ObjectMeta.Name)
 	}
@@ -332,6 +344,15 @@ func (c *VolumeConfig) IsExt4QuotaEnabled() bool {
 	return enableExt4QuotaBool
 }
 
+// GetFsMode fetches the file mode from PVC
+// or StorageClass annotation, if specified
+func (c *VolumeConfig) GetFsMode() string {
+	configData := c.getDataField(KeyFilePermissions, KeyFsMode)
+
+	//Keep the original default mode
+	return configData
+}
+
 // getValue is a utility function to extract the value
 // of the `key` from the ConfigMap object - which is
 // map[string]interface{map[string][string]}
@@ -371,9 +392,9 @@ func (c *VolumeConfig) getEnabled(key string) string {
 // This gets the value for a specific
 // 'Data' parameter key-value pair.
 func (c *VolumeConfig) getDataField(key string, dataKey string) string {
-	if configData, ok := util.GetNestedField(c.configData, key).(map[string]string); ok {
+	if configData, ok := util.GetNestedField(c.configData, key).(map[string]RawLiteral); ok {
 		if val, p := configData[dataKey]; p {
-			return val
+			return string(val)
 		}
 	}
 	//Default case
@@ -464,7 +485,7 @@ func GetImagePullSecrets(s string) []corev1.LocalObjectReference {
 	return list
 }
 
-func dataConfigToMap(pvConfig []mconfig.Config) (map[string]interface{}, error) {
+func dataConfigToMap(pvConfig []Config) (map[string]interface{}, error) {
 	m := map[string]interface{}{}
 
 	for _, configObj := range pvConfig {
@@ -486,7 +507,7 @@ func dataConfigToMap(pvConfig []mconfig.Config) (map[string]interface{}, error) 
 	return m, nil
 }
 
-func listConfigToMap(pvConfig []mconfig.Config) (map[string]interface{}, error) {
+func listConfigToMap(pvConfig []Config) (map[string]interface{}, error) {
 	m := map[string]interface{}{}
 
 	for _, configObj := range pvConfig {
@@ -506,4 +527,75 @@ func listConfigToMap(pvConfig []mconfig.Config) (map[string]interface{}, error) 
 	}
 
 	return m, nil
+}
+
+// A RawLiteral interprets characters as they are without assuming they are octal and translating them to ints.
+// This works when we want to pick up a yaml value as it is, whether it's wearing ” or "" or neither.
+type RawLiteral string
+
+func (r *RawLiteral) UnmarshalYAML(node *yaml.Node) error {
+	*r = RawLiteral(node.Value)
+	return nil
+}
+
+// Config holds a configuration element
+type Config struct {
+	// Name of the config
+	Name string `yaml:"name"`
+	// Enabled flags if this config is enabled or disabled;
+	// true indicates enabled while false indicates disabled
+	Enabled string `yaml:"enabled"`
+	// Value represents any specific value that is applicable
+	// to this config
+	Value string `yaml:"value"`
+	// Data represents an arbitrary map of key value pairs
+	Data map[string]RawLiteral `yaml:"data"`
+	// List represents a JSON(YAML) array
+	List []string `yaml:"list"`
+}
+
+// MergeConfig will merge configuration fields
+// from lowPriority that are not present in
+// highPriority configuration and return the
+// resulting config
+func MergeConfigs(highPriority, lowPriority []Config) (final []Config) {
+	var book []string
+	for _, h := range highPriority {
+		final = append(final, h)
+		book = append(book, strings.TrimSpace(h.Name))
+	}
+	for _, l := range lowPriority {
+		// include only if the config was not present
+		// earlier in high priority configuration
+		if !util.ContainsString(book, strings.TrimSpace(l.Name)) {
+			final = append(final, l)
+		}
+	}
+	return
+}
+
+// ConfigToMap transforms CAS template config type
+// to a nested map
+func ConfigToMap(all []Config) (m map[string]interface{}, err error) {
+	var configName string
+	m = map[string]interface{}{}
+	for _, config := range all {
+		configName = strings.TrimSpace(config.Name)
+		if len(configName) == 0 {
+			err = errors.Errorf("failed to transform cas config to map: missing config name: %s", config)
+			return nil, err
+		}
+		confHierarchy := map[string]interface{}{
+			configName: map[string]string{
+				"enabled": config.Enabled,
+				"value":   config.Value,
+			},
+		}
+		isMerged := util.MergeMapOfObjects(m, confHierarchy)
+		if !isMerged {
+			err = errors.Errorf("failed to transform cas config to map: failed to merge: %s", config)
+			return nil, err
+		}
+	}
+	return
 }

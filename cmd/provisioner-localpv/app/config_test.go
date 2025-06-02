@@ -21,7 +21,6 @@ import (
 	"reflect"
 	"testing"
 
-	mconfig "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -67,22 +66,22 @@ func TestGetImagePullSecrets(t *testing.T) {
 }
 
 func TestDataConfigToMap(t *testing.T) {
-	hostpathConfig := mconfig.Config{Name: "StorageType", Value: "hostpath"}
-	xfsQuotaConfig := mconfig.Config{Name: "XFSQuota", Enabled: "true",
-		Data: map[string]string{
+	hostpathConfig := Config{Name: "StorageType", Value: "hostpath"}
+	xfsQuotaConfig := Config{Name: "XFSQuota", Enabled: "true",
+		Data: map[string]RawLiteral{
 			"SoftLimitGrace": "20%",
 			"HardLimitGrace": "80%",
 		},
 	}
 
 	testCases := map[string]struct {
-		config        []mconfig.Config
+		config        []Config
 		expectedValue map[string]interface{}
 	}{
 		"nil 'Data' map": {
-			config: []mconfig.Config{hostpathConfig, xfsQuotaConfig},
+			config: []Config{hostpathConfig, xfsQuotaConfig},
 			expectedValue: map[string]interface{}{
-				"XFSQuota": map[string]string{
+				"XFSQuota": map[string]RawLiteral{
 					"SoftLimitGrace": "20%",
 					"HardLimitGrace": "80%",
 				},
@@ -105,14 +104,51 @@ func TestDataConfigToMap(t *testing.T) {
 	}
 }
 
+func TestPermissionConfigToMap(t *testing.T) {
+	hostpathConfig := Config{Name: "StorageType", Value: "hostpath"}
+	permissionConfig := Config{Name: "FilePermissions",
+		Data: map[string]RawLiteral{
+			"mode": "0750",
+		},
+	}
+
+	testCases := map[string]struct {
+		config        []Config
+		expectedValue map[string]interface{}
+	}{
+		"nil 'Data' map": {
+			config: []Config{hostpathConfig, permissionConfig},
+			expectedValue: map[string]interface{}{
+				"FilePermissions": map[string]RawLiteral{
+					"mode": "0750",
+				},
+			},
+		},
+	}
+
+	for k, v := range testCases {
+		v := v
+		k := k
+		t.Run(k, func(t *testing.T) {
+			actualValue, err := dataConfigToMap(v.config)
+			if err != nil {
+				t.Errorf("expected error to be nil, but got %v", err)
+			}
+			if !reflect.DeepEqual(actualValue, v.expectedValue) {
+				t.Errorf("expected %v, but got %v", v.expectedValue, actualValue)
+			}
+		})
+	}
+}
+
 func Test_listConfigToMap(t *testing.T) {
 	tests := map[string]struct {
-		pvConfig      []mconfig.Config
+		pvConfig      []Config
 		expectedValue map[string]interface{}
 		wantErr       bool
 	}{
 		"Valid list parameter": {
-			pvConfig: []mconfig.Config{
+			pvConfig: []Config{
 				{Name: "StorageType", Value: "hostpath"},
 				{Name: "NodeAffinityLabels", List: []string{"fake-node-label-key"}},
 			},
