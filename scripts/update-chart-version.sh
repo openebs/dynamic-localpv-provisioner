@@ -119,7 +119,7 @@ create_version_from_tag() {
     else
       VERSION="$EXTRACTED_VERSION"
     fi
- elif [[ "$TAG" == *"-rc"* ]]; then
+  elif [[ "$TAG" == *"-rc"* ]]; then
     if [[ -z $PUBLISH_RELEASE ]]; then
       NO_OP=1
     else
