@@ -1,7 +1,7 @@
 v4.3.0 / 2025-06-02
 ===================
-* Add support for configuring file system mode at provision time ([#264](https://github.com/openebs/dynamic-localpv-provisioner/pull/264),[@hsushiMix](https://github.com/sushiMix))
-* Add support for adding cas-config on PVC annotation ([#264](https://github.com/openebs/dynamic-localpv-provisioner/pull/264),[@hsushiMix](https://github.com/sushiMix))
+* Add support for configuring file system mode at provision time ([#264](https://github.com/openebs/dynamic-localpv-provisioner/pull/264),[@sushiMix](https://github.com/sushiMix))
+* Add support for adding cas-config on PVC annotation ([#264](https://github.com/openebs/dynamic-localpv-provisioner/pull/264),[@sushiMix](https://github.com/sushiMix))
 
 v4.2.0 / 2025-02-01
 ===================
