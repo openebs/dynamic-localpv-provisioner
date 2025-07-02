@@ -18,6 +18,7 @@ pkgs.mkShell {
     which
     curl
     cacert
+    crane
     util-linux
     jq
     nixos-shell
