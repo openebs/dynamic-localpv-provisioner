@@ -50,6 +50,16 @@ spec:
       - name: {{ template "localpv.fullname" . }}
         image: "{{ with .Values.localpv.image.registry | default .Values.global.imageRegistry | trimSuffix "/" }}{{ . }}/{{ end }}{{ .Values.localpv.image.repository }}:{{ .Values.localpv.image.tag }}"
         imagePullPolicy: {{ .Values.localpv.image.pullPolicy }}
+        {{- $args := list }}
+        {{- if .Values.localpv.logging.dedupeWarnings }}
+          {{- $args = append $args "--dedupe-warnings" }}
+        {{- end }}
+        {{- if gt (len $args) 0 }}
+        args:
+        {{- range $args }}
+        - {{ . | quote }}
+        {{- end }}
+        {{- end }}
         resources:
 {{ toYaml .Values.localpv.resources | indent 10 }}
         env:

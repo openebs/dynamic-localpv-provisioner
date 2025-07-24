@@ -35,10 +35,19 @@ var (
 	loggerKillSwitch     = make(chan struct{})
 )
 
+// KlogWriter writes to Klog's Info stream.
 type KlogWriter struct{}
 
 func (k KlogWriter) Write(data []byte) (n int, err error) {
 	klog.Info(string(data))
+	return len(data), nil
+}
+
+// KlogWarner writes to Klog's Warning stream.
+type KlogWarner struct{}
+
+func (w KlogWarner) Write(data []byte) (n int, err error) {
+	klog.Warning(string(data))
 	return len(data), nil
 }
 

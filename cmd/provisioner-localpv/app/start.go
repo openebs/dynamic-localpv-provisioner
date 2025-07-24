@@ -12,8 +12,11 @@ import (
 	"github.com/openebs/maya/pkg/version"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
 	pvController "sigs.k8s.io/sig-storage-lib-external-provisioner/v9/controller"
+
+	"github.com/openebs/dynamic-localpv-provisioner/pkg/logger"
 )
 
 var (
@@ -23,6 +26,7 @@ var (
 	// localpv provisioner
 	LeaderElectionKey = "LEADER_ELECTION_ENABLED"
 	usage             = cmdName
+	dedupeWarnings    bool
 )
 
 // StartProvisioner will start a new dynamic Host Path PV provisioner
@@ -39,6 +43,8 @@ func StartProvisioner() (*cobra.Command, error) {
 		},
 	}
 
+	cmd.PersistentFlags().BoolVar(&dedupeWarnings, "dedupe-warnings", false, "De-duplicate warning messages")
+
 	return cmd, nil
 }
 
@@ -46,6 +52,15 @@ func StartProvisioner() (*cobra.Command, error) {
 func Start(cmd *cobra.Command) error {
 	klog.Infof("Starting Provisioner...")
 
+	// De-duplicate warning messages, to avoid flooding logs.
+	if dedupeWarnings {
+		rest.SetDefaultWarningHandler(
+			rest.NewWarningWriter(logger.KlogWarner{}, rest.WarningWriterOptions{
+				Deduplicate: true,
+				Color:       false,
+			}),
+		)
+	}
 	// Dynamic Provisioner can run successfully if it can establish
 	// connection to the Kubernetes Cluster. mKube helps with
 	// establishing the connection either via InCluster or

@@ -40,6 +40,9 @@ localpv:
     ## Labels to be added to localpv provisioner deployment pods
   podLabels:
     name: openebs-localpv-provisioner
+  logging:
+    # Disable duplicate warning messages
+    dedupeWarnings: false
   healthCheck:
     initialDelaySeconds: 30
     periodSeconds: 60
