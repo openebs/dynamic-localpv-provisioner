@@ -83,7 +83,7 @@ Please check [here](./design/hostpath_localpv_provisioner.md) for complete desig
 - [Quickstart](./docs/quickstart.md#quickstart)
 - [Developer Setup](./docs/developer.md)
 - [Testing](./docs/developer-setup.md#testing)
-- [Contibuting Guidelines](./CONTRIBUTING.md)
+- [Contributing Guidelines](./CONTRIBUTING.md)
 - [Governance](./GOVERNANCE.md)
 - [Changelog](./CHANGELOG.md)
 - [Release Process](./RELEASE.md)
