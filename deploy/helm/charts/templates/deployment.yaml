@@ -105,6 +105,16 @@ spec:
         - name: OPENEBS_IO_IMAGE_PULL_SECRETS
           value: "{{- range $index, $secret := .Values.imagePullSecrets}}{{if $index}},{{end}}{{ $secret.name }}{{- end}}"
 {{- end }}
+        # PVC Manager configuration
+        {{- if .Values.pvcManager.enabled }}
+        - name: OPENEBS_IO_ENABLE_PVC_MANAGER
+          value: "true"
+        - name: OPENEBS_IO_PVC_MANAGER_PORT
+          value: "{{ .Values.pvcManager.port }}"
+        {{- else }}
+        - name: OPENEBS_IO_ENABLE_PVC_MANAGER
+          value: "false"
+        {{- end }}
         # Process name used for matching is limited to the 15 characters
         # present in the pgrep output.
         # So fullname can't be used here with pgrep (>15 chars).A regular expression

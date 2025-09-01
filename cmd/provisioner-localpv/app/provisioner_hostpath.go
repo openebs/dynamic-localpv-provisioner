@@ -79,7 +79,14 @@ func (p *Provisioner) ProvisionHostPath(ctx context.Context, opts pvController.P
 		imagePullSecrets:   imagePullSecrets,
 		hostNetwork:        hostNetwork,
 	}
-	iErr := p.createInitPod(ctx, podOpts)
+	// Use PVC Manager if enabled, otherwise fallback to helper pods
+	var iErr error
+	if isPVCManagerEnabled() {
+		iErr = p.createInitVolumeViaManager(ctx, podOpts)
+	} else {
+		iErr = p.createInitPod(ctx, podOpts)
+	}
+
 	if iErr != nil {
 		klog.Infof("Initialize volume %v failed: %v", name, iErr)
 		alertlog.Logger.Errorw("",
@@ -109,7 +116,13 @@ func (p *Provisioner) ProvisionHostPath(ctx context.Context, opts pvController.P
 			pvcStorage:         pvcStorage,
 			hostNetwork:        hostNetwork,
 		}
-		iErr := p.createQuotaPod(ctx, podOpts)
+		// Use PVC Manager if enabled, otherwise fallback to helper pods
+		var iErr error
+		if isPVCManagerEnabled() {
+			iErr = p.createQuotaViaManager(ctx, podOpts)
+		} else {
+			iErr = p.createQuotaPod(ctx, podOpts)
+		}
 		if iErr != nil {
 			klog.Infof("Applying quota failed: %v", iErr)
 			alertlog.Logger.Errorw("",
@@ -146,7 +159,13 @@ func (p *Provisioner) ProvisionHostPath(ctx context.Context, opts pvController.P
 			pvcStorage:         pvcStorage,
 			hostNetwork:        hostNetwork,
 		}
-		iErr := p.createQuotaPod(ctx, podOpts)
+		// Use PVC Manager if enabled, otherwise fallback to helper pods
+		var iErr error
+		if isPVCManagerEnabled() {
+			iErr = p.createQuotaViaManager(ctx, podOpts)
+		} else {
+			iErr = p.createQuotaPod(ctx, podOpts)
+		}
 		if iErr != nil {
 			klog.Infof("Applying quota failed: %v", iErr)
 			alertlog.Logger.Errorw("",
@@ -288,8 +307,16 @@ func (p *Provisioner) DeleteHostPath(ctx context.Context, pv *v1.PersistentVolum
 		hostNetwork:        hostNetwork,
 	}
 
-	if err := p.createCleanupPod(ctx, podOpts); err != nil {
-		return errors.Wrapf(err, "clean up volume %v failed", pv.Name)
+	// Use PVC Manager if enabled, otherwise fallback to helper pods
+	var cleanupErr error
+	if isPVCManagerEnabled() {
+		cleanupErr = p.createCleanupViaManager(ctx, podOpts)
+	} else {
+		cleanupErr = p.createCleanupPod(ctx, podOpts)
+	}
+
+	if cleanupErr != nil {
+		return errors.Wrapf(cleanupErr, "clean up volume %v failed", pv.Name)
 	}
 	return nil
 }

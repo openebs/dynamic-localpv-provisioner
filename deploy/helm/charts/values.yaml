@@ -143,3 +143,66 @@ analytics:
   enabled: true
   # Specify in hours the duration after which a ping event needs to be sent.
   pingInterval: "24h"
+
+pvcManager:
+  # If true, enables the PVC Manager DaemonSet deployment
+  enabled: false
+  image:
+    registry: ""
+    repository: openebs/pvc-manager
+    tag: 1.0.0
+    pullPolicy: IfNotPresent
+  # Port on which the PVC Manager HTTP server listens
+  port: 8080
+  # Log level for PVC Manager
+  logLevel: info
+  # Listen address for PVC Manager HTTP server
+  listenAddr: "0.0.0.0:8080"
+  annotations: {}
+  podAnnotations: {}
+  # Labels to be added to PVC Manager DaemonSet pods
+  podLabels:
+    app: pvc-manager
+    component: localpv-provisioner
+  # Health check configuration
+  healthCheck:
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    readinessInitialDelaySeconds: 5
+    readinessPeriodSeconds: 5
+  # Resource limits and requests for PVC Manager
+  resources:
+    limits:
+      cpu: 200m
+      memory: 128Mi
+    requests:
+      cpu: 100m
+      memory: 64Mi
+  # Node selector for PVC Manager DaemonSet
+  nodeSelector:
+    kubernetes.io/os: linux
+  # Tolerations for PVC Manager DaemonSet
+  tolerations:
+    - effect: NoSchedule
+      operator: Exists
+    - effect: NoExecute
+      operator: Exists
+  # Security context for PVC Manager containers
+  securityContext:
+    privileged: true
+  # Base path on the host for volume operations
+  basePath: "/var/openebs/local"
+  # Host network configuration
+  hostNetwork: false
+  hostPID: false
+  dnsPolicy: ClusterFirst
+  # Service configuration for PVC Manager
+  service:
+    enabled: true
+    type: ClusterIP
+    port: 8080
+    annotations: {}
+  # RBAC configuration for PVC Manager
+  rbac:
+    create: true
+    serviceAccountName: openebs-pvc-manager

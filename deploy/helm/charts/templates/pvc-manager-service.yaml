@@ -1,0 +1,29 @@
+{{- if and .Values.pvcManager.enabled .Values.pvcManager.service.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "localpv.fullname" . }}-pvc-manager
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "localpv.labels" . | nindent 4 }}
+    app: pvc-manager
+    component: localpv-provisioner
+    {{- if .Values.extraLabels }}
+    {{- toYaml .Values.extraLabels | nindent 4 }}
+    {{- end }}
+  {{- with .Values.pvcManager.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.pvcManager.service.type }}
+  selector:
+    app: pvc-manager
+    {{- include "localpv.selectorLabels" . | nindent 4 }}
+  ports:
+  - port: {{ .Values.pvcManager.service.port }}
+    targetPort: {{ .Values.pvcManager.port }}
+    protocol: TCP
+    name: http
+{{- end }}

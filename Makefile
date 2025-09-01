@@ -62,12 +62,15 @@ endif
 
 # Specify the name for the binaries
 PROVISIONER_LOCALPV=provisioner-localpv
+PVC_MANAGER=pvc-manager
 
 # Specify the name of the image
 PROVISIONER_LOCALPV_IMAGE?=provisioner-localpv
+PVC_MANAGER_IMAGE?=pvc-manager
 
 # Final variable with image org, name and tag
 PROVISIONER_LOCALPV_IMAGE_TAG=${IMAGE_ORG}/${PROVISIONER_LOCALPV_IMAGE}:${TAG}
+PVC_MANAGER_IMAGE_TAG=${IMAGE_ORG}/${PVC_MANAGER_IMAGE}:${TAG}
 
 # Specify the date of build
 DBUILD_DATE=$(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
@@ -97,7 +100,7 @@ EXTERNAL_TOOLS=\
 export DBUILD_ARGS=--build-arg DBUILD_DATE=${DBUILD_DATE} --build-arg DBUILD_REPO_URL=${DBUILD_REPO_URL} --build-arg DBUILD_SITE_URL=${DBUILD_SITE_URL} --build-arg BRANCH=${BRANCH} --build-arg RELEASE_TAG=${RELEASE_TAG}
 
 .PHONY: all
-all: test provisioner-localpv-image
+all: test provisioner-localpv-image pvc-manager-image
 
 .PHONY: deps
 deps:
@@ -126,8 +129,10 @@ clean:
 	rm -rf bin
 	./ci/ci-test.sh clean
 	chmod -R u+w ${GOPATH}/bin/${PROVISIONER_LOCALPV} 2>/dev/null || true
+	chmod -R u+w ${GOPATH}/bin/${PVC_MANAGER} 2>/dev/null || true
 	chmod -R u+w ${GOPATH}/pkg/* 2>/dev/null || true
 	rm -rf ${GOPATH}/bin/${PROVISIONER_LOCALPV}
+	rm -rf ${GOPATH}/bin/${PVC_MANAGER}
 	rm -rf ${GOPATH}/pkg/*
 
 .PHONY: test
@@ -173,6 +178,14 @@ provisioner-localpv:
 	@echo "----------------------------"
 	@PNAME=${PROVISIONER_LOCALPV} CTLNAME=${PROVISIONER_LOCALPV} sh -c "'./buildscripts/build.sh'"
 
+#Use this to build pvc-manager
+.PHONY: pvc-manager
+pvc-manager:
+	@echo "----------------------------"
+	@echo "--> pvc-manager            "
+	@echo "----------------------------"
+	@PNAME=${PVC_MANAGER} CTLNAME=${PVC_MANAGER} sh -c "'./buildscripts/build.sh'"
+
 .PHONY: provisioner-localpv-image
 provisioner-localpv-image: provisioner-localpv
 	@echo "-------------------------------"
@@ -181,6 +194,15 @@ provisioner-localpv-image: provisioner-localpv
 	@cp bin/provisioner-localpv/${PROVISIONER_LOCALPV} buildscripts/provisioner-localpv/
 	@cd buildscripts/provisioner-localpv && docker build -t ${PROVISIONER_LOCALPV_IMAGE_TAG} ${DBUILD_ARGS} . --no-cache
 	@rm buildscripts/provisioner-localpv/${PROVISIONER_LOCALPV}
+
+.PHONY: pvc-manager-image
+pvc-manager-image: pvc-manager
+	@echo "-------------------------------"
+	@echo "--> pvc-manager image         "
+	@echo "-------------------------------"
+	@cp bin/pvc-manager/${PVC_MANAGER} buildscripts/pvc-manager/
+	@cd buildscripts/pvc-manager && docker build -t ${PVC_MANAGER_IMAGE_TAG} ${DBUILD_ARGS} . --no-cache
+	@rm buildscripts/pvc-manager/${PVC_MANAGER}
 
 .PHONY: image-tag
 image-tag:
@@ -197,6 +219,7 @@ image-ref:
 .PHONY: push
 push:
 	DIMAGE=${IMAGE_ORG}/${PROVISIONER_LOCALPV_IMAGE} ./buildscripts/push.sh
+	DIMAGE=${IMAGE_ORG}/${PVC_MANAGER_IMAGE} ./buildscripts/push.sh
 
 # include the buildx recipes
 include Makefile.buildx.mk
