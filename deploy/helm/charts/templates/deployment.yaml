@@ -4,6 +4,7 @@ kind: Deployment
 metadata:
   name: {{ template "localpv.fullname" . }}
   {{- with .Values.localpv.annotations }}
+  namespace: {{ .Release.Namespace }}
   annotations: {{ toYaml . | nindent 4 }}
   {{- end }}
   labels:
