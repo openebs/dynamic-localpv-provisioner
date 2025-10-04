@@ -87,7 +87,7 @@ func (p *Provisioner) Provision(ctx context.Context, opts pvController.Provision
 		return nil, pvController.ProvisioningFinished, err
 	}
 
-	if pvc.Spec.Selector != nil {
+	if pvc.Spec.Selector != nil && (len(pvc.Spec.Selector.MatchLabels) > 0 || len(pvc.Spec.Selector.MatchExpressions) > 0) {
 		return nil, pvController.ProvisioningFinished, fmt.Errorf("claim.Spec.Selector is not supported")
 	}
 	for _, accessMode := range pvc.Spec.AccessModes {
