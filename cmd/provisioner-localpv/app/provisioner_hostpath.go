@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"strings"
 
 	"github.com/openebs/maya/pkg/alertlog"
 	mconfig "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
@@ -21,6 +22,21 @@ const (
 	SoftLimitGrace  string = "softLimitGrace"
 	HardLimitGrace  string = "hardLimitGrace"
 )
+
+// isQuotaCommandMissingError checks if the error is related to missing quota commands
+func isQuotaCommandMissingError(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	errStr := err.Error()
+	// Check for common patterns indicating missing quota commands
+	return strings.Contains(errStr, "xfs_quota: not found") ||
+		strings.Contains(errStr, "command not found") ||
+		strings.Contains(errStr, "quota commands not available") ||
+		strings.Contains(errStr, "xfs_quota command not found") ||
+		strings.Contains(errStr, "ext quota commands not found")
+}
 
 // ProvisionHostPath is invoked by the Provisioner which expect HostPath PV
 //
@@ -79,7 +95,14 @@ func (p *Provisioner) ProvisionHostPath(ctx context.Context, opts pvController.P
 		imagePullSecrets:   imagePullSecrets,
 		hostNetwork:        hostNetwork,
 	}
-	iErr := p.createInitPod(ctx, podOpts)
+	// Use PVC Manager if enabled, otherwise fallback to helper pods
+	var iErr error
+	if isPVCManagerEnabled() {
+		iErr = p.createInitVolumeViaManager(ctx, podOpts)
+	} else {
+		iErr = p.createInitPod(ctx, podOpts)
+	}
+
 	if iErr != nil {
 		klog.Infof("Initialize volume %v failed: %v", name, iErr)
 		alertlog.Logger.Errorw("",
@@ -109,16 +132,34 @@ func (p *Provisioner) ProvisionHostPath(ctx context.Context, opts pvController.P
 			pvcStorage:         pvcStorage,
 			hostNetwork:        hostNetwork,
 		}
-		iErr := p.createQuotaPod(ctx, podOpts)
+		// Use PVC Manager if enabled, otherwise fallback to helper pods
+		var iErr error
+		if isPVCManagerEnabled() {
+			iErr = p.createQuotaViaManager(ctx, podOpts)
+		} else {
+			iErr = p.createQuotaPod(ctx, podOpts)
+		}
 		if iErr != nil {
 			klog.Infof("Applying quota failed: %v", iErr)
-			alertlog.Logger.Errorw("",
-				"eventcode", "local.pv.provision.failure",
-				"msg", "Failed to provision Local PV",
-				"rname", opts.PVName,
-				"reason", "Quota enforcement failed",
-				"storagetype", stgType,
-			)
+			// Check if the error is due to missing quota commands and provide a more informative message
+			if isQuotaCommandMissingError(iErr) {
+				klog.Infof("Quota commands not found. Please ensure xfsprogs (for XFS) or quota tools (for ext4) are installed on the PVC Manager container")
+				alertlog.Logger.Errorw("",
+					"eventcode", "local.pv.provision.failure",
+					"msg", "Failed to provision Local PV",
+					"rname", opts.PVName,
+					"reason", "Quota enforcement failed - missing quota tools in PVC Manager container",
+					"storagetype", stgType,
+				)
+			} else {
+				alertlog.Logger.Errorw("",
+					"eventcode", "local.pv.provision.failure",
+					"msg", "Failed to provision Local PV",
+					"rname", opts.PVName,
+					"reason", "Quota enforcement failed",
+					"storagetype", stgType,
+				)
+			}
 			return nil, pvController.ProvisioningFinished, iErr
 		}
 		alertlog.Logger.Infow("",
@@ -146,16 +187,34 @@ func (p *Provisioner) ProvisionHostPath(ctx context.Context, opts pvController.P
 			pvcStorage:         pvcStorage,
 			hostNetwork:        hostNetwork,
 		}
-		iErr := p.createQuotaPod(ctx, podOpts)
+		// Use PVC Manager if enabled, otherwise fallback to helper pods
+		var iErr error
+		if isPVCManagerEnabled() {
+			iErr = p.createQuotaViaManager(ctx, podOpts)
+		} else {
+			iErr = p.createQuotaPod(ctx, podOpts)
+		}
 		if iErr != nil {
 			klog.Infof("Applying quota failed: %v", iErr)
-			alertlog.Logger.Errorw("",
-				"eventcode", "local.pv.provision.failure",
-				"msg", "Failed to provision Local PV",
-				"rname", opts.PVName,
-				"reason", "Quota enforcement failed",
-				"storagetype", stgType,
-			)
+			// Check if the error is due to missing quota commands and provide a more informative message
+			if isQuotaCommandMissingError(iErr) {
+				klog.Infof("Quota commands not found. Please ensure xfsprogs (for XFS) or quota tools (for ext4) are installed on the PVC Manager container")
+				alertlog.Logger.Errorw("",
+					"eventcode", "local.pv.provision.failure",
+					"msg", "Failed to provision Local PV",
+					"rname", opts.PVName,
+					"reason", "Quota enforcement failed - missing quota tools in PVC Manager container",
+					"storagetype", stgType,
+				)
+			} else {
+				alertlog.Logger.Errorw("",
+					"eventcode", "local.pv.provision.failure",
+					"msg", "Failed to provision Local PV",
+					"rname", opts.PVName,
+					"reason", "Quota enforcement failed",
+					"storagetype", stgType,
+				)
+			}
 			return nil, pvController.ProvisioningFinished, iErr
 		}
 		alertlog.Logger.Infow("",
@@ -276,9 +335,9 @@ func (p *Provisioner) DeleteHostPath(ctx context.Context, pv *v1.PersistentVolum
 
 	//Initiate clean up only when reclaim policy is not retain.
 	klog.Infof("Deleting volume %v at %v:%v", pv.Name, GetNodeHostname(nodeObject), path)
-	cleanupCmdsForPath := []string{"rm", "-rf"}
+
 	podOpts := &HelperPodOptions{
-		cmdsForPath:        cleanupCmdsForPath,
+		cmdsForPath:        []string{},
 		name:               pv.Name,
 		path:               path,
 		nodeAffinityLabels: nodeAffinityLabels,
@@ -288,8 +347,16 @@ func (p *Provisioner) DeleteHostPath(ctx context.Context, pv *v1.PersistentVolum
 		hostNetwork:        hostNetwork,
 	}
 
-	if err := p.createCleanupPod(ctx, podOpts); err != nil {
-		return errors.Wrapf(err, "clean up volume %v failed", pv.Name)
+	// Use PVC Manager if enabled, otherwise fallback to helper pods
+	var cleanupErr error
+	if isPVCManagerEnabled() {
+		cleanupErr = p.createCleanupViaManager(ctx, podOpts)
+	} else {
+		cleanupErr = p.createCleanupPod(ctx, podOpts)
+	}
+
+	if cleanupErr != nil {
+		return errors.Wrapf(cleanupErr, "clean up volume %v failed", pv.Name)
 	}
 	return nil
 }

@@ -19,6 +19,7 @@ package app
 import (
 	"context"
 	"errors"
+	"os"
 	"testing"
 
 	v1 "k8s.io/api/core/v1"
@@ -27,6 +28,19 @@ import (
 )
 
 func TestProvision(t *testing.T) {
+	// Disable PVC Manager mode for this test to use helper pods instead
+	originalPVCManagerEnabled := getPVCManagerEnabled()
+	// Set PVC Manager to false for this test
+	os.Setenv("OPENEBS_IO_ENABLE_PVC_MANAGER", "false")
+	defer func() {
+		// Restore original value
+		if originalPVCManagerEnabled {
+			os.Setenv("OPENEBS_IO_ENABLE_PVC_MANAGER", "true")
+		} else {
+			os.Unsetenv("OPENEBS_IO_ENABLE_PVC_MANAGER")
+		}
+	}()
+
 	testsCases := map[string]struct {
 		opts              pvController.ProvisionOptions
 		errorMessage      string

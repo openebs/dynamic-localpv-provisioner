@@ -104,6 +104,30 @@ helm install openebs-localpv openebs-localpv/localpv-provisioner --namespace ope
 | `localpv.enableLeaderElection`              | Enable leader election                                                                                                                                                                      | `true`                        |
 | `localpv.affinity`                          | LocalPV Provisioner pod affinity                                                                                                                                                            | `{}`                          |
 | `localpv.priorityClassName`                 | Sets priorityClassName in pod                                                                       | `""`                          |
+| `pvcManager.enabled`                        | Enable PVC Manager DaemonSet deployment                                                             | `false`                       |
+| `pvcManager.image.registry`                 | Registry for PVC Manager image                                                                      | `""`                          |
+| `pvcManager.image.repository`               | Image repository for PVC Manager                                                                    | `openebs/pvc-manager`         |
+| `pvcManager.image.tag`                      | Image tag for PVC Manager                                                                           | `1.0.0`                       |
+| `pvcManager.image.pullPolicy`               | Image pull policy for PVC Manager                                                                   | `IfNotPresent`                |
+| `pvcManager.port`                           | Port on which the PVC Manager HTTP server listens                                                   | `8080`                        |
+| `pvcManager.logLevel`                       | Log level for PVC Manager                                                                           | `info`                        |
+| `pvcManager.listenAddr`                     | Listen address for PVC Manager HTTP server                                                          | `"0.0.0.0:8080"`              |
+| `pvcManager.hostNetwork`                    | Use host network for PVC Manager pods                                                               | `true`                        |
+| `pvcManager.hostPID`                        | Use host PID namespace for PVC Manager pods                                                         | `false`                       |
+| `pvcManager.dnsPolicy`                      | DNS policy for PVC Manager pods                                                                     | `ClusterFirstWithHostNet`     |
+| `pvcManager.basePath`                       | Base path on the host for volume operations                                                         | `"/var/openebs/local"`        |
+| `pvcManager.resources.limits.cpu`           | CPU limit for PVC Manager containers                                                                | `200m`                        |
+| `pvcManager.resources.limits.memory`        | Memory limit for PVC Manager containers                                                             | `128Mi`                       |
+| `pvcManager.resources.requests.cpu`         | CPU request for PVC Manager containers                                                              | `100m`                        |
+| `pvcManager.resources.requests.memory`      | Memory request for PVC Manager containers                                                           | `64Mi`                        |
+| `pvcManager.nodeSelector`                   | Node selector for PVC Manager DaemonSet                                                             | `{"kubernetes.io/os": "linux"}` |
+| `pvcManager.tolerations`                    | Tolerations for PVC Manager DaemonSet                                                               | `[NoSchedule, NoExecute]`     |
+| `pvcManager.securityContext.privileged`     | Run PVC Manager containers with privileged security context                                         | `true`                        |
+| `pvcManager.service.enabled`                | Enable Service for PVC Manager                                                                      | `true`                        |
+| `pvcManager.service.type`                   | Service type for PVC Manager                                                                        | `ClusterIP`                   |
+| `pvcManager.service.port`                   | Service port for PVC Manager                                                                        | `8080`                        |
+| `pvcManager.rbac.create`                    | Create RBAC resources for PVC Manager                                                               | `true`                        |
+| `pvcManager.rbac.serviceAccountName`        | Service account name for PVC Manager                                                                | `openebs-pvc-manager`         |
 | `rbac.create`                               | Enable RBAC Resources                                                                                                                                                                       | `true`                        |
 | `rbac.pspEnabled`                           | Create pod security policy resources                                                                                                                                                        | `false`                       |
 

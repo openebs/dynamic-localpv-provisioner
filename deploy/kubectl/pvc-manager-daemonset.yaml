@@ -1,0 +1,116 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: pvc-manager
+  namespace: openebs
+  labels:
+    app: pvc-manager
+    component: localpv-provisioner
+    version: "1.0.0"
+spec:
+  selector:
+    matchLabels:
+      app: pvc-manager
+  template:
+    metadata:
+      labels:
+        app: pvc-manager
+        component: localpv-provisioner
+    spec:
+      serviceAccountName: openebs-pvc-manager
+      hostNetwork: false
+      hostPID: false
+      dnsPolicy: ClusterFirst
+      containers:
+      - name: pvc-manager
+        image: openebs/pvc-manager:1.0.0
+        imagePullPolicy: IfNotPresent
+        args:
+        - "--listen-addr=0.0.0.0:8080"
+        - "--log-level=info"
+        ports:
+        - containerPort: 8080
+          name: http
+          protocol: TCP
+        env:
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - name: basepath
+          mountPath: /var/openebs/local
+        - name: dev
+          mountPath: /dev
+        - name: proc
+          mountPath: /host/proc
+        - name: sys
+          mountPath: /host/sys
+        livenessProbe:
+          httpGet:
+            path: /api/v1/health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /api/v1/health
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        resources:
+          limits:
+            cpu: 200m
+            memory: 128Mi
+          requests:
+            cpu: 100m
+            memory: 64Mi
+      volumes:
+      - name: basepath
+        hostPath:
+          path: /var/openebs/local
+          type: DirectoryOrCreate
+      - name: dev
+        hostPath:
+          path: /dev
+      - name: proc
+        hostPath:
+          path: /proc
+      - name: sys
+        hostPath:
+          path: /sys
+      tolerations:
+      - effect: NoSchedule
+        operator: Exists
+      - effect: NoExecute
+        operator: Exists
+      nodeSelector:
+        kubernetes.io/os: linux
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pvc-manager
+  namespace: openebs
+  labels:
+    app: pvc-manager
+    component: localpv-provisioner
+spec:
+  type: ClusterIP
+  selector:
+    app: pvc-manager
+  ports:
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+    name: http

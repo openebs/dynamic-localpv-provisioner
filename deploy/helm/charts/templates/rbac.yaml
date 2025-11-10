@@ -115,3 +115,57 @@ subjects:
     namespace: {{ $.Release.Namespace }}
 {{- end }}
 {{- end }}
+{{- if and .Values.pvcManager.enabled .Values.pvcManager.rbac.create }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ .Values.pvcManager.rbac.serviceAccountName }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "localpv.labels" . | nindent 4 }}
+    app: pvc-manager
+    component: localpv-provisioner
+    {{- if .Values.extraLabels }}
+    {{- toYaml .Values.extraLabels | nindent 4 }}
+    {{- end }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ .Values.pvcManager.rbac.serviceAccountName }}
+  labels:
+    {{- include "localpv.labels" . | nindent 4 }}
+    app: pvc-manager
+    component: localpv-provisioner
+    {{- if .Values.extraLabels }}
+    {{- toYaml .Values.extraLabels | nindent 4 }}
+    {{- end }}
+rules:
+- apiGroups: [""]
+  resources: ["nodes", "persistentvolumes", "persistentvolumeclaims"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["create", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ .Values.pvcManager.rbac.serviceAccountName }}
+  labels:
+    {{- include "localpv.labels" . | nindent 4 }}
+    app: pvc-manager
+    component: localpv-provisioner
+    {{- if .Values.extraLabels }}
+    {{- toYaml .Values.extraLabels | nindent 4 }}
+    {{- end }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ .Values.pvcManager.rbac.serviceAccountName }}
+subjects:
+- kind: ServiceAccount
+  name: {{ .Values.pvcManager.rbac.serviceAccountName }}
+  namespace: {{ .Release.Namespace }}
+{{- end }}

@@ -1,0 +1,125 @@
+{{- if .Values.pvcManager.enabled }}
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ include "localpv.fullname" . }}-pvc-manager
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "localpv.labels" . | nindent 4 }}
+    app: pvc-manager
+    component: localpv-provisioner
+    {{- if .Values.extraLabels }}
+    {{- toYaml .Values.extraLabels | nindent 4 }}
+    {{- end }}
+  {{- with .Values.pvcManager.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  selector:
+    matchLabels:
+      app: pvc-manager
+      release: {{ .Release.Name }}
+      component: localpv-provisioner
+  template:
+    metadata:
+      {{- with .Values.pvcManager.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        app: pvc-manager
+        release: {{ .Release.Name }}
+        component: localpv-provisioner
+        chart: {{ include "localpv.chart" . }}
+        heritage: {{ .Release.Service }}
+        {{- if .Values.extraLabels }}
+        {{- toYaml .Values.extraLabels | nindent 8 }}
+        {{- end }}
+        {{- with .Values.pvcManager.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- with .Values.loggingLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      serviceAccountName: {{ .Values.pvcManager.rbac.serviceAccountName }}
+      hostNetwork: {{ .Values.pvcManager.hostNetwork }}
+      hostPID: {{ .Values.pvcManager.hostPID }}
+      dnsPolicy: {{ .Values.pvcManager.dnsPolicy }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+      - name: pvc-manager
+        image: "{{ with .Values.pvcManager.image.registry | default .Values.global.imageRegistry | trimSuffix "/" }}{{ . }}/{{ end }}{{ .Values.pvcManager.image.repository }}:{{ .Values.pvcManager.image.tag }}"
+        imagePullPolicy: {{ .Values.pvcManager.image.pullPolicy }}
+        args:
+        - "--listen-addr={{ .Values.pvcManager.listenAddr }}"
+        - "--log-level={{ .Values.pvcManager.logLevel }}"
+        ports:
+        - containerPort: {{ .Values.pvcManager.port }}
+          name: http
+          protocol: TCP
+        env:
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        securityContext:
+          {{- toYaml .Values.pvcManager.securityContext | nindent 10 }}
+        volumeMounts:
+        - name: basepath
+          mountPath: {{ .Values.pvcManager.basePath }}
+        - name: dev
+          mountPath: /dev
+        - name: proc
+          mountPath: /host/proc
+        - name: sys
+          mountPath: /host/sys
+        livenessProbe:
+          httpGet:
+            path: /api/v1/health
+            port: {{ .Values.pvcManager.port }}
+          initialDelaySeconds: {{ .Values.pvcManager.healthCheck.initialDelaySeconds }}
+          periodSeconds: {{ .Values.pvcManager.healthCheck.periodSeconds }}
+        readinessProbe:
+          httpGet:
+            path: /api/v1/health
+            port: {{ .Values.pvcManager.port }}
+          initialDelaySeconds: {{ .Values.pvcManager.healthCheck.readinessInitialDelaySeconds }}
+          periodSeconds: {{ .Values.pvcManager.healthCheck.readinessPeriodSeconds }}
+        resources:
+          {{- toYaml .Values.pvcManager.resources | nindent 10 }}
+      volumes:
+      - name: basepath
+        hostPath:
+          path: {{ .Values.pvcManager.basePath }}
+          type: DirectoryOrCreate
+      - name: dev
+        hostPath:
+          path: /dev
+      - name: proc
+        hostPath:
+          path: /proc
+      - name: sys
+        hostPath:
+          path: /sys
+      {{- with .Values.pvcManager.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.pvcManager.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

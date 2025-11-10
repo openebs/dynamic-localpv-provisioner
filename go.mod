@@ -3,6 +3,7 @@ module github.com/openebs/dynamic-localpv-provisioner
 go 1.19
 
 require (
+	github.com/gorilla/mux v1.8.0
 	github.com/onsi/ginkgo/v2 v2.14.0
 	github.com/onsi/gomega v1.30.0
 	github.com/openebs/google-analytics-4 v0.3.0
