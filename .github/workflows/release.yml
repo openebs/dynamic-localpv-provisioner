@@ -91,10 +91,35 @@ jobs:
           QY: quay.io/${{ env.IMAGE_ORG }}/provisioner-localpv:${{ env.VERSION }}
         run: |
             nix-shell --pure --run "crane copy --platform all ${{ env.SRC }} ${{ env.QY }}"
+            
+      - name: Mirror pvc-manager multi-arch image with crane to Dockerhub
+        env:
+          SRC: ghcr.io/${{ env.IMAGE_ORG }}/dev/pvc-manager:${{ env.VERSION }}
+          DH: docker.io/${{ env.IMAGE_ORG }}/pvc-manager:${{ env.VERSION }}
+        run: |
+            nix-shell --pure --run "crane copy --platform all ${{ env.SRC }} ${{ env.DH }}" ./shell.nix
 
+      - name: Mirror pvc-manager multi-arch image with crane to Github
+        env:
+          SRC: ghcr.io/${{ env.IMAGE_ORG }}/dev/pvc-manager:${{ env.VERSION }}
+          GH: ghcr.io/${{ env.IMAGE_ORG }}/pvc-manager:${{ env.VERSION }}
+        run: |
+            nix-shell --pure --run "crane copy --platform all ${{ env.SRC }} ${{ env.GH }}" ./shell.nix
+
+      - name: Mirror pvc-manager multi-arch image with crane to Quay
+        env:
+          SRC: ghcr.io/${{ env.IMAGE_ORG }}/dev/pvc-manager:${{ env.VERSION }}
+          QY: quay.io/${{ env.IMAGE_ORG }}/pvc-manager:${{ env.VERSION }}
+        run: |
+            nix-shell --pure --run "crane copy --platform all ${{ env.SRC }} ${{ env.QY }}"
+            
       - name: Update the registry and the repository
         run: |
           nix-shell --pure --run "./scripts/update-reg-repo.sh --registry docker.io/ --repository ${{ env.IMAGE_ORG }}/provisioner-localpv" ./shell.nix
+          
+      - name: Update the registry and the repository for pvc-manager
+        run: |
+          nix-shell --pure --run "./scripts/update-reg-repo.sh --registry docker.io/ --repository ${{ env.IMAGE_ORG }}/pvc-manager --component pvc-manager" ./shell.nix
 
       - name: Publish chart via helm-gh-pages
         uses: stefanprodan/helm-gh-pages@master
