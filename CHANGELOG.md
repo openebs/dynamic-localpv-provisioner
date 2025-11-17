@@ -1,3 +1,7 @@
+v4.4.0 / 2025-11-17
+===================
+* Add support for empty PVC selector ([#286](https://github.com/openebs/dynamic-localpv-provisioner/pull/286),[@speedfl](https://github.com/speedfl))
+
 v4.3.0 / 2025-06-02
 ===================
 * Add support for configuring file system mode at provision time ([#264](https://github.com/openebs/dynamic-localpv-provisioner/pull/264),[@sushiMix](https://github.com/sushiMix))
