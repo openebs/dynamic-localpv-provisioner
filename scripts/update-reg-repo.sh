@@ -7,7 +7,7 @@ ROOT_DIR="$SCRIPT_DIR/.."
 CHART_DIR="$ROOT_DIR/deploy/helm/charts"
 VALUES_YAML="$CHART_DIR/values.yaml"
 
-NEW_REGISTRY="ghcr.io"
+NEW_REGISTRY=""
 NEW_REPOSITORY="openebs/dev"
 
 source "$SCRIPT_DIR/yq_utils.sh"
@@ -50,13 +50,14 @@ while [ "$#" -gt 0 ]; do
   esac
 done
 
-if [ -z "${NEW_REGISTRY:-}" ]; then
-  log_fatal "Missing required flag: --registry"
-fi
-
 if [ -z "${NEW_REPOSITORY:-}" ]; then
   log_fatal "Missing required flag: --repository"
 fi
 
-yq_ibl ".localpv.image.registry = \"$NEW_REGISTRY\"" "$VALUES_YAML"
+if [ -z "${NEW_REGISTRY:-}" ]; then
+  yq_ibl ".localpv.image.registry = \"\"" "$VALUES_YAML"
+else
+  yq_ibl ".localpv.image.registry = \"$NEW_REGISTRY\"" "$VALUES_YAML"
+fi
+
 yq_ibl ".localpv.image.repository = \"$NEW_REPOSITORY\"" "$VALUES_YAML"
