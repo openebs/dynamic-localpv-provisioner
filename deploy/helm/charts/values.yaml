@@ -130,7 +130,7 @@ helperPod:
     repository: openebs/linux-utils
     pullPolicy: IfNotPresent
     # Overrides the image tag whose default is the chart appVersion.
-    tag: 4.2.0
+    tag: 4.3.0
   hostNetwork: false
 
 # Additional labels to add to all chart resources
