@@ -5,7 +5,7 @@
 global:
   # Used as default image registry, values supplied by localpv.image.registry
   # and helperPod.image.registry override this value.
-  imageRegistry: ""
+  imageRegistry: "docker.io"
 
 rbac:
   # rbac.create: `true` if rbac resources should be created
@@ -37,7 +37,7 @@ localpv:
   privileged: true
   annotations: {}
   podAnnotations: {}
-    ## Labels to be added to localpv provisioner deployment pods
+  ## Labels to be added to localpv provisioner deployment pods
   podLabels:
     name: openebs-localpv-provisioner
   healthCheck:
@@ -65,10 +65,9 @@ localpv:
   priorityClassName: ""
 
 imagePullSecrets:
-  # - name: img-pull-secret
-
+# - name: img-pull-secret
 podSecurityContext: {}
-  # fsGroup: 2000
+# fsGroup: 2000
 
 nameOverride: ""
 fullnameOverride: ""
