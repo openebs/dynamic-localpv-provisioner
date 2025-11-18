@@ -21,6 +21,25 @@ entries:
     - https://openebs.github.io/dynamic-localpv-provisioner/localpv-provisioner-4.5.0-develop.tgz
     version: 4.5.0-develop
   - apiVersion: v2
+    appVersion: 4.4.0-rc.1
+    created: "2025-11-18T07:13:31.655768671Z"
+    description: Helm chart for OpenEBS Dynamic Local PV. For instructions to install
+      OpenEBS Dynamic Local PV using helm chart, refer to https://openebs.github.io/dynamic-localpv-provisioner/.
+    digest: 8f20bb6ab774ac039fdd40e6d50df60d026b0e8652bace5f3110e21a79d31cfe
+    home: http://www.openebs.io/
+    icon: https://raw.githubusercontent.com/cncf/artwork/master/projects/openebs/icon/color/openebs-icon-color.png
+    keywords:
+    - storage
+    - local
+    - dynamic-localpv
+    name: localpv-provisioner
+    sources:
+    - https://github.com/openebs/dynamic-localpv-provisioner
+    type: application
+    urls:
+    - https://openebs.github.io/dynamic-localpv-provisioner/localpv-provisioner-4.4.0-rc.1.tgz
+    version: 4.4.0-rc.1
+  - apiVersion: v2
     appVersion: 4.4.0-rc.0
     created: "2025-11-18T06:02:18.08392161Z"
     description: Helm chart for OpenEBS Dynamic Local PV. For instructions to install
@@ -1062,4 +1081,4 @@ entries:
     urls:
     - https://github.com/openebs/dynamic-localpv-provisioner/releases/download/localpv-provisioner-2.4.0/localpv-provisioner-2.4.0.tgz
     version: 2.4.0
-generated: "2025-11-18T06:02:44.350463859Z"
+generated: "2025-11-18T07:13:31.654992155Z"
