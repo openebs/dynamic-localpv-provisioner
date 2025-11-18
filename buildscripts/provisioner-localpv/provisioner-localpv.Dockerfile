@@ -42,7 +42,7 @@ COPY . .
 
 RUN make provisioner-localpv
 
-FROM alpine:3.20.1
+FROM alpine:3.22.1
 
 ARG DBUILD_DATE
 ARG DBUILD_REPO_URL
