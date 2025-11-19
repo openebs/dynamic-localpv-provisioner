@@ -292,6 +292,9 @@ jobs:
       - name: Build pvc-manager binary
         run: make pvc-manager
 
+      - name: Copy pvc-manager binary to build context
+        run: cp bin/pvc-manager/pvc-manager buildscripts/pvc-manager/
+
       - name: Build and Push multi-arch Image
         uses: docker/build-push-action@v4
         with:
