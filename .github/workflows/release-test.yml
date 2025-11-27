@@ -33,7 +33,7 @@ jobs:
       - name: Pull OCI chart from GHCR
         env:
           IMAGE_ORG: ${{ env.IMAGE_ORG }}
-          RAW_TAG: ${{ github.ref_name }}
+          RAW_TAG: v4.4.0
         run: |
           TAG="${RAW_TAG#v}"
           echo "Using chart version: $TAG"
