@@ -23,6 +23,8 @@ OpenEBS Dynamic LocalPV Provisioner is an open‐source Kubernetes component tha
 
 ## Architecture
 
+### Traditional Architecture (Helper Pods)
+
 ```mermaid
 
 graph TD
@@ -66,6 +68,51 @@ graph TD
 
 ```
 
+### New Architecture (PVC Manager DaemonSet)
+
+```mermaid
+
+graph TD
+    %% Define Styles with Black Text  
+    style kubelet fill:#ffcc00,stroke:#d4a017,stroke-width:2px,color:#000
+    style Provisioner fill:#66ccff,stroke:#3388cc,stroke-width:2px,color:#000
+    style PVCManager fill:#99ff99,stroke:#44aa44,stroke-width:2px,color:#000
+    style App fill:#ff9999,stroke:#cc6666,stroke-width:2px,color:#000
+    style Hostpath fill:#ffdd99,stroke:#d4a017,stroke-width:2px,color:#000
+    style PVC fill:#ffdd99,stroke:#d4a017,stroke-width:2px,color:#000
+    style PV fill:#d9b3ff,stroke:#9955cc,stroke-width:2px,color:#000
+
+    subgraph "Kubernetes Cluster"
+        subgraph "Kubelet"
+            kubelet["Kubelet"]
+        end
+        subgraph "OpenEBS LocalPV"
+            Provisioner["LocalPV Provisioner"]
+        end
+        subgraph "Worker Node (Every Node)"
+            PVCManager["PVC Manager (DaemonSet)"]
+            App["Application Pod"]
+            PVC["Persistent Volume Claim"]
+            PV["Persistent Volume"]
+            Hostpath["[User-defined path on host]"]
+        end
+    end
+
+    %% Storage Flow
+    App -->|Requests Storage| PVC
+    PVC -->|Binds to| PV
+    PV -->|Mounted on| Hostpath
+    kubelet -->|Mounts Path| Hostpath
+
+    %% Provisioning Flow (New)
+    Provisioner -->|HTTP Request| PVCManager
+    Provisioner -->|Watches PVC Requests| Provisioner
+    Provisioner -->|Creates PV| PV
+    PVCManager -->|Creates/Deletes Directory| Hostpath
+    PV -->|Bound to| PVC
+
+```
+
 Please check [here](./design/hostpath_localpv_provisioner.md) for complete design and architecture.
 
 ## Kubernetes Compatibility Matrix
@@ -90,6 +137,9 @@ Please check [here](./design/hostpath_localpv_provisioner.md) for complete desig
 
 ## Features
 
+- [x] **Two Architecture Modes**:
+    - [x] **Helper Pod Mode** (Traditional): Creates ephemeral pods for volume operations
+    - [x] **PVC Manager Mode** (New): Uses DaemonSet with HTTP API for faster operations
 - [x] Access Modes
     - [x] ReadWriteOnce
     - ~~ReadOnlyMany~~
@@ -98,6 +148,25 @@ Please check [here](./design/hostpath_localpv_provisioner.md) for complete desig
     - [x] `Filesystem` mode
     - [ ] `Block` mode
 - [x] [Volume Resize(Via Quotas)](./docs/tutorials/hostpath/xfs_quota/)
+
+### PVC Manager Architecture Benefits
+
+The new PVC Manager architecture provides:
+
+- **Better Performance**: Eliminates pod creation overhead for volume operations
+- **Reduced API Server Load**: Fewer ephemeral pod objects created/destroyed
+- **Improved Reliability**: Persistent service always available for volume operations
+- **Enhanced Observability**: HTTP API with health checks and metrics
+- **Backward Compatibility**: Can be disabled to use traditional helper pod mode
+
+To enable PVC Manager mode, set the environment variable:
+```yaml
+env:
+- name: OPENEBS_IO_ENABLE_PVC_MANAGER
+  value: "true"
+```
+
+[Learn more about PVC Manager architecture](./docs/pvc-manager-architecture.md)
 
 ## Inspiration/Credit
 

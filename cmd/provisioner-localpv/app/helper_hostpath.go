@@ -9,16 +9,16 @@ import (
 	"strings"
 	"time"
 
+	"github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/container"
+	"github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/pod"
+	"github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/volume"
 	hostpath "github.com/openebs/maya/pkg/hostpath/v1alpha1"
 	errors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	k8serror "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
-
-	"github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/container"
-	"github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/pod"
-	"github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/volume"
+	"sigs.k8s.io/yaml"
 )
 
 type podConfig struct {
@@ -213,7 +213,21 @@ func (p *Provisioner) createCleanupPod(ctx context.Context, pOpts *HelperPodOpti
 
 	config.taints = pOpts.selectedNodeTaints
 
-	config.pOpts.cmdsForPath = append(config.pOpts.cmdsForPath, filepath.Join("/data/", config.volumeDir))
+	path := filepath.Join("/data/", config.volumeDir)
+
+	scripts := "" +
+		"FS=`stat -f -c %T " + path + "` ; " +
+		"if [[ \"$FS\" == \"xfs\" ]]; then " +
+		"id=`xfs_io -c stat " + path + " 2>/dev/null | grep projid | head -1 | awk -F '=' '{print $2}' | tr -d ' '` ; " +
+		"echo \"projid=$id\" ; " +
+		"if [[ -n \"$id\" && \"$id\" != \"0\" ]]; then " +
+		"xfs_io -c 'chproj -R 0' " + path + " 2>/dev/null || true ; " +
+		"xfs_quota -x -c \"limit -p bsoft=0 bhard=0 $id\" /data 2>/dev/null || true ; " +
+		"fi ; " +
+		"fi ; " +
+		"rm -rf " + path
+
+	config.pOpts.cmdsForPath = []string{"sh", "-c", scripts}
 
 	_, err := p.launchPod(ctx, config)
 	if err != nil && !k8serror.IsAlreadyExists(err) {
@@ -347,6 +361,13 @@ func (p *Provisioner) launchPod(ctx context.Context, config podConfig) (*corev1.
 
 	if err != nil {
 		return nil, err
+	}
+
+	helperPodYAML, err := yaml.Marshal(helperPod)
+	if err != nil {
+		klog.Errorf("failed to marshal helper pod to YAML: %v", err)
+	} else {
+		klog.Infof("launching helper pod: %s", string(helperPodYAML))
 	}
 
 	var hPod *corev1.Pod

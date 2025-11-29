@@ -46,6 +46,15 @@ docker.buildx.provisioner-localpv: DOCKERX_IMAGE_NAME=$(PROVISIONER_LOCALPV_IMAG
 docker.buildx.provisioner-localpv: COMPONENT=$(PROVISIONER_LOCALPV)
 docker.buildx.provisioner-localpv: docker.buildx
 
+.PHONY: docker.buildx.pvc-manager
+docker.buildx.pvc-manager: DOCKERX_IMAGE_NAME=$(PVC_MANAGER_IMAGE_TAG)
+docker.buildx.pvc-manager: COMPONENT=$(PVC_MANAGER)
+docker.buildx.pvc-manager: docker.buildx
+
 .PHONY: buildx.push.provisioner-localpv
 buildx.push.provisioner-localpv:
 	BUILDX=true DIMAGE=${IMAGE_ORG}/provisioner-localpv ./buildscripts/push.sh
+
+.PHONY: buildx.push.pvc-manager
+buildx.push.pvc-manager:
+	BUILDX=true DIMAGE=${IMAGE_ORG}/pvc-manager ./buildscripts/push.sh

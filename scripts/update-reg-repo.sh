@@ -9,6 +9,7 @@ VALUES_YAML="$CHART_DIR/values.yaml"
 
 NEW_REGISTRY="ghcr.io"
 NEW_REPOSITORY="openebs/dev"
+COMPONENT="provisioner-localpv"
 
 source "$SCRIPT_DIR/yq_utils.sh"
 source "$SCRIPT_DIR/log.sh"
@@ -20,9 +21,11 @@ Usage: $(basename "$0") [OPTIONS]
 Options:
   --registry                                The registry to be updated to.
   --repository                              The repository to be updated to.
+  --component                               The component to be updated (provisioner-localpv or pvc-manager).
 
 Examples:
   $(basename "$0") --registry ghcr.io --repository openebs/dev
+  $(basename "$0") --registry ghcr.io --repository openebs/dev --component pvc-manager
 EOF
 }
 
@@ -43,6 +46,11 @@ while [ "$#" -gt 0 ]; do
       NEW_REPOSITORY=$1
       shift
       ;;
+    --component)
+      shift
+      COMPONENT=$1
+      shift
+      ;;
     *)
       help
       log_fatal "Unknown option: $1"
@@ -58,5 +66,12 @@ if [ -z "${NEW_REPOSITORY:-}" ]; then
   log_fatal "Missing required flag: --repository"
 fi
 
-yq_ibl ".localpv.image.registry = \"$NEW_REGISTRY\"" "$VALUES_YAML"
-yq_ibl ".localpv.image.repository = \"$NEW_REPOSITORY\"" "$VALUES_YAML"
+if [ "$COMPONENT" = "provisioner-localpv" ]; then
+  yq_ibl ".localpv.image.registry = \"$NEW_REGISTRY\"" "$VALUES_YAML"
+  yq_ibl ".localpv.image.repository = \"$NEW_REPOSITORY\"" "$VALUES_YAML"
+elif [ "$COMPONENT" = "pvc-manager" ]; then
+  yq_ibl ".pvcManager.image.registry = \"$NEW_REGISTRY\"" "$VALUES_YAML"
+  yq_ibl ".pvcManager.image.repository = \"$NEW_REPOSITORY\"" "$VALUES_YAML"
+else
+  log_fatal "Unknown component: $COMPONENT. Supported components: provisioner-localpv, pvc-manager"
+fi

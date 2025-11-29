@@ -1,0 +1,47 @@
+# Test application for OpenEBS LocalPV with PVC Manager
+# This creates a PVC and pod to test the new PVC Manager architecture
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: local-hostpath-pvc-manager-test
+  namespace: default
+spec:
+  storageClassName: openebs-hostpath-pvc-manager
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: hello-local-hostpath-pvc-manager
+  namespace: default
+  labels:
+    app: hello-local-hostpath
+spec:
+  volumes:
+  - name: local-storage
+    persistentVolumeClaim:
+      claimName: local-hostpath-pvc-manager-test
+  containers:
+  - name: hello-container
+    image: busybox:1.35
+    command:
+       - sh
+       - -c
+       - 'while true; do echo "`date` [`hostname`] Hello from OpenEBS Local PV with PVC Manager." >> /mnt/store/greetings.txt; cat /mnt/store/greetings.txt; sleep 60; done'
+    volumeMounts:
+    - mountPath: /mnt/store
+      name: local-storage
+    resources:
+      limits:
+        cpu: 100m
+        memory: 64Mi
+      requests:
+        cpu: 50m
+        memory: 32Mi
+  restartPolicy: Always
