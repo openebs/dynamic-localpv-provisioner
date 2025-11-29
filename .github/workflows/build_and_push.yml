@@ -293,7 +293,7 @@ jobs:
         run: make pvc-manager
 
       - name: Copy pvc-manager binary to build context
-        run: cp bin/pvc-manager/pvc-manager buildscripts/pvc-manager/
+        run: cp bin/pvc-manager/pvc-manager ./
 
       - name: Build and Push multi-arch Image
         uses: docker/build-push-action@v4
@@ -310,6 +310,9 @@ jobs:
             DBUILD_REPO_URL=https://github.com/openebs/dynamic-localpv-provisioner
             DBUILD_SITE_URL=https://openebs.io
             BRANCH=${{ env.BRANCH }}
+
+      - name: Clean up pvc-manager binary
+        run: rm -f ./pvc-manager
 
   release-chart:
     runs-on: ubuntu-latest
