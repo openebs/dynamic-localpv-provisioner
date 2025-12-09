@@ -23,6 +23,7 @@ var (
 	// localpv provisioner
 	LeaderElectionKey = "LEADER_ELECTION_ENABLED"
 	usage             = cmdName
+	nodeDeployment    bool
 )
 
 // StartProvisioner will start a new dynamic Host Path PV provisioner
@@ -38,6 +39,9 @@ func StartProvisioner() (*cobra.Command, error) {
 			util.CheckErr(Start(cmd), util.Fatal)
 		},
 	}
+
+	// Add node deployment flag
+	cmd.Flags().BoolVar(&nodeDeployment, "node-deployment", false, "Enables deploying the provisioner together with a CSI driver on nodes to manage node-local volumes")
 
 	return cmd, nil
 }
@@ -73,14 +77,35 @@ func Start(cmd *cobra.Command) error {
 		return err
 	}
 
+	// Set node deployment mode in provisioner
+	provisioner.nodeDeployment = nodeDeployment
+
+	// In node deployment mode, set the current node name for filtering
+	if nodeDeployment {
+		provisioner.nodeName = getNodeName()
+		if provisioner.nodeName == "" {
+			return errors.New("NODE_NAME environment variable is required in node-deployment mode")
+		}
+		klog.Infof("Node deployment mode enabled on node: %s", provisioner.nodeName)
+	}
+
 	//Create an instance of the Dynamic Provisioner Controller
 	// that has the reconciliation loops for PVC create and delete
 	// events and invokes the Provisioner Handler.
+	var leaderElection bool
+	if nodeDeployment {
+		// In node deployment mode, disable leader election as each node will have its own provisioner
+		leaderElection = false
+		klog.Info("Node deployment mode enabled, leader election disabled")
+	} else {
+		leaderElection = isLeaderElectionEnabled()
+	}
+
 	pc := pvController.NewProvisionController(
 		kubeClient,
 		provisionerName,
 		provisioner,
-		pvController.LeaderElection(isLeaderElectionEnabled()),
+		pvController.LeaderElection(leaderElection),
 	)
 
 	if menv.Truthy(menv.OpenEBSEnableAnalytics) {

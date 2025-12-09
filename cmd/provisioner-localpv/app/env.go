@@ -59,3 +59,13 @@ func getOpenEBSServiceAccountName() string {
 func getOpenEBSImagePullSecrets() string {
 	return menv.Get(ProvisionerImagePullSecrets)
 }
+
+// getNodeName returns the current node name from NODE_NAME environment variable
+func getNodeName() string {
+	return menv.Get(menv.ENVKey("NODE_NAME"))
+}
+
+// GetEnv gets an environment variable value
+func GetEnv(key string) string {
+	return menv.Get(menv.ENVKey(key))
+}

@@ -79,7 +79,53 @@ func (p *Provisioner) ProvisionHostPath(ctx context.Context, opts pvController.P
 		imagePullSecrets:   imagePullSecrets,
 		hostNetwork:        hostNetwork,
 	}
-	iErr := p.createInitPod(ctx, podOpts)
+
+	var (
+		softLimitGrace string
+		hardLimitGrace string
+		pvcStorage     int64
+		enableQuota    bool = false
+	)
+
+	if volumeConfig.IsXfsQuotaEnabled() || volumeConfig.IsExt4QuotaEnabled() {
+		enableQuota = true
+	}
+
+	if enableQuota {
+		// Read quota parameters from the correct key based on which quota type is enabled
+		quotaKey := KeyXFSQuota
+		if volumeConfig.IsExt4QuotaEnabled() {
+			quotaKey = KeyEXT4Quota
+		}
+		softLimitGrace = volumeConfig.getDataField(quotaKey, KeyQuotaSoftLimit)
+		hardLimitGrace = volumeConfig.getDataField(quotaKey, KeyQuotaHardLimit)
+		pvcStorage = opts.PVC.Spec.Resources.Requests.Storage().Value()
+		podOpts = &HelperPodOptions{
+			cmdsForPath:        initCmdsForPath,
+			name:               name,
+			path:               path,
+			nodeAffinityLabels: nodeAffinityLabels,
+			serviceAccountName: saName,
+			selectedNodeTaints: taints,
+			imagePullSecrets:   imagePullSecrets,
+			softLimitGrace:     softLimitGrace,
+			hardLimitGrace:     hardLimitGrace,
+			pvcStorage:         pvcStorage,
+			hostNetwork:        hostNetwork,
+		}
+	}
+
+	// In node deployment mode, use local operations directly
+	// Otherwise, fallback to helper pods
+
+	// By calling the method of creating and initializing a Pod,
+	// multiple different operations will occur and there will be asynchronous operation problems.
+	// It is recommended to abandon this method
+	var iErr error
+	if !p.nodeDeployment {
+		iErr = p.createInitPod(ctx, podOpts)
+	}
+
 	if iErr != nil {
 		klog.Infof("Initialize volume %v failed: %v", name, iErr)
 		alertlog.Logger.Errorw("",
@@ -92,24 +138,9 @@ func (p *Provisioner) ProvisionHostPath(ctx context.Context, opts pvController.P
 		return nil, pvController.ProvisioningFinished, iErr
 	}
 
-	if volumeConfig.IsXfsQuotaEnabled() {
-		softLimitGrace := volumeConfig.getDataField(KeyXFSQuota, KeyQuotaSoftLimit)
-		hardLimitGrace := volumeConfig.getDataField(KeyXFSQuota, KeyQuotaHardLimit)
-		pvcStorage := opts.PVC.Spec.Resources.Requests.Storage().Value()
-
-		podOpts := &HelperPodOptions{
-			name:               name,
-			path:               path,
-			nodeAffinityLabels: nodeAffinityLabels,
-			serviceAccountName: saName,
-			selectedNodeTaints: taints,
-			imagePullSecrets:   imagePullSecrets,
-			softLimitGrace:     softLimitGrace,
-			hardLimitGrace:     hardLimitGrace,
-			pvcStorage:         pvcStorage,
-			hostNetwork:        hostNetwork,
-		}
-		iErr := p.createQuotaPod(ctx, podOpts)
+	if enableQuota && !p.nodeDeployment {
+		var iErr error
+		iErr = p.createQuotaPod(ctx, podOpts)
 		if iErr != nil {
 			klog.Infof("Applying quota failed: %v", iErr)
 			alertlog.Logger.Errorw("",
@@ -129,41 +160,20 @@ func (p *Provisioner) ProvisionHostPath(ctx context.Context, opts pvController.P
 		)
 	}
 
-	if volumeConfig.IsExt4QuotaEnabled() {
-		softLimitGrace := volumeConfig.getDataField(KeyEXT4Quota, KeyQuotaSoftLimit)
-		hardLimitGrace := volumeConfig.getDataField(KeyEXT4Quota, KeyQuotaHardLimit)
-		pvcStorage := opts.PVC.Spec.Resources.Requests.Storage().Value()
-
-		podOpts := &HelperPodOptions{
-			name:               name,
-			path:               path,
-			nodeAffinityLabels: nodeAffinityLabels,
-			serviceAccountName: saName,
-			selectedNodeTaints: taints,
-			imagePullSecrets:   imagePullSecrets,
-			softLimitGrace:     softLimitGrace,
-			hardLimitGrace:     hardLimitGrace,
-			pvcStorage:         pvcStorage,
-			hostNetwork:        hostNetwork,
-		}
-		iErr := p.createQuotaPod(ctx, podOpts)
+	// Create volume locally if node deployment is enabled
+	if p.nodeDeployment {
+		iErr = p.createVolumeLocally(ctx, podOpts, enableQuota)
 		if iErr != nil {
-			klog.Infof("Applying quota failed: %v", iErr)
+			klog.Errorf("Create volume locally %v failed: %v", name, iErr)
 			alertlog.Logger.Errorw("",
 				"eventcode", "local.pv.provision.failure",
 				"msg", "Failed to provision Local PV",
 				"rname", opts.PVName,
-				"reason", "Quota enforcement failed",
+				"reason", "Local volume creation failed",
 				"storagetype", stgType,
 			)
 			return nil, pvController.ProvisioningFinished, iErr
 		}
-		alertlog.Logger.Infow("",
-			"eventcode", "local.pv.quota.success",
-			"msg", "Successfully applied quota",
-			"rname", opts.PVName,
-			"storagetype", stgType,
-		)
 	}
 
 	// VolumeMode will always be specified as Filesystem for host path volume,
@@ -184,11 +194,17 @@ func (p *Provisioner) ProvisionHostPath(ctx context.Context, opts pvController.P
 	labels[string(mconfig.CASTypeKey)] = "local-" + stgType
 	//labels[string(v1alpha1.StorageClassKey)] = *className
 
+	// Get the reclaim policy, defaulting to Delete if not specified
+	reclaimPolicy := v1.PersistentVolumeReclaimDelete
+	if opts.StorageClass != nil && opts.StorageClass.ReclaimPolicy != nil {
+		reclaimPolicy = *opts.StorageClass.ReclaimPolicy
+	}
+
 	//TODO Change the following to a builder pattern
 	pvObj, err := persistentvolume.NewBuilder().
 		WithName(name).
 		WithLabels(labels).
-		WithReclaimPolicy(*opts.StorageClass.ReclaimPolicy).
+		WithReclaimPolicy(reclaimPolicy).
 		WithAccessModes(pvc.Spec.AccessModes).
 		WithVolumeMode(fs).
 		WithCapacityQty(pvc.Spec.Resources.Requests[v1.ResourceName(v1.ResourceStorage)]).
@@ -276,9 +292,9 @@ func (p *Provisioner) DeleteHostPath(ctx context.Context, pv *v1.PersistentVolum
 
 	//Initiate clean up only when reclaim policy is not retain.
 	klog.Infof("Deleting volume %v at %v:%v", pv.Name, GetNodeHostname(nodeObject), path)
-	cleanupCmdsForPath := []string{"rm", "-rf"}
+
 	podOpts := &HelperPodOptions{
-		cmdsForPath:        cleanupCmdsForPath,
+		cmdsForPath:        nil,
 		name:               pv.Name,
 		path:               path,
 		nodeAffinityLabels: nodeAffinityLabels,
@@ -288,8 +304,17 @@ func (p *Provisioner) DeleteHostPath(ctx context.Context, pv *v1.PersistentVolum
 		hostNetwork:        hostNetwork,
 	}
 
-	if err := p.createCleanupPod(ctx, podOpts); err != nil {
-		return errors.Wrapf(err, "clean up volume %v failed", pv.Name)
+	// In node deployment mode, use local operations directly
+	// Otherwise, fallback to helper pods
+	var cleanupErr error
+	if p.nodeDeployment {
+		cleanupErr = p.deleteVolumeLocally(ctx, podOpts)
+	} else {
+		cleanupErr = p.createCleanupPod(ctx, podOpts)
+	}
+
+	if cleanupErr != nil {
+		return errors.Wrapf(cleanupErr, "clean up volume %v failed", pv.Name)
 	}
 	return nil
 }

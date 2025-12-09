@@ -22,7 +22,14 @@ RUN apk add --no-cache \
     mii-tool \
     procps \
     libc6-compat \
-    ca-certificates
+    ca-certificates \
+    util-linux \
+    e2fsprogs \
+    xfsprogs \
+    xfsprogs-extra \
+    blkid \
+    findmnt \
+    quota-tools
 
 COPY provisioner-localpv /
 
