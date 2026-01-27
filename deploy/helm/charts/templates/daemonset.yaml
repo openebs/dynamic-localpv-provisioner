@@ -125,28 +125,17 @@ spec:
           initialDelaySeconds: {{ .Values.localpv.healthCheck.initialDelaySeconds }}
           periodSeconds: {{ .Values.localpv.healthCheck.periodSeconds }}
         volumeMounts:
-        - name: basepath
-          mountPath: {{ .Values.localpv.basePath | quote }}
+        - name: host-root
+          mountPath: /host
           mountPropagation: HostToContainer
-        - name: dev
-          mountPath: /dev
-        - name: host-proc
-          mountPath: /host/proc
-          readOnly: true
 {{- if .Values.localpv.nodeDeployment.additionalVolumeMounts }}
 {{ toYaml .Values.localpv.nodeDeployment.additionalVolumeMounts | indent 8 }}
 {{- end }}
       volumes:
-      - name: basepath
+      - name: host-root
         hostPath:
-          path: {{ .Values.localpv.basePath | quote }}
-          type: DirectoryOrCreate
-      - name: dev
-        hostPath:
-          path: /dev
-      - name: host-proc
-        hostPath:
-          path: /proc
+          path: /
+          type: Directory
 {{- if .Values.localpv.nodeDeployment.additionalVolumes }}
 {{ toYaml .Values.localpv.nodeDeployment.additionalVolumes | indent 6 }}
 {{- end }}
