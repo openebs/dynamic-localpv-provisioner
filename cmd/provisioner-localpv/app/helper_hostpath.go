@@ -213,7 +213,28 @@ func (p *Provisioner) createCleanupPod(ctx context.Context, pOpts *HelperPodOpti
 
 	config.taints = pOpts.selectedNodeTaints
 
-	config.pOpts.cmdsForPath = append(config.pOpts.cmdsForPath, filepath.Join("/data/", config.volumeDir))
+	// check if path is xfs quota enabled and remove quota projid
+	// FS stores the file system of mount
+	fsType := "FS=`stat -f -c %T /data` ; "
+	// volumePath is the full path to the volume directory
+	volumePath := filepath.Join("/data/", config.volumeDir)
+	// cleanupScript checks fs type and removes quota before deleting directory
+	cleanupScript := "" +
+		"if [[ \"$FS\" == \"xfs\" ]]; then " +
+		"  ID=`xfs_io -c stat " + volumePath + " 2>/dev/null | awk '/projid/{print $3}' | head -1` ;" +
+		"  echo \"projid=$ID\" ;" +
+		"  if [ -n \"$ID\" ] && [ \"$ID\" != \"0\" ]; then " +
+		"    xfs_io -c 'chproj -R 0' " + volumePath + " 2>/dev/null || true ;" +
+		"    xfs_quota -x -c 'limit -p bsoft=0 bhard=0 '$ID /data 2>/dev/null || true ;" +
+		"  fi ;" +
+		"elif [[ \"$FS\" == \"ext2/ext3\" ]]; then " +
+		"  ID=`lsattr -pd " + volumePath + "/ | awk '{print $1}'` ;" +
+		"  if [ -n \"$ID\" ] && [ \"$ID\" != \"0\" ]; then " +
+		"    setquota -P $ID 0 0 0 0 /data 2>/dev/null || true ;" +
+		"  fi ;" +
+		"fi ; " +
+		"rm -rf " + volumePath
+	config.pOpts.cmdsForPath = []string{"sh", "-c", fsType + cleanupScript}
 
 	_, err := p.launchPod(ctx, config)
 	if err != nil && !k8serror.IsAlreadyExists(err) {

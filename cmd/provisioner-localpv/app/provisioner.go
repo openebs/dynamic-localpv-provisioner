@@ -1,18 +1,3 @@
-/*
-This file contains the volume creation and deletion handlers invoked by
-the github.com/kubernetes-sigs/sig-storage-lib-external-provisioner/controller.
-
-The handler that are madatory to be implemented:
-
-- Provision - is called by controller to perform custom validation on the PVC
-  request and return a valid PV spec. The controller will create the PV object
-  using the spec passed to it and bind it to the PVC.
-
-- Delete - is called by controller to perform cleanup tasks on the PV before
-  deleting it.
-
-*/
-
 package app
 
 import (
@@ -104,6 +89,29 @@ func (p *Provisioner) Provision(ctx context.Context, opts pvController.Provision
 		return nil, pvController.ProvisioningFinished, fmt.Errorf("configuration error, node{%v} hostname is empty", opts.SelectedNode.Name)
 	}
 
+	// In node-deployment mode, only process PVCs scheduled to this node.
+	// This prevents multiple provisioner instances from trying to provision the same PVC.
+	if p.nodeDeployment {
+		// Use the hostname label for consistency with Delete() and node affinity settings
+		selectedNodeHostname := GetNodeHostname(opts.SelectedNode)
+		if selectedNodeHostname == "" {
+			// Fallback to node name if hostname label is not present
+			selectedNodeHostname = opts.SelectedNode.Name
+		}
+		if selectedNodeHostname != p.nodeName {
+			// This PVC is scheduled to a different node, skip it.
+			// Return IgnoredError to tell the controller that this provisioner
+			// is not responsible for this PVC. The controller will not treat
+			// this as a failure and will let another provisioner handle it.
+			klog.V(4).Infof("Skipping PVC %s/%s: scheduled to node %s, but this provisioner is on node %s",
+				pvc.Namespace, pvc.Name, selectedNodeHostname, p.nodeName)
+			return nil, pvController.ProvisioningFinished, &pvController.IgnoredError{
+				Reason: fmt.Sprintf("PVC is scheduled to node %s, not this node %s", selectedNodeHostname, p.nodeName),
+			}
+		}
+		klog.Infof("Processing PVC %s/%s on local node %s", pvc.Namespace, pvc.Name, p.nodeName)
+	}
+
 	name := opts.PVName
 
 	// Create a new Config instance for the PV by merging the
@@ -126,7 +134,8 @@ func (p *Provisioner) Provision(ctx context.Context, opts pvController.Provision
 	// todo: Disable the localpv device provisioning for now. Revisit later to remove the code path.
 
 	// EXCEPTION: Block VolumeMode
-	if *opts.PVC.Spec.VolumeMode == v1.PersistentVolumeBlock && stgType != "device" {
+	// VolumeMode is a pointer and can be nil (defaults to Filesystem)
+	if opts.PVC.Spec.VolumeMode != nil && *opts.PVC.Spec.VolumeMode == v1.PersistentVolumeBlock && stgType != "device" {
 		return nil, pvController.ProvisioningFinished, fmt.Errorf("PV with BlockMode is not supported with StorageType %v", stgType)
 	}
 
@@ -150,9 +159,45 @@ func (p *Provisioner) Provision(ctx context.Context, opts pvController.Provision
 //	set to not-retain, then this function will create a helper pod
 //	to delete the host path from the node.
 func (p *Provisioner) Delete(ctx context.Context, pv *v1.PersistentVolume) (err error) {
+	// In node-deployment mode, only process PVs that are on this node
+	if p.nodeDeployment {
+		// Get the node affinity from the PV
+		if pv.Spec.NodeAffinity != nil && pv.Spec.NodeAffinity.Required != nil {
+			isLocalNode := false
+			var pvNodeName string
+			for _, term := range pv.Spec.NodeAffinity.Required.NodeSelectorTerms {
+				for _, expr := range term.MatchExpressions {
+					if expr.Key == "kubernetes.io/hostname" && expr.Operator == v1.NodeSelectorOpIn {
+						for _, value := range expr.Values {
+							pvNodeName = value
+							if value == p.nodeName {
+								isLocalNode = true
+								break
+							}
+						}
+					}
+				}
+			}
+			if !isLocalNode {
+				// Return IgnoredError to tell the controller that this provisioner
+				// is not responsible for this PV. The controller will not treat
+				// this as a failure and will let another provisioner handle it.
+				klog.V(4).Infof("Skipping PV %s deletion: belongs to node %s, not this node %s", pv.Name, pvNodeName, p.nodeName)
+				return &pvController.IgnoredError{
+					Reason: fmt.Sprintf("PV belongs to node %s, not this node %s", pvNodeName, p.nodeName),
+				}
+			}
+			klog.Infof("Processing PV %s deletion on local node %s", pv.Name, p.nodeName)
+		}
+	}
+
+	// Use defer for error wrapping only after node filtering
 	defer func() {
-		err = errors.Wrapf(err, "failed to delete volume %v", pv.Name)
+		if err != nil {
+			err = errors.Wrapf(err, "failed to delete volume %v", pv.Name)
+		}
 	}()
+
 	//Initiate clean up only when reclaim policy is not retain.
 	if pv.Spec.PersistentVolumeReclaimPolicy != v1.PersistentVolumeReclaimRetain {
 		//TODO: Determine the type of PV

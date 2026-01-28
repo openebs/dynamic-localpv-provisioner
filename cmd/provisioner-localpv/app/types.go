@@ -12,7 +12,6 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
-
 */
 
 package app
@@ -34,9 +33,11 @@ const (
 // Provisioner struct has the configuration and utilities required
 // across the different work-flows.
 type Provisioner struct {
-	kubeClient  *clientset.Clientset
-	namespace   string
-	helperImage string
+	kubeClient     *clientset.Clientset
+	namespace      string
+	helperImage    string
+	nodeDeployment bool
+	nodeName       string // Current node name (used in node-deployment mode)
 	// defaultConfig is the default configurations
 	// provided from ENV or Code
 	defaultConfig []mconfig.Config

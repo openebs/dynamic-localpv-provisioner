@@ -2,9 +2,10 @@ package app
 
 import (
 	"context"
-	"gopkg.in/yaml.v3"
 	"strconv"
 	"strings"
+
+	"gopkg.in/yaml.v3"
 
 	mconfig "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	hostpath "github.com/openebs/maya/pkg/hostpath/v1alpha1"
@@ -146,6 +147,9 @@ func (p *Provisioner) GetVolumeConfig(ctx context.Context, pvName string, pvc *c
 
 	//Fetch the SC
 	scName := GetStorageClassName(pvc)
+	if scName == nil || *scName == "" {
+		return nil, errors.Errorf("failed to get storageclass: storageClassName is not set in PVC %s/%s", pvc.Namespace, pvc.Name)
+	}
 	sc, err := p.kubeClient.StorageV1().StorageClasses().Get(ctx, *scName, metav1.GetOptions{})
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to get storageclass: missing sc name {%v}", scName)

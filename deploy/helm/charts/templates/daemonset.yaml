@@ -1,10 +1,9 @@
 {{- if .Values.localpv.enabled }}
-{{- if not .Values.localpv.nodeDeployment.enabled }}
+{{- if .Values.localpv.nodeDeployment.enabled }}
 apiVersion: apps/v1
-kind: Deployment
+kind: DaemonSet
 metadata:
-  name: {{ template "localpv.fullname" . }}
-  namespace: {{ .Release.Namespace }}
+  name: {{ template "localpv.fullname" . }}-node
   {{- with .Values.localpv.annotations }}
   annotations: {{ toYaml . | nindent 4 }}
   {{- end }}
@@ -14,10 +13,6 @@ metadata:
       {{- toYaml .Values.extraLabels | nindent 4 }}
     {{- end }}
 spec:
-  replicas: {{ .Values.localpv.replicas }}
-  strategy:
-    type: "Recreate"
-    rollingUpdate: null
   selector:
     matchLabels:
       {{- include "localpv.selectorLabels" . | nindent 6 }}
@@ -52,6 +47,10 @@ spec:
       - name: {{ template "localpv.fullname" . }}
         image: "{{ with .Values.localpv.image.registry | default .Values.global.imageRegistry | trimSuffix "/" }}{{ . }}/{{ end }}{{ .Values.localpv.image.repository }}:{{ .Values.localpv.image.tag }}"
         imagePullPolicy: {{ .Values.localpv.image.pullPolicy }}
+        {{- if .Values.localpv.privileged }}
+        securityContext:
+          privileged: true
+        {{- end }}
         resources:
 {{ toYaml .Values.localpv.resources | indent 10 }}
         env:
@@ -99,14 +98,18 @@ spec:
           value: "{{ .Values.helperPod.hostNetwork }}"
         - name: OPENEBS_IO_INSTALLER_TYPE
           value: "localpv-charts-helm"
-        # LEADER_ELECTION_ENABLED is used to enable/disable leader election. By default
-        # leader election is enabled.
+        # Disable leader election in node deployment mode
         - name: LEADER_ELECTION_ENABLED
-          value: "{{ .Values.localpv.enableLeaderElection }}"
+          value: "false"
+        # Enable node deployment mode
+        - name: NODE_DEPLOYMENT
+          value: "true"
 {{- if .Values.imagePullSecrets }}
         - name: OPENEBS_IO_IMAGE_PULL_SECRETS
           value: "{{- range $index, $secret := .Values.imagePullSecrets}}{{if $index}},{{end}}{{ $secret.name }}{{- end}}"
 {{- end }}
+        args:
+        - "--node-deployment=true"
         # Process name used for matching is limited to the 15 characters
         # present in the pgrep output.
         # So fullname can't be used here with pgrep (>15 chars).A regular expression
@@ -121,6 +124,32 @@ spec:
             - test `pgrep -c "^provisioner-loc.*"` = 1
           initialDelaySeconds: {{ .Values.localpv.healthCheck.initialDelaySeconds }}
           periodSeconds: {{ .Values.localpv.healthCheck.periodSeconds }}
+        volumeMounts:
+        - name: basepath
+          mountPath: {{ .Values.localpv.basePath | quote }}
+          mountPropagation: HostToContainer
+        - name: dev
+          mountPath: /dev
+        - name: host-proc
+          mountPath: /host/proc
+          readOnly: true
+{{- if .Values.localpv.nodeDeployment.additionalVolumeMounts }}
+{{ toYaml .Values.localpv.nodeDeployment.additionalVolumeMounts | indent 8 }}
+{{- end }}
+      volumes:
+      - name: basepath
+        hostPath:
+          path: {{ .Values.localpv.basePath | quote }}
+          type: DirectoryOrCreate
+      - name: dev
+        hostPath:
+          path: /dev
+      - name: host-proc
+        hostPath:
+          path: /proc
+{{- if .Values.localpv.nodeDeployment.additionalVolumes }}
+{{ toYaml .Values.localpv.nodeDeployment.additionalVolumes | indent 6 }}
+{{- end }}
 {{- if .Values.localpv.nodeSelector }}
       nodeSelector:
 {{ toYaml .Values.localpv.nodeSelector | indent 8 }}

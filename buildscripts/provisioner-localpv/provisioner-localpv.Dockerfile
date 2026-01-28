@@ -60,7 +60,14 @@ RUN apk add --no-cache \
     curl \
     net-tools \
     procps \
-    ca-certificates
+    ca-certificates \
+    util-linux \
+    e2fsprogs \
+    xfsprogs \
+    xfsprogs-extra \
+    blkid \
+    findmnt \
+    quota-tools
 
 COPY --from=build /go/src/github.com/openebs/dynamic-localpv-provisioner/bin/provisioner-localpv/provisioner-localpv /usr/local/bin/provisioner-localpv
 
