@@ -48,6 +48,12 @@ localpv:
   basePath: "/var/openebs/local"
   # Node deployment configuration for distributed provisioning mode
   nodeDeployment:
+    # Enable the NodeDeployment mode. This deploys the provisioner as a DaemonSet on
+    # cluster nodes. NodeDeployment avoids the need to spin up a HelperPod at volume
+    # creation/deletion time, and instead performs volume operations via the DaemonSet
+    # container.
+    # NOTE: This mode mounts the host '/' path on to container, as it does not use a
+    # HelperPod and must be able to cater to different BasePath paths.
     enabled: false
     # Additional volume mounts for the provisioner container
     additionalVolumeMounts: []

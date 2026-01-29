@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"strconv"
-	"strings"
 	"time"
 
 	hostpath "github.com/openebs/maya/pkg/hostpath/v1alpha1"
@@ -213,28 +212,15 @@ func (p *Provisioner) createCleanupPod(ctx context.Context, pOpts *HelperPodOpti
 
 	config.taints = pOpts.selectedNodeTaints
 
-	// check if path is xfs quota enabled and remove quota projid
-	// FS stores the file system of mount
-	fsType := "FS=`stat -f -c %T /data` ; "
-	// volumePath is the full path to the volume directory
-	volumePath := filepath.Join("/data/", config.volumeDir)
-	// cleanupScript checks fs type and removes quota before deleting directory
-	cleanupScript := "" +
-		"if [[ \"$FS\" == \"xfs\" ]]; then " +
-		"  ID=`xfs_io -c stat " + volumePath + " 2>/dev/null | awk '/projid/{print $3}' | head -1` ;" +
-		"  echo \"projid=$ID\" ;" +
-		"  if [ -n \"$ID\" ] && [ \"$ID\" != \"0\" ]; then " +
-		"    xfs_io -c 'chproj -R 0' " + volumePath + " 2>/dev/null || true ;" +
-		"    xfs_quota -x -c 'limit -p bsoft=0 bhard=0 '$ID /data 2>/dev/null || true ;" +
-		"  fi ;" +
-		"elif [[ \"$FS\" == \"ext2/ext3\" ]]; then " +
-		"  ID=`lsattr -pd " + volumePath + "/ | awk '{print $1}'` ;" +
-		"  if [ -n \"$ID\" ] && [ \"$ID\" != \"0\" ]; then " +
-		"    setquota -P $ID 0 0 0 0 /data 2>/dev/null || true ;" +
-		"  fi ;" +
-		"fi ; " +
-		"rm -rf " + volumePath
-	config.pOpts.cmdsForPath = []string{"sh", "-c", fsType + cleanupScript}
+	// Generate cleanup script using shared utility
+	// Helper pod mounts parentDir at /data, so use /data as the parent path
+	cleanupScript := GenerateQuotaCleanupScript(QuotaScriptConfig{
+		ParentDir:      "/data",
+		VolumeDir:      config.volumeDir,
+		HostPathPrefix: "", // No prefix needed, /data is the mount point
+	})
+
+	config.pOpts.cmdsForPath = []string{"sh", "-c", cleanupScript}
 
 	_, err := p.launchPod(ctx, config)
 	if err != nil && !k8serror.IsAlreadyExists(err) {
@@ -287,26 +273,17 @@ func (p *Provisioner) createQuotaPod(ctx context.Context, pOpts *HelperPodOption
 		return err
 	}
 
-	//fs stores the file system of mount
-	fs := "FS=`stat -f -c %T /data` ; "
-	//check if fs is xfs or ext4 (output of stat is ext2/ext3)
-	//PID is the last project Id in the directory
-	//xfs_quota project(xfs) or chattr +P (ext4) initializes project with new project id
-	//xfs_quota limit(xfs) or repquota (ext4) sets the quota according to limits defined
-	checkQuota := "" +
-		"if [[ \"$FS\" == \"xfs\" ]]; then " +
-		"  PID=`xfs_quota -x -c 'report -h' /data | tail -2 | awk 'NR==1{print substr ($1,2)}+0'` ;" +
-		"  PID=`expr $PID + 1` ;" +
-		"  xfs_quota -x -c 'project -s -p " + filepath.Join("/data/", config.volumeDir) + " '$PID /data;" +
-		"  xfs_quota -x -c 'limit -p bsoft=" + config.pOpts.softLimitGrace + " bhard=" + config.pOpts.hardLimitGrace + " '$PID /data ;" +
-		"elif [[ \"$FS\" == \"ext2/ext3\" ]]; then" +
-		"  PID=`repquota -P /data | tail -3 | awk 'NR==1{print substr ($1,2)}+0'` ;" +
-		"  PID=`expr $PID + 1` ;" +
-		"  chattr +P -p $PID " + filepath.Join("/data/", config.volumeDir) + " ;" +
-		"  setquota -P $PID " + strings.ToUpper(config.pOpts.softLimitGrace) + " " + strings.ToUpper(config.pOpts.hardLimitGrace) + " 0 0 " + "/data ; " +
-		"else " +
-		"  rm -rf " + filepath.Join("/data/", config.volumeDir) + " ; exit 1; fi"
-	config.pOpts.cmdsForPath = []string{"sh", "-c", fs + checkQuota}
+	// Generate quota script using shared utility
+	// Helper pod mounts parentDir at /data, so use /data as the parent path
+	quotaScript := GenerateQuotaApplyScript(QuotaScriptConfig{
+		ParentDir:      "/data",
+		VolumeDir:      config.volumeDir,
+		SoftLimitGrace: config.pOpts.softLimitGrace,
+		HardLimitGrace: config.pOpts.hardLimitGrace,
+		HostPathPrefix: "", // No prefix needed, /data is the mount point
+	})
+
+	config.pOpts.cmdsForPath = []string{"sh", "-c", quotaScript}
 
 	_, err := p.launchPod(ctx, config)
 	if err != nil && !k8serror.IsAlreadyExists(err) {
@@ -344,11 +321,6 @@ func (p *Provisioner) launchPod(ctx context.Context, config podConfig) (*corev1.
 						ReadOnly:  false,
 						MountPath: "/data/",
 					},
-					{
-						Name:      "dev",
-						ReadOnly:  false,
-						MountPath: "/dev/",
-					},
 				}).
 				WithPrivilegedSecurityContext(&privileged),
 		).
@@ -357,11 +329,6 @@ func (p *Provisioner) launchPod(ctx context.Context, config podConfig) (*corev1.
 			volume.NewBuilder().
 				WithName("data").
 				WithHostDirectory(config.parentDir),
-		).
-		WithVolumeBuilder(
-			volume.NewBuilder().
-				WithName("dev").
-				WithHostDirectory("/dev/"),
 		).
 		WithHostNetwork(config.pOpts.hostNetwork).
 		Build()

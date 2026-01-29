@@ -36,6 +36,12 @@ type LocalVolumeManager struct {
 	mu *sync.Mutex
 }
 
+const (
+	// HostPathPrefix is the mount point where the host root filesystem is mounted
+	// in the node DaemonSet. This allows the provisioner to access any path on the host.
+	HostPathPrefix = "/host"
+)
+
 // NewLocalVolumeManager creates a new LocalVolumeManager instance
 func NewLocalVolumeManager() *LocalVolumeManager {
 	return &LocalVolumeManager{
@@ -62,8 +68,10 @@ func (vm *LocalVolumeManager) CreateVolume(ctx context.Context, req *VolumeReque
 	}
 
 	// Create the directory with specified permissions
+	// Use HostPathPrefix to access the host filesystem
 	fullPath := filepath.Join(parentDir, volumeDir)
-	if err := vm.executeCommand(ctx, "mkdir", "-m", fsMode, "-p", fullPath); err != nil {
+	hostFullPath := filepath.Join(HostPathPrefix, fullPath)
+	if err := vm.executeCommand(ctx, "mkdir", "-m", fsMode, "-p", hostFullPath); err != nil {
 		return fmt.Errorf("failed to create directory: %v", err)
 	}
 
@@ -90,37 +98,19 @@ func (vm *LocalVolumeManager) DeleteVolume(ctx context.Context, req *VolumeReque
 		return fmt.Errorf("failed to extract paths: %v", err)
 	}
 
-	// Remove the directory
-	fullPath := filepath.Join(parentDir, volumeDir)
+	// Generate cleanup script using shared utility
+	// Node deployment mode accesses host filesystem via HostPathPrefix
+	cleanupScript := GenerateQuotaCleanupScript(QuotaScriptConfig{
+		ParentDir:      parentDir,
+		VolumeDir:      volumeDir,
+		HostPathPrefix: HostPathPrefix,
+	})
 
-	// check if path is xfs quota enabled and remove quota projid
-	cleanupCmdsForPath := fmt.Sprintf(`
-        d="%s"
-        base="%s"
-        # check fs type first
-        fs=$(stat -f -c %%T $base 2>/dev/null)
-        if [ "$fs" = "xfs" ]; then
-			id=$(xfs_io -c stat $d 2>/dev/null | awk '/projid/{print $3}' | head -1)
-			echo "projid=$id"
-			if [ -n "$id" ] && [ "$id" != "0" ]; then
-				# remove projid binding
-				xfs_io -c "chproj -R 0" "$d" 2>/dev/null || true
-				# remove quota limit
-				xfs_quota -x -c "limit -p bsoft=0 bhard=0 $id" $base 2>/dev/null || true
-			fi
-        elif [ "$fs" = "ext2/ext3" ]; then
-			ID=$(lsattr -pd $d/ | awk '{print $1}')
-			if [ -n "$ID" ] && [ "$ID" != "0" ]; then
-				setquota -P $ID 0 0 0 0 $base 2>/dev/null || true
-			fi
-		fi
-		rm -rf $d
-	`, fullPath, parentDir)
-
-	if err := vm.executeCommand(ctx, "sh", "-c", cleanupCmdsForPath); err != nil {
+	if err := vm.executeCommand(ctx, "sh", "-c", cleanupScript); err != nil {
 		return fmt.Errorf("failed to delete directory: %v", err)
 	}
 
+	fullPath := filepath.Join(parentDir, volumeDir)
 	klog.Infof("Successfully deleted volume %s at path %s", req.Name, fullPath)
 	return nil
 }
@@ -260,54 +250,15 @@ func (vm *LocalVolumeManager) validateLimits(softLimitGrace, hardLimitGrace stri
 
 // applyQuotaByFilesystem applies quota based on the filesystem type
 func (vm *LocalVolumeManager) applyQuotaByFilesystem(ctx context.Context, parentDir, volumeDir, softLimitGrace, hardLimitGrace string) error {
-	// Create a shell script to detect filesystem and apply quota
-	// We need to find the actual XFS mount point since parentDir might be a bind mount
-
-	// Extract numeric values for EXT4 setquota (it expects plain numbers in KB blocks, not with suffix)
-	extSoftLimit := strings.TrimSuffix(softLimitGrace, "k")
-	extHardLimit := strings.TrimSuffix(hardLimitGrace, "k")
-
-	script := fmt.Sprintf(`
-		set -e
-		
-		# Find the actual mount point for the path using host's mount info
-		# The host's proc is mounted at /host/proc for container environments
-		if [ -f /host/proc/1/mountinfo ]; then
-			# Use host's mountinfo to find the real mount point
-			MOUNT_POINT=$(findmnt -n -o TARGET --target %s --mountinfo /host/proc/1/mountinfo 2>/dev/null || findmnt -n -o TARGET --target %s 2>/dev/null || echo %s)
-		else
-			MOUNT_POINT=$(findmnt -n -o TARGET --target %s 2>/dev/null || echo %s)
-		fi
-		
-		# Get filesystem type
-		FS=$(stat -f -c %%T %s)
-		
-		if [[ "$FS" == "xfs" ]]; then
-			# Get the next available project ID
-			PID=$(xfs_quota -x -c 'report -h' "$MOUNT_POINT" 2>/dev/null | tail -2 | awk 'NR==1{print substr ($1,2)}+0' || echo "0")
-			PID=$((PID + 1))
-			# Set up project for the volume directory
-			xfs_quota -x -c "project -s -p %s $PID" "$MOUNT_POINT"
-			# Apply quota limits
-			xfs_quota -x -c "limit -p bsoft=%s bhard=%s $PID" "$MOUNT_POINT"
-		elif [[ "$FS" == "ext2/ext3" ]]; then
-			PID=$(repquota -P "$MOUNT_POINT" 2>/dev/null | tail -3 | awk 'NR==1{print substr ($1,2)}+0' || echo "0")
-			PID=$((PID + 1))
-			chattr +P -p $PID %s
-			# setquota -P expects block limits as plain numbers (in KB blocks)
-			setquota -P $PID %s %s 0 0 "$MOUNT_POINT"
-		else
-			echo "Unsupported filesystem type: $FS"
-			exit 1
-		fi`,
-		parentDir, parentDir, parentDir, // findmnt with host mountinfo, fallback, and default
-		parentDir, parentDir, // findmnt without host mountinfo
-		parentDir,                           // stat filesystem
-		filepath.Join(parentDir, volumeDir), // project path
-		softLimitGrace, hardLimitGrace,      // xfs limits (with 'k' suffix)
-		filepath.Join(parentDir, volumeDir), // chattr path
-		extSoftLimit, extHardLimit,          // ext quota limits (plain numbers in KB)
-	)
+	// Generate quota script using shared utility
+	// Node deployment mode accesses host filesystem via HostPathPrefix
+	script := GenerateQuotaApplyScript(QuotaScriptConfig{
+		ParentDir:      parentDir,
+		VolumeDir:      volumeDir,
+		SoftLimitGrace: softLimitGrace,
+		HardLimitGrace: hardLimitGrace,
+		HostPathPrefix: HostPathPrefix,
+	})
 
 	// Execute the quota script
 	return vm.executeCommand(ctx, "sh", "-c", script)
