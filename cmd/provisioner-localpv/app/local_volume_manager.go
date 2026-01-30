@@ -13,8 +13,9 @@ import (
 	"syscall"
 	"time"
 
-	hostpath "github.com/openebs/maya/pkg/hostpath/v1alpha1"
 	"k8s.io/klog/v2"
+
+	hostpath "github.com/openebs/dynamic-localpv-provisioner/pkg/hostpath/v1alpha1"
 )
 
 // VolumeRequest represents a request for volume operations

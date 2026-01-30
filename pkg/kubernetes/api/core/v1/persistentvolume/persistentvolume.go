@@ -1,17 +1,3 @@
-// Copyright © 2018-2020 The OpenEBS Authors
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 package persistentvolume
 
 import (
@@ -74,13 +60,13 @@ func (p *PV) IsNil() bool {
 // GetPath returns path configured on VolumeSource
 // The VolumeSource can be either Local or HostPath
 func (p *PV) GetPath() string {
-	local := p.object.Spec.PersistentVolumeSource.Local
+	local := p.object.Spec.Local
 	if local != nil {
 		return local.Path
 	}
 	//Handle the case of Local PV created in 0.9 using
 	//HostPath VolumeSource
-	hostPath := p.object.Spec.PersistentVolumeSource.HostPath
+	hostPath := p.object.Spec.HostPath
 	if hostPath != nil {
 		return hostPath.Path
 	}

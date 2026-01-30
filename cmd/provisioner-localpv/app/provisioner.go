@@ -6,15 +6,15 @@ import (
 	"strings"
 
 	analytics "github.com/openebs/google-analytics-4/usage"
-	"github.com/openebs/maya/pkg/alertlog"
-	mconfig "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	menv "github.com/openebs/maya/pkg/env/v1alpha1"
 	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
 	pvController "sigs.k8s.io/sig-storage-lib-external-provisioner/v9/controller"
+
+	mconfig "github.com/openebs/dynamic-localpv-provisioner/pkg/apis/openebs.io/v1alpha1"
+	"github.com/openebs/dynamic-localpv-provisioner/pkg/utils"
 )
 
 const (
@@ -26,6 +26,9 @@ const (
 	DefaultCASType string = "hostpath-localpv"
 	// DefaultUnknownReplicaCount is the default replica count
 	DefaultUnknownReplicaCount string = "1"
+
+	// GoogleAnalyticsKey This environment variable is set via env
+	GoogleAnalyticsKey string = "OPENEBS_IO_ENABLE_ANALYTICS"
 )
 
 // NewProvisioner will create a new Provisioner object and initialize
@@ -33,7 +36,7 @@ const (
 //	it with global information used across PV create and delete operations.
 func NewProvisioner(kubeClient *clientset.Clientset) (*Provisioner, error) {
 
-	namespace := getOpenEBSNamespace() //menv.Get(menv.OpenEBSNamespace)
+	namespace := getOpenEBSNamespace()
 	if len(strings.TrimSpace(namespace)) == 0 {
 		return nil, fmt.Errorf("Cannot start Provisioner: failed to get namespace")
 	}
@@ -143,7 +146,7 @@ func (p *Provisioner) Provision(ctx context.Context, opts pvController.Provision
 	if stgType == "hostpath" {
 		return p.ProvisionHostPath(ctx, opts, pvCASConfig)
 	}
-	alertlog.Logger.Errorw("",
+	utils.Logger.Errorw("",
 		"eventcode", "local.pv.provision.failure",
 		"msg", "Failed to provision Local PV",
 		"rname", opts.PVName,
@@ -217,7 +220,7 @@ func (p *Provisioner) Delete(ctx context.Context, pv *v1.PersistentVolume) (err 
 
 		err = p.DeleteHostPath(ctx, pv)
 		if err != nil {
-			alertlog.Logger.Errorw("",
+			utils.Logger.Errorw("",
 				"eventcode", "local.pv.delete.failure",
 				"msg", "Failed to delete Local PV",
 				"rname", pv.Name,
@@ -228,7 +231,7 @@ func (p *Provisioner) Delete(ctx context.Context, pv *v1.PersistentVolume) (err 
 		return err
 	}
 	klog.Infof("Retained volume %v", pv.Name)
-	alertlog.Logger.Infow("",
+	utils.Logger.Infow("",
 		"eventcode", "local.pv.delete.success",
 		"msg", "Successfully deleted Local PV",
 		"rname", pv.Name,
@@ -238,7 +241,7 @@ func (p *Provisioner) Delete(ctx context.Context, pv *v1.PersistentVolume) (err 
 
 // sendEventOrIgnore sends anonymous local-pv provision/delete events
 func sendEventOrIgnore(pvcName, pvName, capacity, stgType, method string) {
-	if menv.Truthy(menv.OpenEBSEnableAnalytics) {
+	if utils.GoogleAnalyticsEnabled(GoogleAnalyticsKey) {
 		stgType = "local-" + stgType
 
 		analytics.New().CommonBuild(stgType).ApplicationBuilder().

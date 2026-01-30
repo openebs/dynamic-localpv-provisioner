@@ -5,15 +5,15 @@ import (
 	"strconv"
 	"strings"
 
-	"gopkg.in/yaml.v3"
-
-	mconfig "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	hostpath "github.com/openebs/maya/pkg/hostpath/v1alpha1"
-	"github.com/openebs/maya/pkg/util"
 	"github.com/pkg/errors"
+	"gopkg.in/yaml.v3"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
+
+	mconfig "github.com/openebs/dynamic-localpv-provisioner/pkg/apis/openebs.io/v1alpha1"
+	hostpath "github.com/openebs/dynamic-localpv-provisioner/pkg/hostpath/v1alpha1"
+	"github.com/openebs/dynamic-localpv-provisioner/pkg/utils"
 )
 
 const (
@@ -156,7 +156,7 @@ func (p *Provisioner) GetVolumeConfig(ctx context.Context, pvName string, pvc *c
 	}
 
 	// extract and merge the cas config from storageclass
-	scCASConfigStr := sc.ObjectMeta.Annotations[string(mconfig.CASConfigKey)]
+	scCASConfigStr := sc.Annotations[string(mconfig.CASConfigKey)]
 	var scConfig []Config
 	klog.V(4).Infof("SC %v has config:%v", *scName, scCASConfigStr)
 	if len(strings.TrimSpace(scCASConfigStr)) != 0 {
@@ -172,7 +172,7 @@ func (p *Provisioner) GetVolumeConfig(ctx context.Context, pvName string, pvc *c
 	// This block can be added once validation checks are added
 	// as to the type of config that can be passed via PVC
 	var pvcConfig []Config
-	pvcCASConfigStr := pvc.ObjectMeta.Annotations[string(mconfig.CASConfigKey)]
+	pvcCASConfigStr := pvc.Annotations[string(mconfig.CASConfigKey)]
 	klog.V(4).Infof("PVC %v has config:%v", pvc.Name, pvcCASConfigStr)
 	if len(strings.TrimSpace(pvcCASConfigStr)) != 0 {
 		err = yaml.Unmarshal([]byte(pvcCASConfigStr), &pvcConfig)
@@ -188,22 +188,22 @@ func (p *Provisioner) GetVolumeConfig(ctx context.Context, pvName string, pvc *c
 
 	pvConfigMap, err := ConfigToMap(pvConfig)
 	if err != nil {
-		return nil, errors.Wrapf(err, "unable to read volume config: pvc {%v}", pvc.ObjectMeta.Name)
+		return nil, errors.Wrapf(err, "unable to read volume config: pvc {%v}", pvc.Name)
 	}
 
 	dataPvConfigMap, err := dataConfigToMap(pvConfig)
 	if err != nil {
-		return nil, errors.Wrapf(err, "unable to read volume config: pvc {%v}", pvc.ObjectMeta.Name)
+		return nil, errors.Wrapf(err, "unable to read volume config: pvc {%v}", pvc.Name)
 	}
 
 	listPvConfigMap, err := listConfigToMap(pvConfig)
 	if err != nil {
-		return nil, errors.Wrapf(err, "unable to read volume config: pvc {%v}", pvc.ObjectMeta.Name)
+		return nil, errors.Wrapf(err, "unable to read volume config: pvc {%v}", pvc.Name)
 	}
 
 	c := &VolumeConfig{
 		pvName:     pvName,
-		pvcName:    pvc.ObjectMeta.Name,
+		pvcName:    pvc.Name,
 		scName:     *scName,
 		options:    pvConfigMap,
 		configData: dataPvConfigMap,
@@ -373,7 +373,7 @@ func (c *VolumeConfig) GetFsMode() string {
 //
 //	`value1` will be returned.
 func (c *VolumeConfig) getValue(key string) string {
-	if configObj, ok := util.GetNestedField(c.options, key).(map[string]string); ok {
+	if configObj, ok := utils.GetNestedField(c.options, key).(map[string]string); ok {
 		if val, p := configObj[string(mconfig.ValuePTP)]; p {
 			return val
 		}
@@ -384,7 +384,7 @@ func (c *VolumeConfig) getValue(key string) string {
 // Similar to getValue() above. Returns value of the
 // 'Enabled' parameter.
 func (c *VolumeConfig) getEnabled(key string) string {
-	if configObj, ok := util.GetNestedField(c.options, key).(map[string]string); ok {
+	if configObj, ok := utils.GetNestedField(c.options, key).(map[string]string); ok {
 		if val, p := configObj[string(mconfig.EnabledPTP)]; p {
 			return val
 		}
@@ -396,7 +396,7 @@ func (c *VolumeConfig) getEnabled(key string) string {
 // This gets the value for a specific
 // 'Data' parameter key-value pair.
 func (c *VolumeConfig) getDataField(key string, dataKey string) string {
-	if configData, ok := util.GetNestedField(c.configData, key).(map[string]RawLiteral); ok {
+	if configData, ok := utils.GetNestedField(c.configData, key).(map[string]RawLiteral); ok {
 		if val, p := configData[dataKey]; p {
 			return string(val)
 		}
@@ -408,7 +408,7 @@ func (c *VolumeConfig) getDataField(key string, dataKey string) string {
 // This is similar to getValue() and getEnabled().
 // This returns the value of the `Data` parameter
 func (c *VolumeConfig) getData(key string) map[string]string {
-	if configData, ok := util.GetNestedField(c.configData, key).(map[string]string); ok {
+	if configData, ok := utils.GetNestedField(c.configData, key).(map[string]string); ok {
 		return configData
 	}
 	//Default case
@@ -417,7 +417,7 @@ func (c *VolumeConfig) getData(key string) map[string]string {
 
 // This gets the list of values for the 'List' parameter.
 func (c *VolumeConfig) getList(key string) []string {
-	if listValues, ok := util.GetNestedField(c.configList, key).([]string); ok {
+	if listValues, ok := utils.GetNestedField(c.configList, key).([]string); ok {
 		return listValues
 	}
 	//Default case
@@ -502,7 +502,7 @@ func dataConfigToMap(pvConfig []Config) (map[string]interface{}, error) {
 		confHierarchy := map[string]interface{}{
 			configName: configObj.Data,
 		}
-		isMerged := util.MergeMapOfObjects(m, confHierarchy)
+		isMerged := utils.MergeMapOfObjects(m, confHierarchy)
 		if !isMerged {
 			return nil, errors.Errorf("failed to transform cas config 'Data' for configName '%s' to map: failed to merge: %s", configName, configObj)
 		}
@@ -524,7 +524,7 @@ func listConfigToMap(pvConfig []Config) (map[string]interface{}, error) {
 		confHierarchy := map[string]interface{}{
 			configName: configObj.List,
 		}
-		isMerged := util.MergeMapOfObjects(m, confHierarchy)
+		isMerged := utils.MergeMapOfObjects(m, confHierarchy)
 		if !isMerged {
 			return nil, errors.Errorf("failed to transform cas config 'List' for configName '%s' to map: failed to merge: %s", configName, configObj)
 		}
@@ -571,7 +571,7 @@ func MergeConfigs(highPriority, lowPriority []Config) (final []Config) {
 	for _, l := range lowPriority {
 		// include only if the config was not present
 		// earlier in high priority configuration
-		if !util.ContainsString(book, strings.TrimSpace(l.Name)) {
+		if !utils.ContainsString(book, strings.TrimSpace(l.Name)) {
 			final = append(final, l)
 		}
 	}
@@ -595,7 +595,7 @@ func ConfigToMap(all []Config) (m map[string]interface{}, err error) {
 				"value":   config.Value,
 			},
 		}
-		isMerged := util.MergeMapOfObjects(m, confHierarchy)
+		isMerged := utils.MergeMapOfObjects(m, confHierarchy)
 		if !isMerged {
 			err = errors.Errorf("failed to transform cas config to map: failed to merge: %s", config)
 			return nil, err

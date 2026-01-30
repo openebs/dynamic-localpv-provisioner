@@ -1,11 +1,11 @@
 package storageclass
 
 import (
-	mconfig "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
+
+	mconfig "github.com/openebs/dynamic-localpv-provisioner/pkg/apis/openebs.io/v1alpha1"
 )
 
 const (
@@ -46,7 +46,7 @@ func WithName(name string) StorageClassOption {
 			return errors.New("Failed to set Name. Name is an empty string.")
 		}
 
-		s.ObjectMeta.Name = name
+		s.Name = name
 		return nil
 	}
 }
@@ -57,7 +57,7 @@ func WithGenerateName(generateName string) StorageClassOption {
 			return errors.New("Failed to set GenerateName. Name prefix is an empty string.")
 		}
 
-		s.ObjectMeta.GenerateName = generateName + "-"
+		s.GenerateName = generateName + "-"
 		return nil
 	}
 }
@@ -69,11 +69,11 @@ func WithLabels(labels map[string]string) StorageClassOption {
 				"Input is invalid.")
 		}
 
-		if s.ObjectMeta.Labels == nil {
-			s.ObjectMeta.Labels = map[string]string{}
+		if s.Labels == nil {
+			s.Labels = map[string]string{}
 		}
 		for key, value := range labels {
-			s.ObjectMeta.Labels[key] = value
+			s.Labels[key] = value
 		}
 
 		return nil
@@ -87,11 +87,11 @@ func WithAnnotations(annotations map[string]string) StorageClassOption {
 				"Input is invalid.")
 		}
 
-		if s.ObjectMeta.Annotations == nil {
-			s.ObjectMeta.Annotations = map[string]string{}
+		if s.Annotations == nil {
+			s.Annotations = map[string]string{}
 		}
 		for key, value := range annotations {
-			s.ObjectMeta.Annotations[key] = value
+			s.Annotations[key] = value
 		}
 
 		return nil
@@ -118,7 +118,7 @@ func WithParameters(parameters map[string]string) StorageClassOption {
 
 func WithLocalPV() StorageClassOption {
 	return func(s *storagev1.StorageClass) error {
-		if _, ok := s.ObjectMeta.Annotations[string(mconfig.CASTypeKey)]; ok {
+		if _, ok := s.Annotations[string(mconfig.CASTypeKey)]; ok {
 			return errors.New("Annotation '" + string(mconfig.CASTypeKey) +
 				"' is already set.")
 		}
@@ -127,10 +127,10 @@ func WithLocalPV() StorageClassOption {
 		}
 
 		// Set the cas-type annotation
-		if s.ObjectMeta.Annotations == nil {
-			s.ObjectMeta.Annotations = map[string]string{}
+		if s.Annotations == nil {
+			s.Annotations = map[string]string{}
 		}
-		s.ObjectMeta.Annotations[string(mconfig.CASTypeKey)] = localPVcasTypeValue
+		s.Annotations[string(mconfig.CASTypeKey)] = localPVcasTypeValue
 		// Set the provisioner value for
 		// openebs-localpv-provisioner PV controller
 		s.Provisioner = localPVprovisionerName

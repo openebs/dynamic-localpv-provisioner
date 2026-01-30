@@ -3,8 +3,6 @@ package app
 import (
 	"context"
 
-	"github.com/openebs/maya/pkg/alertlog"
-	mconfig "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -12,7 +10,9 @@ import (
 	"k8s.io/klog/v2"
 	pvController "sigs.k8s.io/sig-storage-lib-external-provisioner/v9/controller"
 
+	mconfig "github.com/openebs/dynamic-localpv-provisioner/pkg/apis/openebs.io/v1alpha1"
 	"github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/persistentvolume"
+	"github.com/openebs/dynamic-localpv-provisioner/pkg/utils"
 )
 
 const (
@@ -46,7 +46,7 @@ func (p *Provisioner) ProvisionHostPath(ctx context.Context, opts pvController.P
 
 	path, err := volumeConfig.GetPath()
 	if err != nil {
-		alertlog.Logger.Errorw("",
+		utils.Logger.Errorw("",
 			"eventcode", "local.pv.provision.failure",
 			"msg", "Failed to provision Local PV",
 			"rname", opts.PVName,
@@ -128,7 +128,7 @@ func (p *Provisioner) ProvisionHostPath(ctx context.Context, opts pvController.P
 
 	if iErr != nil {
 		klog.Infof("Initialize volume %v failed: %v", name, iErr)
-		alertlog.Logger.Errorw("",
+		utils.Logger.Errorw("",
 			"eventcode", "local.pv.provision.failure",
 			"msg", "Failed to provision Local PV",
 			"rname", opts.PVName,
@@ -143,7 +143,7 @@ func (p *Provisioner) ProvisionHostPath(ctx context.Context, opts pvController.P
 		iErr = p.createQuotaPod(ctx, podOpts)
 		if iErr != nil {
 			klog.Infof("Applying quota failed: %v", iErr)
-			alertlog.Logger.Errorw("",
+			utils.Logger.Errorw("",
 				"eventcode", "local.pv.provision.failure",
 				"msg", "Failed to provision Local PV",
 				"rname", opts.PVName,
@@ -152,7 +152,7 @@ func (p *Provisioner) ProvisionHostPath(ctx context.Context, opts pvController.P
 			)
 			return nil, pvController.ProvisioningFinished, iErr
 		}
-		alertlog.Logger.Infow("",
+		utils.Logger.Infow("",
 			"eventcode", "local.pv.quota.success",
 			"msg", "Successfully applied quota",
 			"rname", opts.PVName,
@@ -165,7 +165,7 @@ func (p *Provisioner) ProvisionHostPath(ctx context.Context, opts pvController.P
 		iErr = p.createVolumeLocally(ctx, podOpts, enableQuota)
 		if iErr != nil {
 			klog.Errorf("Create volume locally %v failed: %v", name, iErr)
-			alertlog.Logger.Errorw("",
+			utils.Logger.Errorw("",
 				"eventcode", "local.pv.provision.failure",
 				"msg", "Failed to provision Local PV",
 				"rname", opts.PVName,
@@ -213,7 +213,7 @@ func (p *Provisioner) ProvisionHostPath(ctx context.Context, opts pvController.P
 		Build()
 
 	if err != nil {
-		alertlog.Logger.Errorw("",
+		utils.Logger.Errorw("",
 			"eventcode", "local.pv.provision.failure",
 			"msg", "Failed to provision Local PV",
 			"rname", opts.PVName,
@@ -222,7 +222,7 @@ func (p *Provisioner) ProvisionHostPath(ctx context.Context, opts pvController.P
 		)
 		return nil, pvController.ProvisioningFinished, err
 	}
-	alertlog.Logger.Infow("",
+	utils.Logger.Infow("",
 		"eventcode", "local.pv.provision.success",
 		"msg", "Successfully provisioned Local PV",
 		"rname", opts.PVName,
@@ -277,7 +277,7 @@ func (p *Provisioner) DeleteHostPath(ctx context.Context, pv *v1.PersistentVolum
 	if len(nodeAffinityLabels) == 0 {
 		return errors.Errorf("cannot find affinited node details")
 	}
-	alertlog.Logger.Infof("Get the Node Object with label {%v}", nodeAffinityLabels)
+	utils.Logger.Infof("Get the Node Object with label {%v}", nodeAffinityLabels)
 
 	//Get the node Object once again to get updated Taints.
 	nodeObject, err := p.GetNodeObjectFromLabels(nodeAffinityLabels)

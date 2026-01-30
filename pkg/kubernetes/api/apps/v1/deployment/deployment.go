@@ -1,11 +1,11 @@
 package v1alpha1
 
 import (
-	stringer "github.com/openebs/maya/pkg/apis/stringer/v1alpha1"
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/openebs/dynamic-localpv-provisioner/pkg/apis/stringer"
 	templatespec "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/podtemplatespec"
 )
 

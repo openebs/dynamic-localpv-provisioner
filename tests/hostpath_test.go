@@ -61,7 +61,7 @@ var _ = Describe("TEST HOSTPATH LOCAL PV", func() {
 				"while creating StorageClass with name prefix {%s}",
 				scNamePrefix,
 			)
-			scName = scObj.ObjectMeta.Name
+			scName = scObj.Name
 		})
 	})
 

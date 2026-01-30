@@ -25,17 +25,6 @@ type Volume struct {
 	object *corev1.Volume
 }
 
-type volumeBuildOption func(*Volume)
-
-// NewForAPIObject returns a new instance of Volume
-func NewForAPIObject(obj *corev1.Volume, opts ...volumeBuildOption) *Volume {
-	v := &Volume{object: obj}
-	for _, o := range opts {
-		o(v)
-	}
-	return v
-}
-
 // Predicate defines an abstraction
 // to determine conditional checks
 // against the provided volume instance
@@ -47,25 +36,5 @@ func (v *Volume) IsNil() bool {
 	return v.object == nil
 }
 
-// IsNil is predicate to filter out nil Volume
-// instances
-func IsNil() Predicate {
-	return func(v *Volume) bool {
-		return v.IsNil()
-	}
-}
-
 // PredicateList holds a list of predicate
 type PredicateList []Predicate
-
-// all returns true if all the predicates
-// succeed against the provided pvc
-// instance
-func (l PredicateList) all(v *Volume) bool {
-	for _, pred := range l {
-		if !pred(v) {
-			return false
-		}
-	}
-	return true
-}

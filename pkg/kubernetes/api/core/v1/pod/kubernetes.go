@@ -1,17 +1,3 @@
-// Copyright © 2018-2020 The OpenEBS Authors
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 package pod
 
 import (
@@ -19,14 +5,15 @@ import (
 	"context"
 	"encoding/json"
 
-	client "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/client"
-	errors "github.com/pkg/errors"
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/remotecommand"
+
+	"github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/client"
 )
 
 // getClientsetFn is a typed function that
@@ -96,7 +83,7 @@ func defaultExec(
 	// Stream initiates transport of standard shell streams
 	// It will transport any non-nil stream to a remote system,
 	// and return an error if a problem occurs
-	err = exec.Stream(remotecommand.StreamOptions{
+	err = exec.StreamWithContext(context.TODO(), remotecommand.StreamOptions{
 		Stdin:  nil,
 		Stdout: &stdout,
 		Stderr: &stderr,

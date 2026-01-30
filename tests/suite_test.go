@@ -9,11 +9,10 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	ns "github.com/openebs/maya/pkg/kubernetes/namespace/v1alpha1"
-	corev1 "k8s.io/api/core/v1"
-
+	ns "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/namespace"
 	"github.com/openebs/dynamic-localpv-provisioner/tests/disk"
 )
 

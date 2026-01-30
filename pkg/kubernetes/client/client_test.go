@@ -1,25 +1,8 @@
-/*
-Copyright 2019 The OpenEBS Authors
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
 package client
 
 import (
 	"testing"
 
-	env "github.com/openebs/maya/pkg/env/v1alpha1"
 	"github.com/pkg/errors"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
@@ -50,31 +33,27 @@ func fakeBuildConfigFromFlagsErr(kubemaster string, kubeconfig string) (*rest.Co
 	return nil, errors.New("fake error")
 }
 
-func fakeGetKubeConfigPathOk(e env.ENVKey) string {
+func fakeGetKubeConfigPathOk(e string) string {
 	return "fake"
 }
 
-func fakeGetKubeConfigPathNil(e env.ENVKey) string {
+func fakeGetKubeConfigPathNil(e string) string {
 	return ""
 }
 
-func fakeGetKubeMasterIPOk(e env.ENVKey) string {
+func fakeGetKubeMasterIPOk(e string) string {
 	return "fake"
 }
 
-func fakeGetKubeMasterIPNil(e env.ENVKey) string {
+func fakeGetKubeMasterIPNil(e string) string {
 	return ""
 }
 
-func fakeGetDynamicClientSetOk(c *rest.Config) (dynamic.Interface, error) {
+func fakeGetDynamicClientSetOk(c *rest.Config) (*dynamic.DynamicClient, error) {
 	return dynamic.NewForConfig(c)
 }
 
-func fakeGetDynamicClientSetNil(c *rest.Config) (dynamic.Interface, error) {
-	return nil, nil
-}
-
-func fakeGetDynamicClientSetErr(c *rest.Config) (dynamic.Interface, error) {
+func fakeGetDynamicClientSetErr(c *rest.Config) (*dynamic.DynamicClient, error) {
 	return nil, errors.New("fake error")
 }
 

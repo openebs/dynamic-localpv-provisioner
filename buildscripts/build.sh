@@ -104,9 +104,9 @@ if [ "$GOOS" = "windows" ]; then
 fi
 
 env GOOS="$GOOS" GOARCH="$GOARCH" CGO_ENABLED=0 go build -ldflags \
-    "-X github.com/openebs/maya/pkg/version.GitCommit=${GIT_COMMIT} \
+    "-X github.com/openebs/dynamic-localpv-provisioner/pkg/version.GitCommit=${GIT_COMMIT} \
     -X main.CtlName='${CTLNAME}' \
-    -X github.com/openebs/maya/pkg/version.Version=${VERSION}" \
+    -X github.com/openebs/dynamic-localpv-provisioner/pkg/version.Version=${VERSION}" \
     -o "$output_name"\
     ./cmd/"${CTLNAME}"
 
