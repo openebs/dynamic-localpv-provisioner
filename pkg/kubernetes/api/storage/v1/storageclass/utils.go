@@ -1,19 +1,3 @@
-/*
-Copyright 2019 The OpenEBS Authors
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
 package storageclass
 
 import (
@@ -21,10 +5,11 @@ import (
 	"regexp"
 	"strings"
 
-	mconfig "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	cast "github.com/openebs/maya/pkg/castemplate/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
+
+	mconfig "github.com/openebs/dynamic-localpv-provisioner/pkg/apis/openebs.io/v1alpha1"
+	cast "github.com/openebs/dynamic-localpv-provisioner/pkg/castemplate"
 )
 
 func isValidPath(hostpath string) bool {
@@ -45,7 +30,7 @@ func isValidPath(hostpath string) bool {
 }
 
 func isCompatibleWithLocalPVcasType(s *storagev1.StorageClass) bool {
-	if scCASTypeStr, ok := s.ObjectMeta.Annotations[string(mconfig.CASTypeKey)]; ok {
+	if scCASTypeStr, ok := s.Annotations[string(mconfig.CASTypeKey)]; ok {
 		if scCASTypeStr != localPVcasTypeValue && scCASTypeStr != "" {
 			return false
 		}
@@ -63,7 +48,7 @@ func isCompatibleWithHostpath(s *storagev1.StorageClass) bool {
 		return false
 	}
 
-	if scCASConfigStr, ok := s.ObjectMeta.Annotations[string(mconfig.CASConfigKey)]; ok {
+	if scCASConfigStr, ok := s.Annotations[string(mconfig.CASConfigKey)]; ok {
 		// Unmarshall to mconfig.Config
 		scCASConfig, err := cast.UnMarshallToConfig(scCASConfigStr)
 		if err != nil {
@@ -129,7 +114,7 @@ func isCompatibleWithQuota(s *storagev1.StorageClass) bool {
 		return false
 	}
 
-	if scCASConfigStr, ok := s.ObjectMeta.Annotations[string(mconfig.CASConfigKey)]; ok {
+	if scCASConfigStr, ok := s.Annotations[string(mconfig.CASConfigKey)]; ok {
 		// Unmarshall to mconfig.Config
 		scCASConfig, err := cast.UnMarshallToConfig(scCASConfigStr)
 		if err != nil {
@@ -170,7 +155,7 @@ func isCompatibleWithNodeAffinityLabel(s *storagev1.StorageClass) bool {
 		return false
 	}
 
-	if scCASConfigStr, ok := s.ObjectMeta.Annotations[string(mconfig.CASConfigKey)]; ok {
+	if scCASConfigStr, ok := s.Annotations[string(mconfig.CASConfigKey)]; ok {
 		// Unmarshall to mconfig.Config
 		scCASConfig, err := cast.UnMarshallToConfig(scCASConfigStr)
 		if err != nil {
@@ -219,7 +204,7 @@ func isCompatibleWithDevice(s *storagev1.StorageClass) bool {
 		return false
 	}
 
-	if scCASConfigStr, ok := s.ObjectMeta.Annotations[string(mconfig.CASConfigKey)]; ok {
+	if scCASConfigStr, ok := s.Annotations[string(mconfig.CASConfigKey)]; ok {
 		// Unmarshall to mconfig.Config
 		scCASConfig, err := cast.UnMarshallToConfig(scCASConfigStr)
 		if err != nil {
@@ -251,7 +236,7 @@ func isCompatibleWithFSType(s *storagev1.StorageClass) bool {
 		return false
 	}
 
-	if scCASConfigStr, ok := s.ObjectMeta.Annotations[string(mconfig.CASConfigKey)]; ok {
+	if scCASConfigStr, ok := s.Annotations[string(mconfig.CASConfigKey)]; ok {
 		// Unmarshall to mconfig.Config
 		scCASConfig, err := cast.UnMarshallToConfig(scCASConfigStr)
 		if err != nil {
@@ -298,7 +283,7 @@ func isCompatibleWithBlockDeviceTag(s *storagev1.StorageClass) bool {
 		return false
 	}
 
-	if scCASConfigStr, ok := s.ObjectMeta.Annotations[string(mconfig.CASConfigKey)]; ok {
+	if scCASConfigStr, ok := s.Annotations[string(mconfig.CASConfigKey)]; ok {
 		// Unmarshall to mconfig.Config
 		scCASConfig, err := cast.UnMarshallToConfig(scCASConfigStr)
 		if err != nil {
@@ -330,19 +315,19 @@ func isCompatibleWithBlockDeviceTag(s *storagev1.StorageClass) bool {
 }
 
 func writeOrAppendCASConfig(s *storagev1.StorageClass, config string) bool {
-	if s.ObjectMeta.Annotations == nil {
-		s.ObjectMeta.Annotations = map[string]string{
+	if s.Annotations == nil {
+		s.Annotations = map[string]string{
 			string(mconfig.CASConfigKey): config,
 		}
 		return true
 	}
 	// Append to the existing CAS config
-	if scCASConfig, ok := s.ObjectMeta.Annotations[string(mconfig.CASConfigKey)]; ok {
-		s.ObjectMeta.Annotations[string(mconfig.CASConfigKey)] = scCASConfig + config
+	if scCASConfig, ok := s.Annotations[string(mconfig.CASConfigKey)]; ok {
+		s.Annotations[string(mconfig.CASConfigKey)] = scCASConfig + config
 		return true
 	}
 
-	s.ObjectMeta.Annotations[string(mconfig.CASConfigKey)] = config
+	s.Annotations[string(mconfig.CASConfigKey)] = config
 	return true
 }
 

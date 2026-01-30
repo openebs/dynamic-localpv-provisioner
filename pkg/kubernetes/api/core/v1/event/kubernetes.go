@@ -1,30 +1,15 @@
-/*
-Copyright 2021 The OpenEBS Authors
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
 package event
 
 import (
 	"context"
 
-	client "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/client"
-	errors "github.com/pkg/errors"
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+
+	"github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/client"
 )
 
 // getClientsetFn is a typed function that
@@ -173,28 +158,6 @@ func (k *KubeClient) getClientsetOrCached() (*clientset.Clientset, error) {
 	}
 	k.clientset = cs
 	return k.clientset, nil
-}
-
-func (k *KubeClient) getKubeConfigForPathOrDirect() (*rest.Config, error) {
-	if k.kubeConfigPath != "" {
-		return k.getKubeConfigForPath(k.kubeConfigPath)
-	}
-	return k.getKubeConfig()
-}
-
-// getKubeConfigOrCached returns either a new instance
-// of kubernetes config or its cached copy
-func (k *KubeClient) getKubeConfigOrCached() (*rest.Config, error) {
-	if k.kubeConfig != nil {
-		return k.kubeConfig, nil
-	}
-
-	kc, err := k.getKubeConfigForPathOrDirect()
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to get kube config")
-	}
-	k.kubeConfig = kc
-	return k.kubeConfig, nil
 }
 
 // List returns a list of Event

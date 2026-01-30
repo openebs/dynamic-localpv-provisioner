@@ -1,26 +1,10 @@
-/*
-Copyright 2019-2020 The OpenEBS Authors
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
 package client
 
 import (
 	"strings"
 	"sync"
 
-	env "github.com/openebs/maya/pkg/env/v1alpha1"
+	"github.com/openebs/lib-csi/pkg/common/env"
 	"github.com/pkg/errors"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
@@ -31,11 +15,11 @@ import (
 const (
 	// K8sMasterIPEnvironmentKey is the environment variable
 	// key to provide kubernetes master IP address
-	K8sMasterIPEnvironmentKey env.ENVKey = "OPENEBS_IO_K8S_MASTER"
+	K8sMasterIPEnvironmentKey string = "OPENEBS_IO_K8S_MASTER"
 
 	// KubeConfigEnvironmentKey is the environment variable
 	// key to provide kubeconfig path
-	KubeConfigEnvironmentKey env.ENVKey = "OPENEBS_IO_KUBE_CONFIG"
+	KubeConfigEnvironmentKey string = "OPENEBS_IO_KUBE_CONFIG"
 )
 
 // getInClusterConfigFn is a typed function
@@ -62,7 +46,7 @@ type buildConfigFromFlagsFn func(string, string) (*rest.Config, error)
 // NOTE:
 //
 //	typed function makes it simple to mock
-type getKubeMasterIPFromENVFn func(env.ENVKey) string
+type getKubeMasterIPFromENVFn func(string) string
 
 // getKubeConfigPathFromENVFn is a typed function to
 // abstract getting kubernetes config path from
@@ -71,7 +55,7 @@ type getKubeMasterIPFromENVFn func(env.ENVKey) string
 // NOTE:
 //
 //	typed function makes it simple to mock
-type getKubeConfigPathFromENVFn func(env.ENVKey) string
+type getKubeConfigPathFromENVFn func(string) string
 
 // getKubeDynamicClientFn is a typed function to
 // abstract getting dynamic kubernetes clientset
@@ -79,7 +63,7 @@ type getKubeConfigPathFromENVFn func(env.ENVKey) string
 // NOTE:
 //
 //	typed function makes it simple to mock
-type getKubeDynamicClientFn func(*rest.Config) (dynamic.Interface, error)
+type getKubeDynamicClientFn func(*rest.Config) (*dynamic.DynamicClient, error)
 
 // getKubeClientsetFn is a typed function
 // to abstract getting kubernetes clientset

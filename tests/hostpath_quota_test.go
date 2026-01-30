@@ -60,7 +60,7 @@ var _ = Describe("TEST HOSTPATH XFS QUOTA LOCAL PV WITH UNSUPPORTED FILESYSTEM",
 				"while creating StorageClass with name prefix {%s}",
 				scNamePrefix,
 			)
-			scName = scObj.ObjectMeta.Name
+			scName = scObj.Name
 			Expect(scName).NotTo(BeEmpty(), "SC name should not be empty")
 		})
 	})
@@ -239,7 +239,7 @@ var _ = Describe("TEST HOSTPATH XFS QUOTA LOCAL PV WITH XFS FILESYSTEM", func() 
 				"while creating StorageClass with name prefix {%s}",
 				scNamePrefix,
 			)
-			scName = scObj.ObjectMeta.Name
+			scName = scObj.Name
 			Expect(scName).NotTo(BeEmpty(), "SC name should not be empty")
 		})
 	})
@@ -441,7 +441,7 @@ var _ = Describe("TEST HOSTPATH EXT4 QUOTA LOCAL PV WITH UNSUPPORTED FILESYSTEM"
 				"while creating StorageClass with name prefix {%s}",
 				scNamePrefix,
 			)
-			scName = scObj.ObjectMeta.Name
+			scName = scObj.Name
 			Expect(scName).NotTo(BeEmpty(), "SC name should not be empty")
 		})
 	})
@@ -620,7 +620,7 @@ var _ = Describe("TEST HOSTPATH EXT4 QUOTA LOCAL PV WITH EXT4 FILESYSTEM", func(
 				"while creating StorageClass with name prefix {%s}",
 				scNamePrefix,
 			)
-			scName = scObj.ObjectMeta.Name
+			scName = scObj.Name
 			Expect(scName).NotTo(BeEmpty(), "SC name should not be empty")
 		})
 	})

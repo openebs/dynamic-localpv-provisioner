@@ -6,14 +6,15 @@ import (
 	"strings"
 
 	analytics "github.com/openebs/google-analytics-4/usage"
-	menv "github.com/openebs/maya/pkg/env/v1alpha1"
-	mKube "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
-	"github.com/openebs/maya/pkg/util"
-	"github.com/openebs/maya/pkg/version"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"k8s.io/klog/v2"
 	pvController "sigs.k8s.io/sig-storage-lib-external-provisioner/v9/controller"
+
+	mKube "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/client"
+	"github.com/openebs/dynamic-localpv-provisioner/pkg/logger"
+	"github.com/openebs/dynamic-localpv-provisioner/pkg/utils"
+	"github.com/openebs/dynamic-localpv-provisioner/pkg/version"
 )
 
 var (
@@ -36,7 +37,7 @@ func StartProvisioner() (*cobra.Command, error) {
 			deleting and cleanup tasks. Host Path PVs are setup with
 			node affinity`,
 		Run: func(cmd *cobra.Command, args []string) {
-			util.CheckErr(Start(cmd), util.Fatal)
+			logger.CheckErr(Start(cmd), logger.Fatal)
 		},
 	}
 
@@ -59,11 +60,6 @@ func Start(cmd *cobra.Command) error {
 	kubeClient, err := mKube.New().Clientset()
 	if err != nil {
 		return errors.Wrap(err, "unable to get k8s client")
-	}
-
-	err = performPreupgradeTasks(context.TODO(), kubeClient)
-	if err != nil {
-		return errors.Wrap(err, "failure in preupgrade tasks")
 	}
 
 	//Create a context to receive shutdown signal to help
@@ -108,7 +104,7 @@ func Start(cmd *cobra.Command) error {
 		pvController.LeaderElection(leaderElection),
 	)
 
-	if menv.Truthy(menv.OpenEBSEnableAnalytics) {
+	if utils.GoogleAnalyticsEnabled(GoogleAnalyticsKey) {
 		analytics.RegisterVersionGetter(version.GetVersionDetails)
 		analytics.New().CommonBuild(DefaultCASType).InstallBuilder(true).Send()
 		go analytics.PingCheck(DefaultCASType, Ping, false)

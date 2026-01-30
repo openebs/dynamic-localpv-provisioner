@@ -5,8 +5,6 @@ import (
 	"reflect"
 	"strconv"
 	"testing"
-
-	menv "github.com/openebs/maya/pkg/env/v1alpha1"
 )
 
 func TestGetOpenEBSNamespace(t *testing.T) {
@@ -32,13 +30,13 @@ func TestGetOpenEBSNamespace(t *testing.T) {
 		v := v
 		t.Run(k, func(t *testing.T) {
 			if len(v.value) != 0 {
-				os.Setenv(string(menv.OpenEBSNamespace), v.value)
+				os.Setenv(OpenebsNamespace, v.value)
 			}
 			actualValue := getOpenEBSNamespace()
 			if !reflect.DeepEqual(actualValue, v.expectValue) {
 				t.Errorf("expected %s got %s", v.expectValue, actualValue)
 			}
-			os.Unsetenv(string(menv.OpenEBSNamespace))
+			os.Unsetenv(OpenebsNamespace)
 		})
 	}
 }
@@ -66,13 +64,13 @@ func TestGetDefaultHelperImage(t *testing.T) {
 		v := v
 		t.Run(k, func(t *testing.T) {
 			if len(v.value) != 0 {
-				os.Setenv(string(ProvisionerHelperImage), v.value)
+				os.Setenv(ProvisionerHelperImage, v.value)
 			}
 			actualValue := getDefaultHelperImage()
 			if !reflect.DeepEqual(actualValue, v.expectValue) {
 				t.Errorf("expected %s got %s", v.expectValue, actualValue)
 			}
-			os.Unsetenv(string(ProvisionerHelperImage))
+			os.Unsetenv(ProvisionerHelperImage)
 		})
 	}
 }
@@ -100,13 +98,13 @@ func TestGetHelperPodHostNetworke(t *testing.T) {
 		v := v
 		t.Run(k, func(t *testing.T) {
 			if len(v.value) != 0 {
-				os.Setenv(string(ProvisionerHelperPodHostNetwork), v.value)
+				os.Setenv(ProvisionerHelperPodHostNetwork, v.value)
 			}
 			actualValue := strconv.FormatBool(getHelperPodHostNetwork())
 			if !reflect.DeepEqual(actualValue, v.expectValue) {
 				t.Errorf("expected %s got %s", v.expectValue, actualValue)
 			}
-			os.Unsetenv(string(ProvisionerHelperPodHostNetwork))
+			os.Unsetenv(ProvisionerHelperPodHostNetwork)
 		})
 	}
 }
@@ -134,13 +132,13 @@ func TestGetDefaultBasePath(t *testing.T) {
 		v := v
 		t.Run(k, func(t *testing.T) {
 			if len(v.value) != 0 {
-				os.Setenv(string(ProvisionerBasePath), v.value)
+				os.Setenv(ProvisionerBasePath, v.value)
 			}
 			actualValue := getDefaultBasePath()
 			if !reflect.DeepEqual(actualValue, v.expectValue) {
 				t.Errorf("expected %s got %s", v.expectValue, actualValue)
 			}
-			os.Unsetenv(string(ProvisionerBasePath))
+			os.Unsetenv(ProvisionerBasePath)
 		})
 	}
 }
@@ -167,13 +165,13 @@ func TestGetOpenEBSServiceAccountName(t *testing.T) {
 		v := v
 		t.Run(k, func(t *testing.T) {
 			if len(v.value) != 0 {
-				os.Setenv(string(menv.OpenEBSServiceAccount), v.value)
+				os.Setenv(OpenebsServiceAccount, v.value)
 			}
 			actualValue := getOpenEBSServiceAccountName()
 			if !reflect.DeepEqual(actualValue, v.expectedValue) {
 				t.Errorf("expected %s got %s", v.expectedValue, actualValue)
 			}
-			os.Unsetenv(string(menv.OpenEBSServiceAccount))
+			os.Unsetenv(OpenebsServiceAccount)
 		})
 	}
 }
@@ -204,13 +202,13 @@ func TestGetOpenEBSImagePullSecrets(t *testing.T) {
 		v := v
 		t.Run(k, func(t *testing.T) {
 			if len(v.value) != 0 {
-				os.Setenv(string(ProvisionerImagePullSecrets), v.value)
+				os.Setenv(ProvisionerImagePullSecrets, v.value)
 			}
 			actualValue := getOpenEBSImagePullSecrets()
 			if !reflect.DeepEqual(actualValue, v.expectedValue) {
 				t.Errorf("expected %s got %s", v.expectedValue, actualValue)
 			}
-			os.Unsetenv(string(ProvisionerImagePullSecrets))
+			os.Unsetenv(ProvisionerImagePullSecrets)
 		})
 	}
 }
