@@ -8,7 +8,8 @@ import (
 
 // createVolumeLocally performs volume creation directly on the local node
 func (p *Provisioner) createVolumeLocally(ctx context.Context, pOpts *HelperPodOptions, enableQuota bool) error {
-	klog.Infof("Creating volume %s locally", pOpts.name)
+	log := klog.FromContext(ctx)
+	log.Info("Creating volume locally", "volume", pOpts.name)
 
 	// Create a temporary volume manager to perform local operations
 	vm := NewLocalVolumeManager()
@@ -27,7 +28,8 @@ func (p *Provisioner) createVolumeLocally(ctx context.Context, pOpts *HelperPodO
 
 // deleteVolumeLocally deletes volume directly on the local node
 func (p *Provisioner) deleteVolumeLocally(ctx context.Context, pOpts *HelperPodOptions) error {
-	klog.Infof("Deleting volume %s locally", pOpts.name)
+	log := klog.FromContext(ctx)
+	log.Info("Deleting volume locally", "volume", pOpts.name)
 
 	// Create a temporary volume manager to perform local operations
 	vm := NewLocalVolumeManager()

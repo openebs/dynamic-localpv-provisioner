@@ -1,19 +1,3 @@
-/*
-Copyright 2019 The OpenEBS Authors.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
 package main
 
 import (
@@ -24,7 +8,6 @@ import (
 	"k8s.io/klog/v2"
 
 	"github.com/openebs/dynamic-localpv-provisioner/cmd/provisioner-localpv/app"
-	"github.com/openebs/dynamic-localpv-provisioner/pkg/logger"
 )
 
 func init() {
@@ -69,11 +52,6 @@ func run() error {
 	// and Parse them
 	pflag.CommandLine.AddFlagSet(cmd.Flags())
 	pflag.Parse()
-
-	// NOTE: Logging must start after CLI flags have been parsed
-	// Initialize logs and Flush logs on exit
-	logger.InitLogging()
-	defer logger.FinishLogging()
 
 	// Run new command
 	return cmd.Execute()

@@ -31,7 +31,7 @@ func TestValidateWithCheckf(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			b := NewBuilder().
 				WithPath(mock.path).
-				WithCheckf(mock.check, mock.msg)
+				WithCheckf(mock.check, "%s", mock.msg)
 			err := b.Validate()
 			if (err != nil) != mock.expectError {
 				t.Fatalf("test %s failed, expected error: %t but got: %v",

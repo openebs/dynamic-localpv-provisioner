@@ -52,9 +52,10 @@ func NewLocalVolumeManager() *LocalVolumeManager {
 
 // CreateVolume creates a new volume directory on the local node
 func (vm *LocalVolumeManager) CreateVolume(ctx context.Context, req *VolumeRequest, enableQuota bool) error {
+	log := klog.FromContext(ctx)
 	vm.mu.Lock()
 	defer vm.mu.Unlock()
-	klog.Infof("Creating volume %s at path %s", req.Name, req.Path)
+	log.Info("Creating volume", "volume", req.Name, "path", req.Path)
 
 	// Extract the base path and the volume unique path
 	parentDir, volumeDir, err := ExtractPaths(req.Path)
@@ -83,15 +84,16 @@ func (vm *LocalVolumeManager) CreateVolume(ctx context.Context, req *VolumeReque
 		}
 	}
 
-	klog.Infof("Successfully created volume %s at path %s", req.Name, fullPath)
+	log.Info("Successfully created volume", "volume", req.Name, "path", fullPath)
 	return nil
 }
 
 // DeleteVolume removes a volume directory from the local node
 func (vm *LocalVolumeManager) DeleteVolume(ctx context.Context, req *VolumeRequest) error {
+	log := klog.FromContext(ctx)
 	vm.mu.Lock()
 	defer vm.mu.Unlock()
-	klog.Infof("Deleting volume %s at path %s", req.Name, req.Path)
+	log.Info("Deleting volume", "volume", req.Name, "path", req.Path)
 
 	// Extract the base path and the volume unique path
 	parentDir, volumeDir, err := ExtractPaths(req.Path)
@@ -112,13 +114,14 @@ func (vm *LocalVolumeManager) DeleteVolume(ctx context.Context, req *VolumeReque
 	}
 
 	fullPath := filepath.Join(parentDir, volumeDir)
-	klog.Infof("Successfully deleted volume %s at path %s", req.Name, fullPath)
+	log.Info("Successfully deleted volume", "volume", req.Name, "path", fullPath)
 	return nil
 }
 
 // ApplyQuota applies filesystem quota to a volume
 func (vm *LocalVolumeManager) ApplyQuota(ctx context.Context, req *VolumeRequest) error {
-	klog.Infof("Applying quota for volume %s at path %s", req.Name, req.Path)
+	log := klog.FromContext(ctx)
+	log.Info("Applying quota for volume", "volume", req.Name, "path", req.Path)
 
 	// Extract the base path and the volume unique path
 	parentDir, volumeDir, err := ExtractPaths(req.Path)
@@ -147,7 +150,7 @@ func (vm *LocalVolumeManager) ApplyQuota(ctx context.Context, req *VolumeRequest
 		return fmt.Errorf("failed to apply quota: %v", err)
 	}
 
-	klog.Infof("Successfully applied quota for volume %s", req.Name)
+	log.Info("Successfully applied quota for volume", "volume", req.Name)
 	return nil
 }
 

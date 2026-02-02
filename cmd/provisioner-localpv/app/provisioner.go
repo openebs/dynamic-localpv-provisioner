@@ -9,9 +9,10 @@ import (
 	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
-	clientset "k8s.io/client-go/kubernetes"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
-	pvController "sigs.k8s.io/sig-storage-lib-external-provisioner/v9/controller"
+	pvController "sigs.k8s.io/sig-storage-lib-external-provisioner/v13/controller"
 
 	mconfig "github.com/openebs/dynamic-localpv-provisioner/pkg/apis/openebs.io/v1alpha1"
 	"github.com/openebs/dynamic-localpv-provisioner/pkg/utils"
@@ -34,7 +35,7 @@ const (
 // NewProvisioner will create a new Provisioner object and initialize
 //
 //	it with global information used across PV create and delete operations.
-func NewProvisioner(kubeClient *clientset.Clientset) (*Provisioner, error) {
+func NewProvisioner(kubeClient kubernetes.Interface) (*Provisioner, error) {
 
 	namespace := getOpenEBSNamespace()
 	if len(strings.TrimSpace(namespace)) == 0 {
@@ -64,10 +65,21 @@ func (p *Provisioner) SupportsBlock(_ context.Context) bool {
 	return true
 }
 
+// getSelectedNode fetches the Node object for the given node name.
+func (p *Provisioner) getSelectedNode(ctx context.Context, nodeName string) (*v1.Node, error) {
+	if nodeName == "" {
+		return nil, fmt.Errorf("node name is empty")
+	}
+	return p.kubeClient.CoreV1().Nodes().Get(ctx, nodeName, metav1.GetOptions{})
+}
+
 // Provision is invoked by the PVC controller which expect the PV
 //
 //	to be provisioned and a valid PV spec returned.
 func (p *Provisioner) Provision(ctx context.Context, opts pvController.ProvisionOptions) (*v1.PersistentVolume, pvController.ProvisioningState, error) {
+	// Get logger from context for contextual logging
+	log := klog.FromContext(ctx)
+
 	pvc := opts.PVC
 
 	// validate pvc dataSource
@@ -84,35 +96,45 @@ func (p *Provisioner) Provision(ctx context.Context, opts pvController.Provision
 		}
 	}
 
-	if opts.SelectedNode == nil {
+	if opts.SelectedNodeName == "" {
 		return nil, pvController.ProvisioningReschedule, fmt.Errorf("configuration error, no node was specified")
 	}
 
-	if GetNodeHostname(opts.SelectedNode) == "" {
-		return nil, pvController.ProvisioningFinished, fmt.Errorf("configuration error, node{%v} hostname is empty", opts.SelectedNode.Name)
+	// Fetch the full Node object since we need labels and taints
+	selectedNode, err := p.getSelectedNode(ctx, opts.SelectedNodeName)
+	if err != nil {
+		return nil, pvController.ProvisioningFinished, fmt.Errorf("failed to get node %s: %v", opts.SelectedNodeName, err)
+	}
+
+	if GetNodeHostname(selectedNode) == "" {
+		return nil, pvController.ProvisioningFinished, fmt.Errorf("configuration error, node{%v} hostname is empty", selectedNode.Name)
 	}
 
 	// In node-deployment mode, only process PVCs scheduled to this node.
 	// This prevents multiple provisioner instances from trying to provision the same PVC.
 	if p.nodeDeployment {
 		// Use the hostname label for consistency with Delete() and node affinity settings
-		selectedNodeHostname := GetNodeHostname(opts.SelectedNode)
+		selectedNodeHostname := GetNodeHostname(selectedNode)
 		if selectedNodeHostname == "" {
 			// Fallback to node name if hostname label is not present
-			selectedNodeHostname = opts.SelectedNode.Name
+			selectedNodeHostname = selectedNode.Name
 		}
 		if selectedNodeHostname != p.nodeName {
 			// This PVC is scheduled to a different node, skip it.
 			// Return IgnoredError to tell the controller that this provisioner
 			// is not responsible for this PVC. The controller will not treat
 			// this as a failure and will let another provisioner handle it.
-			klog.V(4).Infof("Skipping PVC %s/%s: scheduled to node %s, but this provisioner is on node %s",
-				pvc.Namespace, pvc.Name, selectedNodeHostname, p.nodeName)
+			log.V(4).Info("Skipping PVC: scheduled to different node",
+				"pvc", klog.KObj(pvc),
+				"scheduledNode", selectedNodeHostname,
+				"thisNode", p.nodeName)
 			return nil, pvController.ProvisioningFinished, &pvController.IgnoredError{
 				Reason: fmt.Sprintf("PVC is scheduled to node %s, not this node %s", selectedNodeHostname, p.nodeName),
 			}
 		}
-		klog.Infof("Processing PVC %s/%s on local node %s", pvc.Namespace, pvc.Name, p.nodeName)
+		log.Info("Processing PVC on local node",
+			"pvc", klog.KObj(pvc),
+			"node", p.nodeName)
 	}
 
 	name := opts.PVName
@@ -144,7 +166,7 @@ func (p *Provisioner) Provision(ctx context.Context, opts pvController.Provision
 
 	// StorageType: Hostpath
 	if stgType == "hostpath" {
-		return p.ProvisionHostPath(ctx, opts, pvCASConfig)
+		return p.ProvisionHostPath(ctx, opts, pvCASConfig, selectedNode)
 	}
 	utils.Logger.Errorw("",
 		"eventcode", "local.pv.provision.failure",
@@ -162,6 +184,9 @@ func (p *Provisioner) Provision(ctx context.Context, opts pvController.Provision
 //	set to not-retain, then this function will create a helper pod
 //	to delete the host path from the node.
 func (p *Provisioner) Delete(ctx context.Context, pv *v1.PersistentVolume) (err error) {
+	// Get logger from context for contextual logging
+	log := klog.FromContext(ctx)
+
 	// In node-deployment mode, only process PVs that are on this node
 	if p.nodeDeployment {
 		// Get the node affinity from the PV
@@ -185,12 +210,17 @@ func (p *Provisioner) Delete(ctx context.Context, pv *v1.PersistentVolume) (err 
 				// Return IgnoredError to tell the controller that this provisioner
 				// is not responsible for this PV. The controller will not treat
 				// this as a failure and will let another provisioner handle it.
-				klog.V(4).Infof("Skipping PV %s deletion: belongs to node %s, not this node %s", pv.Name, pvNodeName, p.nodeName)
+				log.V(4).Info("Skipping PV deletion: belongs to different node",
+					"pv", pv.Name,
+					"pvNode", pvNodeName,
+					"thisNode", p.nodeName)
 				return &pvController.IgnoredError{
 					Reason: fmt.Sprintf("PV belongs to node %s, not this node %s", pvNodeName, p.nodeName),
 				}
 			}
-			klog.Infof("Processing PV %s deletion on local node %s", pv.Name, p.nodeName)
+			log.Info("Processing PV deletion on local node",
+				"pv", pv.Name,
+				"node", p.nodeName)
 		}
 	}
 
@@ -230,7 +260,7 @@ func (p *Provisioner) Delete(ctx context.Context, pv *v1.PersistentVolume) (err 
 		}
 		return err
 	}
-	klog.Infof("Retained volume %v", pv.Name)
+	log.Info("Retained volume", "pv", pv.Name)
 	utils.Logger.Infow("",
 		"eventcode", "local.pv.delete.success",
 		"msg", "Successfully deleted Local PV",

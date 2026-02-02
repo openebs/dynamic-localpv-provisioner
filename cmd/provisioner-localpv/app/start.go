@@ -3,13 +3,16 @@ package app
 import (
 	"context"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
+	"time"
 
 	analytics "github.com/openebs/google-analytics-4/usage"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"k8s.io/klog/v2"
-	pvController "sigs.k8s.io/sig-storage-lib-external-provisioner/v9/controller"
+	pvController "sigs.k8s.io/sig-storage-lib-external-provisioner/v13/controller"
 
 	mKube "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/client"
 	"github.com/openebs/dynamic-localpv-provisioner/pkg/logger"
@@ -24,11 +27,15 @@ var (
 	// localpv provisioner
 	LeaderElectionKey = "LEADER_ELECTION_ENABLED"
 	usage             = cmdName
-	nodeDeployment    bool
 )
 
 // StartProvisioner will start a new dynamic Host Path PV provisioner
 func StartProvisioner() (*cobra.Command, error) {
+	var (
+		nodeDeployment bool
+		logFlushFreq   time.Duration
+	)
+
 	// Create a new command.
 	cmd := &cobra.Command{
 		Use:   usage,
@@ -37,19 +44,31 @@ func StartProvisioner() (*cobra.Command, error) {
 			deleting and cleanup tasks. Host Path PVs are setup with
 			node affinity`,
 		Run: func(cmd *cobra.Command, args []string) {
-			logger.CheckErr(Start(cmd), logger.Fatal)
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
+			ctx = logger.InitLogging(ctx, logFlushFreq)
+			defer logger.FinishLogging()
+
+			logger.CheckErr(Start(ctx, nodeDeployment), logger.Fatal)
 		},
 	}
 
 	// Add node deployment flag
 	cmd.Flags().BoolVar(&nodeDeployment, "node-deployment", false, "Enables deploying the provisioner together with a CSI driver on nodes to manage node-local volumes")
-
+	// Log flush frequency flag
+	cmd.Flags().DurationVar(&logFlushFreq, "log-flush-frequency", logger.DefaultFlushInterval, "Delay between log flushes")
 	return cmd, nil
 }
 
 // Start will initialize and run the dynamic provisioner daemon
-func Start(cmd *cobra.Command) error {
-	klog.Infof("Starting Provisioner...")
+func Start(ctx context.Context, nodeDeployment bool) error {
+	log := klog.FromContext(ctx)
+	log.Info("Starting Provisioner...")
+
+	// Setup signal handling for graceful shutdown
+	ctx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
+	defer stop()
 
 	// Dynamic Provisioner can run successfully if it can establish
 	// connection to the Kubernetes Cluster. mKube helps with
@@ -61,10 +80,6 @@ func Start(cmd *cobra.Command) error {
 	if err != nil {
 		return errors.Wrap(err, "unable to get k8s client")
 	}
-
-	//Create a context to receive shutdown signal to help
-	// with graceful exit of the provisioner.
-	ctx := context.TODO()
 
 	//Create an instance of ProvisionerHandler to handle PV
 	// create and delete events.
@@ -82,22 +97,16 @@ func Start(cmd *cobra.Command) error {
 		if provisioner.nodeName == "" {
 			return errors.New("NODE_NAME environment variable is required in node-deployment mode")
 		}
-		klog.Infof("Node deployment mode enabled on node: %s", provisioner.nodeName)
+		log.Info("Node deployment mode enabled", "node", provisioner.nodeName)
 	}
 
 	//Create an instance of the Dynamic Provisioner Controller
 	// that has the reconciliation loops for PVC create and delete
 	// events and invokes the Provisioner Handler.
-	var leaderElection bool
-	if nodeDeployment {
-		// In node deployment mode, disable leader election as each node will have its own provisioner
-		leaderElection = false
-		klog.Info("Node deployment mode enabled, leader election disabled")
-	} else {
-		leaderElection = isLeaderElectionEnabled()
-	}
+	leaderElection := isLeaderElectionEnabled(ctx, nodeDeployment)
 
 	pc := pvController.NewProvisionController(
+		ctx,
 		kubeClient,
 		provisionerName,
 		provisioner,
@@ -111,10 +120,10 @@ func Start(cmd *cobra.Command) error {
 		go analytics.PingCheck(DefaultCASType, Heartbeat, true)
 	}
 
-	klog.V(4).Info("Provisioner started")
+	log.V(4).Info("Provisioner started")
 	//Run the provisioner till a shutdown signal is received.
 	pc.Run(ctx)
-	klog.V(4).Info("Provisioner stopped")
+	log.V(4).Info("Provisioner stopped")
 
 	return nil
 }
@@ -122,19 +131,27 @@ func Start(cmd *cobra.Command) error {
 // isLeaderElectionEnabled returns true/false based on the ENV
 // LEADER_ELECTION_ENABLED set via provisioner deployment.
 // Defaults to true, means leaderElection enabled by default.
-func isLeaderElectionEnabled() bool {
+func isLeaderElectionEnabled(ctx context.Context, nodeDeployment bool) bool {
+	log := klog.FromContext(ctx)
+
+	// In node deployment mode, disable leader election as each node will have its own provisioner
+	if nodeDeployment {
+		log.Info("Leader election disabled for node deployment mode")
+		return false
+	}
+
 	leaderElection := os.Getenv(LeaderElectionKey)
 
 	var leader bool
 	switch strings.ToLower(leaderElection) {
 	default:
-		klog.Info("Leader election enabled for localpv-provisioner")
+		log.Info("Leader election enabled for localpv-provisioner")
 		leader = true
 	case "y", "yes", "true":
-		klog.Info("Leader election enabled for localpv-provisioner via leaderElectionKey")
+		log.Info("Leader election enabled for localpv-provisioner via leaderElectionKey")
 		leader = true
 	case "n", "no", "false":
-		klog.Info("Leader election disabled for localpv-provisioner via leaderElectionKey")
+		log.Info("Leader election disabled for localpv-provisioner via leaderElectionKey")
 		leader = false
 	}
 	return leader
