@@ -1,27 +1,31 @@
 let
   sources = import ./nix/sources.nix;
-  pkgs = import sources.nixpkgs {};
+  pkgs = import sources.nixpkgs { };
 in
 pkgs.mkShell {
   name = "hostpath-shell";
 
-  buildInputs = with pkgs; [
-    git
-    chart-testing
-    golint
-    kubectl
-    kubernetes-helm
-    gnumake
-    semver-tool
-    yq-go
-    which
-    curl
-    cacert
-    crane
-    util-linux
-    jq
-    nixos-shell
-  ] ++ pkgs.lib.optional (builtins.getEnv "IN_NIX_SHELL" == "pure") [ docker-client ];
+  buildInputs =
+    with pkgs;
+    [
+      cacert
+      chart-testing
+      crane
+      curl
+      git
+      gnumake
+      go_1_24
+      golint
+      jq
+      kubectl
+      kubernetes-helm
+      nixos-shell
+      semver-tool
+      util-linux
+      which
+      yq-go
+    ]
+    ++ pkgs.lib.optional (builtins.getEnv "IN_NIX_SHELL" == "pure") [ docker-client ];
 
   PRE_COMMIT_ALLOW_NO_CONFIG = 1;
 
@@ -49,4 +53,3 @@ pkgs.mkShell {
     make bootstrap
   '';
 }
-

@@ -26,7 +26,6 @@ jobs:
         uses: actions/setup-go@v6
         with:
           go-version: 1.24.12
-          cache: false
 
       - uses: cachix/install-nix-action@v22
       - uses: rrbutani/use-nix-shell-action@v1.1.0
