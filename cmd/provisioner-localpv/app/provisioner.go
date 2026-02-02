@@ -59,10 +59,9 @@ func NewProvisioner(kubeClient kubernetes.Interface) (*Provisioner, error) {
 }
 
 // SupportsBlock will be used by controller to determine if block mode is
-//
-//	supported by the host path provisioner.
+// supported by the host path provisioner.
 func (p *Provisioner) SupportsBlock(_ context.Context) bool {
-	return true
+	return false
 }
 
 // getSelectedNode fetches the Node object for the given node name.

@@ -8,7 +8,6 @@ pkgs.mkShell {
   buildInputs = with pkgs; [
     git
     chart-testing
-    go_1_19
     golint
     kubectl
     kubernetes-helm
