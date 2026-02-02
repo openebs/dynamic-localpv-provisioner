@@ -70,12 +70,12 @@ Please check [here](./design/hostpath_localpv_provisioner.md) for complete desig
 
 ## Kubernetes Compatibility Matrix
 
-|          | Kubernetes <= 1.18 | Kubernetes >=1.19 |
-|----------|--------------------|-------------------|
-| `v4.0.x` | ✕                  | ✓                 | 
-| `v4.1.x` | ✕                  | ✓                 |
-| `v4.2.x` | ✕                  | ✓                 |
-| `HEAD`   | ✕                  | ✓                 |
+|          | Kubernetes <= 1.18 | Kubernetes (1.19 - 1.26) |
+|----------|--------------------|--------------------------|
+| `v4.2.x` | ✕                  | ✓                        | 
+| `v4.3.x` | ✕                  | ✓                        |
+| `v4.4.x` | ✕                  | ✓                        |
+| `HEAD`   | ✕                  | ✕                        |
 
 ## Documents
 
