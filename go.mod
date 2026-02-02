@@ -1,6 +1,6 @@
 module github.com/openebs/dynamic-localpv-provisioner
 
-go 1.24.0
+go 1.24.12
 
 require (
 	github.com/onsi/ginkgo/v2 v2.21.0

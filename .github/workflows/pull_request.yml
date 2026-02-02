@@ -36,10 +36,10 @@ jobs:
         with:
           file: shell.nix
 
-      - name: Set up Go 1.19
-        uses: actions/setup-go@v5
+      - name: Set up Go 1.24.12
+        uses: actions/setup-go@v6
         with:
-          go-version: 1.19.13
+          go-version: 1.24.12
           cache: false
 
       - name: Check if the chart follows a valid semver version
@@ -55,10 +55,10 @@ jobs:
     needs: ['lint']
     runs-on: ubuntu-latest
     steps:
-      - name: Set up Go 1.19
-        uses: actions/setup-go@v5
+      - name: Set up Go 1.24.12
+        uses: actions/setup-go@v6
         with:
-          go-version: 1.19.13
+          go-version: 1.24.12
 
       - name: Checkout
         uses: actions/checkout@v4
@@ -84,10 +84,10 @@ jobs:
       matrix:
         kubernetes: [v1.27.2]
     steps:
-      - name: Set up Go 1.19
-        uses: actions/setup-go@v5
+      - name: Set up Go 1.24.12
+        uses: actions/setup-go@v6
         with:
-          go-version: 1.19.13
+          go-version: 1.24.12
 
       - name: Checkout
         uses: actions/checkout@v4
@@ -126,10 +126,10 @@ jobs:
     runs-on: ubuntu-latest
     needs: ['lint', 'unit-test']
     steps:
-      - name: Set up Go 1.19
-        uses: actions/setup-go@v5
+      - name: Set up Go 1.24.12
+        uses: actions/setup-go@v6
         with:
-          go-version: 1.19.13
+          go-version: 1.24.12
 
       - name: Setup QEMU
         uses: docker/setup-qemu-action@v2
