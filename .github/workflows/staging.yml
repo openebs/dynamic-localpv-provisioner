@@ -20,16 +20,16 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: cachix/install-nix-action@v22
-      - uses: rrbutani/use-nix-shell-action@v1.1.0
-        with:
-          file: shell.nix
-
       - name: Set up Go 1.24.12
         uses: actions/setup-go@v6
         with:
           go-version: 1.24.12
           cache: false
+
+      - uses: cachix/install-nix-action@v22
+      - uses: rrbutani/use-nix-shell-action@v1.1.0
+        with:
+          file: shell.nix
 
       - name: Check if the chart is publishable
         run: |
@@ -70,7 +70,7 @@ jobs:
     needs: ['lint', 'unit-test']
     strategy:
       matrix:
-        kubernetes: [v1.27.2]
+        kubernetes: [v1.33.7]
     steps:
       - name: Set up Go 1.24.12
         uses: actions/setup-go@v6
@@ -87,7 +87,7 @@ jobs:
         uses: medyagh/setup-minikube@latest
         with:
           cache: false
-          minikube-version: 1.31.1
+          minikube-version: 1.38.0
           driver: none
           kubernetes-version: ${{ matrix.kubernetes }}
           cni: calico
