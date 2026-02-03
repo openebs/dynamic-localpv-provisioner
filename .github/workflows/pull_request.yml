@@ -31,24 +31,17 @@ jobs:
           path: "."
           pattern: "*.sh"
 
-      - name: Set up Go 1.24.12
-        uses: actions/setup-go@v6
+      - uses: ./.github/actions/setup-nix
         with:
-          go-version: 1.24.12
-
-      - uses: cachix/install-nix-action@v22
-      - uses: rrbutani/use-nix-shell-action@v1.1.0
-        with:
-          file: shell.nix
+          preFetchNix: ./shell.nix
 
       - name: Check if the chart follows a valid semver version
         run: |
-          branch_name="${{ github.event.pull_request.base.ref }}"
-          ./scripts/validate-chart-version.sh --branch $branch_name
+          nix-shell --run "./scripts/validate-chart-version.sh --branch ${{ github.event.pull_request.base.ref }}"
 
       - name: Run chart-testing lint
         run: |
-          ct lint --config ct.yaml
+          nix-shell --run "ct lint --config ct.yaml"
 
   unit-test:
     needs: ['lint']
