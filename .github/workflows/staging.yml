@@ -63,7 +63,7 @@ jobs:
     needs: ['lint', 'unit-test']
     strategy:
       matrix:
-        kubernetes: [v1.33.7]
+        kubernetes: [v1.34.3]
     steps:
       - name: Set up Go 1.24.12
         uses: actions/setup-go@v6
