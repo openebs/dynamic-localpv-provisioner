@@ -7,14 +7,33 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	pvController "sigs.k8s.io/sig-storage-lib-external-provisioner/v9/controller"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes/fake"
+	pvController "sigs.k8s.io/sig-storage-lib-external-provisioner/v13/controller"
 )
 
 func TestProvision(t *testing.T) {
+	// Create test nodes that will be fetched by the provisioner
+	nodeWithHostname := &v1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "node-one",
+			Labels: map[string]string{
+				k8sNodeLabelKeyHostname: "127.0.0.1",
+			},
+		},
+	}
+	nodeWithoutHostname := &v1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "node-one",
+		},
+	}
+
 	testsCases := map[string]struct {
 		opts              pvController.ProvisionOptions
 		errorMessage      string
 		GetVolumeConfigFn GetVolumeConfigFn
+		nodes             []runtime.Object // Nodes to add to fake client
 	}{
 		"clone volume": {
 			opts: pvController.ProvisionOptions{
@@ -172,6 +191,7 @@ func TestProvision(t *testing.T) {
 						},
 					},
 				},
+				SelectedNodeName: "",
 			},
 			errorMessage: "configuration error, no node was specified",
 		},
@@ -186,12 +206,9 @@ func TestProvision(t *testing.T) {
 						},
 					},
 				},
-				SelectedNode: &v1.Node{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "node-one",
-					},
-				},
+				SelectedNodeName: "node-one",
 			},
+			nodes:        []runtime.Object{nodeWithoutHostname},
 			errorMessage: "configuration error, node{node-one} hostname is empty",
 		},
 		"get volume func returns error": {
@@ -205,15 +222,9 @@ func TestProvision(t *testing.T) {
 						},
 					},
 				},
-				SelectedNode: &v1.Node{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "node-one",
-						Labels: map[string]string{
-							k8sNodeLabelKeyHostname: "127.0.0.1",
-						},
-					},
-				},
+				SelectedNodeName: "node-one",
 			},
+			nodes: []runtime.Object{nodeWithHostname},
 			GetVolumeConfigFn: func(ctx context.Context, pvName string, pvc *v1.PersistentVolumeClaim) (*VolumeConfig, error) {
 				return nil, errors.New("an error occured")
 			},
@@ -229,15 +240,9 @@ func TestProvision(t *testing.T) {
 						}(v1.PersistentVolumeBlock),
 					},
 				},
-				SelectedNode: &v1.Node{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "node-one",
-						Labels: map[string]string{
-							k8sNodeLabelKeyHostname: "127.0.0.1",
-						},
-					},
-				},
+				SelectedNodeName: "node-one",
 			},
+			nodes: []runtime.Object{nodeWithHostname},
 			GetVolumeConfigFn: func(ctx context.Context, pvName string, pvc *v1.PersistentVolumeClaim) (*VolumeConfig, error) {
 				return &VolumeConfig{
 					options: map[string]interface{}{},
@@ -255,15 +260,9 @@ func TestProvision(t *testing.T) {
 						}(v1.PersistentVolumeFilesystem),
 					},
 				},
-				SelectedNode: &v1.Node{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "node-one",
-						Labels: map[string]string{
-							k8sNodeLabelKeyHostname: "127.0.0.1",
-						},
-					},
-				},
+				SelectedNodeName: "node-one",
 			},
+			nodes: []runtime.Object{nodeWithHostname},
 			GetVolumeConfigFn: func(ctx context.Context, pvName string, pvc *v1.PersistentVolumeClaim) (*VolumeConfig, error) {
 				return &VolumeConfig{
 					options: map[string]interface{}{
@@ -286,15 +285,9 @@ func TestProvision(t *testing.T) {
 						}(v1.PersistentVolumeFilesystem),
 					},
 				},
-				SelectedNode: &v1.Node{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "node-one",
-						Labels: map[string]string{
-							k8sNodeLabelKeyHostname: "127.0.0.1",
-						},
-					},
-				},
+				SelectedNodeName: "node-one",
 			},
+			nodes: []runtime.Object{nodeWithHostname},
 			GetVolumeConfigFn: func(ctx context.Context, pvName string, pvc *v1.PersistentVolumeClaim) (*VolumeConfig, error) {
 				return &VolumeConfig{
 					options: map[string]interface{}{},
@@ -312,15 +305,9 @@ func TestProvision(t *testing.T) {
 						}(v1.PersistentVolumeFilesystem),
 					},
 				},
-				SelectedNode: &v1.Node{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "node-one",
-						Labels: map[string]string{
-							k8sNodeLabelKeyHostname: "127.0.0.1",
-						},
-					},
-				},
+				SelectedNodeName: "node-one",
 			},
+			nodes: []runtime.Object{nodeWithHostname},
 			GetVolumeConfigFn: func(ctx context.Context, pvName string, pvc *v1.PersistentVolumeClaim) (*VolumeConfig, error) {
 				return &VolumeConfig{
 					pvName: "my-pv",
@@ -344,15 +331,9 @@ func TestProvision(t *testing.T) {
 						}(v1.PersistentVolumeFilesystem),
 					},
 				},
-				SelectedNode: &v1.Node{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "node-one",
-						Labels: map[string]string{
-							k8sNodeLabelKeyHostname: "127.0.0.1",
-						},
-					},
-				},
+				SelectedNodeName: "node-one",
 			},
+			nodes: []runtime.Object{nodeWithHostname},
 			GetVolumeConfigFn: func(ctx context.Context, pvName string, pvc *v1.PersistentVolumeClaim) (*VolumeConfig, error) {
 				return &VolumeConfig{
 					pvName: "my-pv",
@@ -372,7 +353,16 @@ func TestProvision(t *testing.T) {
 		name := name
 		tc := tc
 		t.Run(name, func(t *testing.T) {
+			// Create fake client with test nodes
+			var fakeClient kubernetes.Interface
+			if len(tc.nodes) > 0 {
+				fakeClient = fake.NewSimpleClientset(tc.nodes...)
+			} else {
+				fakeClient = fake.NewSimpleClientset()
+			}
+
 			p := Provisioner{
+				kubeClient:      fakeClient,
 				getVolumeConfig: tc.GetVolumeConfigFn,
 			}
 			_, _, err := p.Provision(context.TODO(), tc.opts)
@@ -419,129 +409,3 @@ func fakeValidConfigParser(path string, pvc *v1.PersistentVolumeClaim) (*VolumeC
 	}
 	return c, nil
 }
-
-//func fakeInvalidConfigParser(path string, pvc *v1.PersistentVolumeClaim) (*VolumeConfig, error) {
-//	return nil, fmt.Errorf("failed to read configuration for pvc %v", path)
-//}
-
-/*
-//func (p *Provisioner) Provision(opts pvController.VolumeOptions) (*v1.PersistentVolume, error) {
-func TestProvision(t *testing.T) {
-	testCases := map[string]struct {
-		pvOpts          pvController.VolumeOptions
-		getVolumeConfig GetVolumeConfigFn
-		expectValue     string
-		expectError     bool
-	}{
-		"Default Base Path": {
-			pvOpts: pvController.VolumeOptions{
-				PVName: "pvName",
-				PVC: &v1.PersistentVolumeClaim{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "pvcName",
-					},
-					Spec: v1.PersistentVolumeClaimSpec{
-						AccessModes: []v1.PersistentVolumeAccessMode{
-							v1.ReadWriteOnce,
-						},
-						Selector: nil,
-					},
-				},
-				SelectedNode: &v1.Node{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "selectednode",
-					},
-				},
-			},
-			getVolumeConfig: fakeDefaultConfigParser,
-			expectValue:     "/var/openebs/local/pvName",
-			expectError:     false,
-		},
-		"Custom Base Path": {
-			pvOpts: pvController.VolumeOptions{
-				PVName: "pvName",
-				PVC: &v1.PersistentVolumeClaim{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "pvcName",
-					},
-					Spec: v1.PersistentVolumeClaimSpec{
-						AccessModes: []v1.PersistentVolumeAccessMode{
-							v1.ReadWriteOnce,
-						},
-						Selector: nil,
-					},
-				},
-				SelectedNode: &v1.Node{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "selectednode",
-					},
-				},
-			},
-			getVolumeConfig: fakeValidConfigParser,
-			expectValue:     "/custom/pvName",
-			expectError:     false,
-		},
-		"Selected Node is missing": {
-			pvOpts: pvController.VolumeOptions{
-				PVName: "pvName",
-				PVC: &v1.PersistentVolumeClaim{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "pvcName",
-					},
-					Spec: v1.PersistentVolumeClaimSpec{
-						AccessModes: []v1.PersistentVolumeAccessMode{
-							v1.ReadWriteOnce,
-						},
-						Selector: nil,
-					},
-				},
-				//SelectedNode: &v1.Node{
-				//	ObjectMeta: metav1.ObjectMeta{
-				//		Name: "selectednode",
-				//	},
-				//},
-			},
-			getVolumeConfig: fakeValidConfigParser,
-			expectValue:     "/test/pvName",
-			expectError:     true,
-		},
-	}
-
-	for k, v := range testCases {
-		v := v
-		t.Run(k, func(t *testing.T) {
-			p := &Provisioner{}
-			p.getVolumeConfig = v.getVolumeConfig
-			//p, _ := NewProvisioner(nil, nil)
-			pv, err := p.Provision(v.pvOpts)
-
-			if v.expectError && err != nil {
-				//t.Errorf("expected to error, but got %v", pv)
-				return
-			}
-
-			if v.expectError && err == nil {
-				t.Errorf("expected to error, but got pv %v", pv)
-				return
-			}
-			if !v.expectError && err != nil {
-				t.Errorf("expected not to get pv, but got %v", err)
-				return
-			}
-			if err == nil && pv == nil {
-				t.Errorf("expected pv, but got nil")
-				return
-			}
-			if err == nil && pv.Spec.Local == nil {
-				t.Errorf("expected pv.Spec.HostPath, but got nil %v", pv)
-				return
-			}
-
-			actualValue := pv.Spec.PersistentVolumeSource.Local.Path
-			if !v.expectError && !reflect.DeepEqual(actualValue, v.expectValue) {
-				t.Errorf("expected %s got %s", v.expectValue, actualValue)
-			}
-		})
-	}
-}
-*/

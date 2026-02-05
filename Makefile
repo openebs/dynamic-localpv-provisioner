@@ -92,7 +92,7 @@ ifeq (${KUBECONFIG}, )
 endif
 
 EXTERNAL_TOOLS=\
-	github.com/onsi/ginkgo/v2/ginkgo@v2.14.0
+	github.com/onsi/ginkgo/v2/ginkgo@v2.27.1
 
 export DBUILD_ARGS=--build-arg DBUILD_DATE=${DBUILD_DATE} --build-arg DBUILD_REPO_URL=${DBUILD_REPO_URL} --build-arg DBUILD_SITE_URL=${DBUILD_SITE_URL} --build-arg BRANCH=${BRANCH} --build-arg RELEASE_TAG=${RELEASE_TAG}
 
@@ -133,7 +133,7 @@ clean:
 .PHONY: test
 test: format vet
 	@echo "--> Running go test";
-	./buildscripts/test.sh ${XC_ARCH}
+	./buildscripts/test-cov.sh ${XC_ARCH}
 
 .PHONY: testv
 testv: format

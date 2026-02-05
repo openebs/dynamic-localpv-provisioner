@@ -1,23 +1,15 @@
 package logger
 
 import (
+	"context"
 	"log"
 	"time"
 
-	"github.com/spf13/pflag"
-	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog/v2"
 )
 
-// This is the default log flush interval for klog/v2
-// Ref: k8s.io/klog/v2@v2.40.1
-const KLOG_FLUSH_INTERVAL = 5 * time.Second //
-
-var (
-	defaultFlushInterval = KLOG_FLUSH_INTERVAL
-	logFlushFreq         = pflag.Duration("log-flush-frequency", KLOG_FLUSH_INTERVAL, "Maximum number of seconds between log flushes")
-	loggerKillSwitch     = make(chan struct{})
-)
+// DefaultFlushInterval is klog's default flush interval.
+const DefaultFlushInterval = 5 * time.Second
 
 type KlogWriter struct{}
 
@@ -26,26 +18,19 @@ func (k KlogWriter) Write(data []byte) (n int, err error) {
 	return len(data), nil
 }
 
-// This needs to be set correctly to the default log flush duration
-// in case it is not equal to KLOG_FLUSH_INTERVAL.
-// This sets the default flush interval for logs
-func SetDefaultFlushInterval(freq time.Duration) {
-	defaultFlushInterval = freq
-}
-
-// This streams logs from the 'log' package to 'klog' and sets flush frequency
-// This initializes logging via klog
-func InitLogging() {
+// InitLogging sets up logging with the specified flush interval.
+// Redirects Go's log package to klog and attaches a logger to the context.
+func InitLogging(ctx context.Context, flushInterval time.Duration) context.Context {
 	log.SetOutput(KlogWriter{})
 	log.SetFlags(0)
 
-	// Flushes logs at set flush interval
-	if *logFlushFreq != defaultFlushInterval {
-		go wait.Until(klog.Flush, *logFlushFreq, loggerKillSwitch)
-	}
+	klog.StartFlushDaemon(flushInterval)
+
+	return klog.NewContext(ctx, klog.Background())
 }
 
+// FinishLogging flushes remaining logs and stops the flush daemon.
 func FinishLogging() {
-	close(loggerKillSwitch)
+	klog.StopFlushDaemon()
 	klog.Flush()
 }

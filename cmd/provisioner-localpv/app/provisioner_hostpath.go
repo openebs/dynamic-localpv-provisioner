@@ -8,26 +8,21 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/klog/v2"
-	pvController "sigs.k8s.io/sig-storage-lib-external-provisioner/v9/controller"
+	pvController "sigs.k8s.io/sig-storage-lib-external-provisioner/v13/controller"
 
 	mconfig "github.com/openebs/dynamic-localpv-provisioner/pkg/apis/openebs.io/v1alpha1"
 	"github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/api/core/v1/persistentvolume"
 	"github.com/openebs/dynamic-localpv-provisioner/pkg/utils"
 )
 
-const (
-	EnableXfsQuota  string = "enableXfsQuota"
-	EnableExt4Quota string = "enableExt4Quota"
-	SoftLimitGrace  string = "softLimitGrace"
-	HardLimitGrace  string = "hardLimitGrace"
-)
-
 // ProvisionHostPath is invoked by the Provisioner which expect HostPath PV
-//
-//	to be provisioned and a valid PV spec returned.
-func (p *Provisioner) ProvisionHostPath(ctx context.Context, opts pvController.ProvisionOptions, volumeConfig *VolumeConfig) (*v1.PersistentVolume, pvController.ProvisioningState, error) {
+// to be provisioned and a valid PV spec returned.
+func (p *Provisioner) ProvisionHostPath(ctx context.Context, opts pvController.ProvisionOptions, volumeConfig *VolumeConfig, selectedNode *v1.Node) (*v1.PersistentVolume, pvController.ProvisioningState, error) {
+	// Get logger from context for contextual logging
+	log := klog.FromContext(ctx)
+
 	pvc := opts.PVC
-	taints := GetTaints(opts.SelectedNode)
+	taints := GetTaints(selectedNode)
 	name := opts.PVName
 	stgType := volumeConfig.GetStorageType()
 	saName := getOpenEBSServiceAccountName()
@@ -37,10 +32,10 @@ func (p *Provisioner) ProvisionHostPath(ctx context.Context, opts pvController.P
 
 	nodeAffinityKeys := volumeConfig.GetNodeAffinityLabelKeys()
 	if nodeAffinityKeys == nil {
-		nodeAffinityLabels[k8sNodeLabelKeyHostname] = GetNodeLabelValue(opts.SelectedNode, k8sNodeLabelKeyHostname)
+		nodeAffinityLabels[k8sNodeLabelKeyHostname] = GetNodeLabelValue(selectedNode, k8sNodeLabelKeyHostname)
 	} else {
 		for _, nodeAffinityKey := range nodeAffinityKeys {
-			nodeAffinityLabels[nodeAffinityKey] = GetNodeLabelValue(opts.SelectedNode, nodeAffinityKey)
+			nodeAffinityLabels[nodeAffinityKey] = GetNodeLabelValue(selectedNode, nodeAffinityKey)
 		}
 	}
 
@@ -60,7 +55,11 @@ func (p *Provisioner) ProvisionHostPath(ctx context.Context, opts pvController.P
 
 	hostNetwork := getHelperPodHostNetwork()
 
-	klog.Infof("Creating volume %v at node with labels {%v}, path:%v,ImagePullSecrets:%v", name, nodeAffinityLabels, path, imagePullSecrets)
+	log.Info("Creating volume",
+		"volume", name,
+		"nodeAffinityLabels", nodeAffinityLabels,
+		"path", path,
+		"imagePullSecrets", imagePullSecrets)
 
 	//Before using the path for local PV, make sure it is created.
 	fsMode := volumeConfig.GetFsMode()
@@ -127,7 +126,7 @@ func (p *Provisioner) ProvisionHostPath(ctx context.Context, opts pvController.P
 	}
 
 	if iErr != nil {
-		klog.Infof("Initialize volume %v failed: %v", name, iErr)
+		log.Info("Initialize volume failed", "volume", name, "error", iErr)
 		utils.Logger.Errorw("",
 			"eventcode", "local.pv.provision.failure",
 			"msg", "Failed to provision Local PV",
@@ -142,7 +141,7 @@ func (p *Provisioner) ProvisionHostPath(ctx context.Context, opts pvController.P
 		var iErr error
 		iErr = p.createQuotaPod(ctx, podOpts)
 		if iErr != nil {
-			klog.Infof("Applying quota failed: %v", iErr)
+			log.Info("Applying quota failed", "error", iErr)
 			utils.Logger.Errorw("",
 				"eventcode", "local.pv.provision.failure",
 				"msg", "Failed to provision Local PV",
@@ -164,7 +163,7 @@ func (p *Provisioner) ProvisionHostPath(ctx context.Context, opts pvController.P
 	if p.nodeDeployment {
 		iErr = p.createVolumeLocally(ctx, podOpts, enableQuota)
 		if iErr != nil {
-			klog.Errorf("Create volume locally %v failed: %v", name, iErr)
+			log.Error(iErr, "Create volume locally failed", "volume", name)
 			utils.Logger.Errorw("",
 				"eventcode", "local.pv.provision.failure",
 				"msg", "Failed to provision Local PV",
@@ -261,6 +260,9 @@ func (p *Provisioner) GetNodeObjectFromLabels(nodeLabels map[string]string) (*v1
 //	set to not-retain, then this function will create a helper pod
 //	to delete the host path from the node.
 func (p *Provisioner) DeleteHostPath(ctx context.Context, pv *v1.PersistentVolume) (err error) {
+	// Get logger from context for contextual logging
+	log := klog.FromContext(ctx)
+
 	defer func() {
 		err = errors.Wrapf(err, "failed to delete volume %v", pv.Name)
 	}()
@@ -291,7 +293,10 @@ func (p *Provisioner) DeleteHostPath(ctx context.Context, pv *v1.PersistentVolum
 	hostNetwork := getHelperPodHostNetwork()
 
 	//Initiate clean up only when reclaim policy is not retain.
-	klog.Infof("Deleting volume %v at %v:%v", pv.Name, GetNodeHostname(nodeObject), path)
+	log.Info("Deleting volume",
+		"pv", pv.Name,
+		"node", GetNodeHostname(nodeObject),
+		"path", path)
 
 	podOpts := &HelperPodOptions{
 		cmdsForPath:        nil,

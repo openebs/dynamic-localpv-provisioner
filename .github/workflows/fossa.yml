@@ -7,11 +7,9 @@ on:
 
 jobs:
   fossa-scan:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
-        with:
-          submodules: recursive
       - uses: fossas/fossa-action@v1.4.0
         with:
           api-key: ${{ secrets.FOSSA_API_KEY }}

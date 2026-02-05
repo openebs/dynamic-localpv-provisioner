@@ -316,7 +316,7 @@ func TestBuild(t *testing.T) {
 			expectedPVC: &corev1.PersistentVolumeClaim{
 				ObjectMeta: metav1.ObjectMeta{Name: "PVC1"},
 				Spec: corev1.PersistentVolumeClaimSpec{
-					Resources: corev1.ResourceRequirements{
+					Resources: corev1.VolumeResourceRequirements{
 						Requests: corev1.ResourceList{
 							corev1.ResourceStorage: fakeCapacity("10Ti"),
 						},

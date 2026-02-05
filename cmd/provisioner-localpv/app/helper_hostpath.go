@@ -345,10 +345,11 @@ func (p *Provisioner) launchPod(ctx context.Context, config podConfig) (*corev1.
 }
 
 func (p *Provisioner) exitPod(ctx context.Context, hPodName string) error {
+	log := klog.FromContext(ctx)
 	defer func() {
 		e := p.kubeClient.CoreV1().Pods(p.namespace).Delete(ctx, hPodName, metav1.DeleteOptions{})
 		if e != nil {
-			klog.Errorf("unable to delete the helper pod: %v", e)
+			log.Error(e, "Unable to delete the helper pod")
 		}
 	}()
 

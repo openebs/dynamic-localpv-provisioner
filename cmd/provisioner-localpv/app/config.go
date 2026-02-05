@@ -142,8 +142,10 @@ const (
 // annotation - cas.openebs.io/config with the
 // default configuration of the provisioner.
 func (p *Provisioner) GetVolumeConfig(ctx context.Context, pvName string, pvc *corev1.PersistentVolumeClaim) (*VolumeConfig, error) {
-
 	var pvConfig []Config
+
+	// Get logger from context for contextual logging.
+	log := klog.FromContext(ctx)
 
 	//Fetch the SC
 	scName := GetStorageClassName(pvc)
@@ -158,7 +160,7 @@ func (p *Provisioner) GetVolumeConfig(ctx context.Context, pvName string, pvc *c
 	// extract and merge the cas config from storageclass
 	scCASConfigStr := sc.Annotations[string(mconfig.CASConfigKey)]
 	var scConfig []Config
-	klog.V(4).Infof("SC %v has config:%v", *scName, scCASConfigStr)
+	log.V(4).Info("StorageClass config", "storageClass", *scName, "config", scCASConfigStr)
 	if len(strings.TrimSpace(scCASConfigStr)) != 0 {
 		err = yaml.Unmarshal([]byte(scCASConfigStr), &scConfig)
 		if err == nil {
@@ -173,7 +175,7 @@ func (p *Provisioner) GetVolumeConfig(ctx context.Context, pvName string, pvc *c
 	// as to the type of config that can be passed via PVC
 	var pvcConfig []Config
 	pvcCASConfigStr := pvc.Annotations[string(mconfig.CASConfigKey)]
-	klog.V(4).Infof("PVC %v has config:%v", pvc.Name, pvcCASConfigStr)
+	log.V(4).Info("PVC config", "pvc", pvc.Name, "config", pvcCASConfigStr)
 	if len(strings.TrimSpace(pvcCASConfigStr)) != 0 {
 		err = yaml.Unmarshal([]byte(pvcCASConfigStr), &pvcConfig)
 		if err == nil {

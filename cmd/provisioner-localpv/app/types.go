@@ -4,7 +4,7 @@ import (
 	"context"
 
 	v1 "k8s.io/api/core/v1"
-	clientset "k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes"
 
 	mconfig "github.com/openebs/dynamic-localpv-provisioner/pkg/apis/openebs.io/v1alpha1"
 )
@@ -18,7 +18,7 @@ const (
 // Provisioner struct has the configuration and utilities required
 // across the different work-flows.
 type Provisioner struct {
-	kubeClient     *clientset.Clientset
+	kubeClient     kubernetes.Interface
 	namespace      string
 	helperImage    string
 	nodeDeployment bool

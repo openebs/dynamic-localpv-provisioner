@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-FROM golang:1.19.13 as build
+FROM golang:1.24.12 as build
 
 ARG BRANCH
 ARG RELEASE_TAG
@@ -42,7 +42,7 @@ COPY . .
 
 RUN make provisioner-localpv
 
-FROM alpine:3.22.1
+FROM alpine:3.23.3
 
 ARG DBUILD_DATE
 ARG DBUILD_REPO_URL
