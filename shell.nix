@@ -19,6 +19,7 @@ pkgs.mkShell {
       jq
       kubectl
       kubernetes-helm
+      nixfmt
       nixos-shell
       semver-tool
       util-linux

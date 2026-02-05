@@ -16,11 +16,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Go
-        uses: ./.github/actions/setup-go
+      - name: Set up Nix
+        uses: ./.github/actions/setup-nix
 
       - name: Unit test
-        run: make test
+        run: |
+          nix-shell --run "make test"
+          nix-shell --run "nixfmt **/*.nix"
 
       - name: Verify corrections
         run: make verify-src

@@ -32,10 +32,10 @@ jobs:
           path: "."
           pattern: "*.sh"
 
-      - name: Set up Go
-        uses: ./.github/actions/setup-go
-
       # TODO: Set this up correctly. Currently it has a whole lot of lint issues
+      # - name: Set up Go
+      #  uses: ./.github/actions/setup-go
+      #
       # - name: golangci-lint
       #   uses: golangci/golangci-lint-action@v9
       #   with:
