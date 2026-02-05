@@ -1,0 +1,57 @@
+name: Linting
+on:
+  workflow_call:
+    inputs:
+      branch-name:
+        description: 'Branch name where workflow is running on'
+        required: false
+        type: string
+      tag:
+        description: 'Tag where workflow is running on'
+        required: false
+        type: string
+      validate-codegen:
+        description: 'Validate codegen'
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  go-lint:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Shellcheck
+        uses: reviewdog/action-shellcheck@v1
+        with:
+          github_token: ${{ secrets.github_token }}
+          reporter: github-pr-review
+          path: "."
+          pattern: "*.sh"
+
+      - name: Set up Go
+        uses: ./.github/actions/setup-go
+
+      # TODO: Set this up correctly. Currently it has a whole lot of lint issues
+      # - name: golangci-lint
+      #   uses: golangci/golangci-lint-action@v9
+      #   with:
+      #     version: v2.8.0
+
+      - name: Set up Nix
+        uses: ./.github/actions/setup-nix
+        with:
+          preFetchNix: shell.nix
+
+      - name: Check if the chart follows a valid semver version
+        if: inputs.branch-name
+        run: nix-shell --run "./scripts/validate-chart-version.sh --branch ${{ inputs.branch-name }}"
+
+      - name: Check if the chart is publishable
+        if: inputs.tag
+        run: nix-shell --run "./scripts/update-chart-version.sh --tag ${{ inputs.tag }} --publish-release"
+
+      - run: nix-shell --run "ct lint --config ct.yaml"

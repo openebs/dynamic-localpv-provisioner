@@ -133,7 +133,7 @@ clean:
 .PHONY: test
 test: format vet
 	@echo "--> Running go test";
-	./buildscripts/test.sh ${XC_ARCH}
+	./buildscripts/test-cov.sh ${XC_ARCH}
 
 .PHONY: testv
 testv: format

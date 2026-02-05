@@ -4,21 +4,31 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Release tag (e.g. v2.9.0)'
+        description: 'Release tag (e.g. v4.5.0)'
         required: true
         type: string
-  
+
 env:
   TAG: ${{ inputs.tag }}
 
-jobs: 
+jobs:
   lint:
-    runs-on: ubuntu-latest
+    uses: ./.github/workflows/lint.yml
+    with:
+      tag: ${{ inputs.tag }}
+
+  tests:
+    needs: ["lint"]
+    uses: ./.github/workflows/tests.yml
+    with:
+      coverage: false
+
+  provisioner-localpv:
+    needs: ['lint']
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - uses: ./.github/actions/setup-nix
         with:
@@ -26,102 +36,7 @@ jobs:
 
       - name: Check if the chart is publishable
         run: |
-          nix-shell --run "./scripts/update-chart-version.sh --tag ${TAG} --publish-release"
-
-      - name: Run chart-testing lint
-        run: |
-          nix-shell --run "ct lint --config ct.yaml"
-
-  unit-test:
-    runs-on: ubuntu-latest
-    needs: ['lint']
-    steps:
-      - name: Set up Go 1.24.12
-        uses: actions/setup-go@v6
-        with:
-          go-version: 1.24.12
-
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Unit test
-        run: make test
-
-      - name: Verify corrections
-        run: make verify-src
-
-      - name: Upload Coverage Report
-        uses: codecov/codecov-action@v4
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          file: ./coverage.txt
-          name: coverage-$(date +%s)
-          flags: unittests
-
-  integration-test:
-    runs-on: ubuntu-22.04
-    needs: ['lint', 'unit-test']
-    strategy:
-      matrix:
-        kubernetes: [v1.34.3]
-    steps:
-      - name: Set up Go 1.24.12
-        uses: actions/setup-go@v6
-        with:
-          go-version: 1.24.12
-
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Build images locally
-        run: make provisioner-localpv-image || exit 1;
-
-      - name: Setup Minikube-Kubernetes
-        uses: medyagh/setup-minikube@latest
-        with:
-          cache: false
-          minikube-version: 1.38.0
-          driver: none
-          kubernetes-version: ${{ matrix.kubernetes }}
-          cni: calico
-          start-args: '--install-addons=false'
-
-      - name: Set up infra for integration test
-        run: |
-          sudo apt-get update && sudo apt-get install -y xfsprogs quota linux-modules-extra-`uname -r`
-          go install -mod=mod github.com/onsi/ginkgo/v2/ginkgo@v2.14.0
-          helm install localpv-provisioner ./deploy/helm/charts -n openebs --create-namespace --set localpv.image.pullPolicy=Never --set analytics.enabled=false
-          kubectl get pods -A
-
-      - name: Integration test
-        run: |
-          make integration-test
-
-      - name: Upload Integration Test Coverage Report
-        uses: codecov/codecov-action@v4
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          file: ./tests/integration_coverage.txt
-          name: coverage-integration-test-$(date +%s)
-          flags: integrationtests
-
-  provisioner-localpv:
-    needs: ['lint', 'unit-test']
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - uses: cachix/install-nix-action@v22
-      - name: Pre-populate nix-shell
-        run: |
-          export NIX_PATH=nixpkgs=$(jq '.nixpkgs.url' nix/sources.json -r)
-          echo "NIX_PATH=$NIX_PATH" >> $GITHUB_ENV
-          nix-shell --pure --run "echo" ./shell.nix
-
-      - name: Check if the chart is publishable
-        run: |
-          nix-shell --pure --run "./scripts/update-chart-version.sh --tag ${TAG} --publish-release" ./shell.nix
+          nix-shell --pure --run "./scripts/update-chart-version.sh --tag ${TAG} --publish-release" shell.nix
 
       - name: Set Image Org
         run: |
@@ -155,25 +70,22 @@ jobs:
           echo "RELEASE_TAG: ${{ steps.docker_meta.outputs.tags }}"
 
       - name: Setup QEMU
-        uses: docker/setup-qemu-action@v2
+        uses: docker/setup-qemu-action@v3
         with:
           platforms: all
 
       - name: Setup Docker Buildx
         id: buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
         with:
-          version: v0.5.1
+          version: v0.13.1
 
-      - name: Login to GHCR
-        uses: docker/login-action@v2
+      - uses: ./.github/actions/registry-login
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          ghcr-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and Push Image
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v5
         with:
           context: .
           file: ./buildscripts/provisioner-localpv/provisioner-localpv.Dockerfile
@@ -188,17 +100,14 @@ jobs:
             BRANCH=${{ env.BRANCH }}
 
   release-chart:
-    runs-on: ubuntu-latest
-    needs: ['integration-test', 'provisioner-localpv']
+    runs-on: ubuntu-22.04
+    needs: ['tests', 'provisioner-localpv']
     steps:
       - uses: actions/checkout@v4
 
-      - uses: cachix/install-nix-action@v22
-      - name: Pre-populate nix-shell
-        run: |
-            export NIX_PATH=nixpkgs=$(jq '.nixpkgs.url' nix/sources.json -r)
-            echo "NIX_PATH=$NIX_PATH" >> $GITHUB_ENV
-            nix-shell --pure --run "echo" ./shell.nix
+      - uses: ./.github/actions/setup-nix
+        with:
+          preFetchNix: ./shell.nix
 
       - name: Set Image Org
         run: |
@@ -207,11 +116,11 @@ jobs:
 
       - name: Check if the chart is publishable
         run: |
-            nix-shell --pure --run "./scripts/update-chart-version.sh --tag ${TAG} --publish-release" ./shell.nix
+            nix-shell --pure --run "./scripts/update-chart-version.sh --tag ${TAG} --publish-release" shell.nix
 
       - name: Update the registry and repository in values.yaml
         run: |
-            nix-shell --pure --run "./scripts/update-reg-repo.sh --registry ghcr.io/ --repository ${{ env.IMAGE_ORG }}/dev/provisioner-localpv" ./shell.nix
+            nix-shell --pure --run "./scripts/update-reg-repo.sh --registry ghcr.io/ --repository ${{ env.IMAGE_ORG }}/dev/provisioner-localpv" shell.nix
 
       - name: Set Chart Version
         run: |
