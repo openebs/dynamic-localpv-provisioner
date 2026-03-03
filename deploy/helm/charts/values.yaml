@@ -3,9 +3,15 @@
 # Declare variables to be passed into your templates.
 
 global:
-  # Used as default image registry, values supplied by localpv.image.registry
-  # and helperPod.image.registry override this value.
-  imageRegistry: "docker.io"
+  # Global override for container image registry.
+  imageRegistry: ""
+  # - secret
+  imagePullSecrets: []
+  # Global overide for image pull policy
+  imagePullPolicy: ""
+  analytics:
+    # Global overide for analytics
+    enabled:
 
 rbac:
   # rbac.create: `true` if rbac resources should be created
@@ -27,7 +33,7 @@ localpv:
   name: localpv-provisioner
   enabled: true
   image:
-    registry: ""
+    registry: "docker.io"
     repository: openebs/provisioner-localpv
     tag: 4.5.0-develop
     pullPolicy: IfNotPresent

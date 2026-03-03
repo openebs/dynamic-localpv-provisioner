@@ -89,3 +89,75 @@ Usage:
     {{- toYaml .Values.localpv.tolerations | nindent 8 }}
 {{- end }}
 {{- end }}
+
+{{/*
+Creates the image URL ie registry/repository:tag
+*/}}
+{{- define "localpv.common.image" -}}
+{{- $registryName := default .imageRoot.registry ((.global).imageRegistry) | trimSuffix "/" -}}
+{{- $repositoryName := .imageRoot.repository -}}
+{{- $separator := ":" -}}
+{{- $termination := .imageRoot.tag | toString -}}
+{{- if $registryName }}
+    {{- printf "%s/%s%s%s" $registryName $repositoryName $separator $termination -}}
+{{- else -}}
+    {{- printf "%s%s%s"  $repositoryName $separator $termination -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Concatenates imagepullsecrets, outputs in ENV format and handles different formats (example - secret or - name: secret)
+*/}}
+{{- define "localpv.helper.pullSecrets" -}}
+
+{{- $pullSecrets := list }}
+
+{{- with .Values.global.imagePullSecrets }}
+  {{- $pullSecrets = concat $pullSecrets . }}
+{{- end }}
+
+{{- with .Values.imagePullSecrets }}
+  {{- $pullSecrets = concat $pullSecrets . }}
+{{- end }}
+
+{{- $names := list }}
+
+{{- range $pullSecrets | uniq }}
+  {{- if kindIs "map" . }}
+    {{- $names = append $names .name }}
+  {{- else }}
+    {{- $names = append $names . }}
+  {{- end }}
+{{- end }}
+
+{{- if $names }}
+- name: OPENEBS_IO_IMAGE_PULL_SECRETS
+  value: "{{ join "," ($names | uniq) }}"
+{{- end }}
+{{- end }}
+
+{{/*
+Concatenates imagepullsecrets and handles different formats (example - secret or - name: secret)
+*/}}
+{{- define "localpv.common.pullSecrets" -}}
+{{- $pullSecrets := list }}
+
+{{- with .Values.global.imagePullSecrets }}
+{{- $pullSecrets = concat $pullSecrets . }}
+{{- end }}
+
+{{- with .Values.imagePullSecrets }}
+{{- $pullSecrets = concat $pullSecrets . }}
+{{- end }}
+
+{{- if $pullSecrets }}
+imagePullSecrets:
+{{- range $pullSecrets | uniq }}
+  {{- if kindIs "map" . }}
+- name: {{ .name }}
+  {{- else }}
+- name: {{ . }}
+  {{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
