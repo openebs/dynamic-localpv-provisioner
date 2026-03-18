@@ -3,9 +3,19 @@
 # Declare variables to be passed into your templates.
 
 global:
-  # Used as default image registry, values supplied by localpv.image.registry
-  # and helperPod.image.registry override this value.
+  # Global override for container image registry (when `globalImageRegistryOverride` is set to true)
   imageRegistry: "docker.io"
+  # Global image pull secrets (merged with local imagePullSecrets and not overridden)
+  # - secret
+  imagePullSecrets: []
+  # Global override for image pull policy
+  imagePullPolicy: ""
+  analytics:
+    # Global override for analytics
+    enabled:
+
+# When set to true, the value of `global.imageRegistry` will override all image registry settings defined at local level
+globalImageRegistryOverride: false
 
 rbac:
   # rbac.create: `true` if rbac resources should be created
@@ -152,6 +162,7 @@ loggingLabels:
   openebs.io/logging: "true"
 
 analytics:
+  # Enable sending stats to Google Analytics
   enabled: true
   # Specify in hours the duration after which a ping event needs to be sent.
   pingInterval: "24h"
