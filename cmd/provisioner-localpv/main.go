@@ -13,6 +13,9 @@ import (
 func init() {
 	// Declare klog CLI flags
 	klog.InitFlags(flag.CommandLine)
+	// Opt into fixed stderrthreshold behavior (kubernetes/klog#212).
+	flag.CommandLine.Set("legacy_stderr_threshold_behavior", "false")
+	flag.CommandLine.Set("stderrthreshold", "INFO")
 	// NOTE: As of klog/v2@v2.40.1 the --logtostderr=true option cannot be
 	//       used alongside other klog flags to write logs in a file or
 	//       directory.
