@@ -41,17 +41,17 @@ spec:
     {{- if .Values.localpv.priorityClassName }}
       priorityClassName: {{ tpl .Values.localpv.priorityClassName . }}
     {{- end }}
-    {{- with .Values.imagePullSecrets }}
+      {{- if or .Values.global.imagePullSecrets .Values.imagePullSecrets }}
       imagePullSecrets:
-        {{- toYaml . | nindent 8 }}
-    {{- end }}
+      {{- include "localpv.common.pullSecrets" . | indent 6 }}
+      {{- end }}
       serviceAccountName: {{ template "localpv.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
       - name: {{ template "localpv.fullname" . }}
-        image: "{{ with .Values.localpv.image.registry | default .Values.global.imageRegistry | trimSuffix "/" }}{{ . }}/{{ end }}{{ .Values.localpv.image.repository }}:{{ .Values.localpv.image.tag }}"
-        imagePullPolicy: {{ .Values.localpv.image.pullPolicy }}
+        image: {{ include "localpv.common.image" (dict "imageRoot" .Values.localpv.image "global" .Values.global "override" .Values.globalImageRegistryOverride) }}
+        imagePullPolicy: {{ default .Values.localpv.image.pullPolicy .Values.global.imagePullPolicy }}
         resources:
 {{ toYaml .Values.localpv.resources | indent 10 }}
         env:
@@ -81,8 +81,13 @@ spec:
               fieldPath: spec.serviceAccountName
         # OPENEBS_IO_BASE_PATH is the environment variable that provides the
         # default base path on the node where host-path PVs will be provisioned.
+        {{-  if kindIs "bool" .Values.global.analytics.enabled }}
+        - name: OPENEBS_IO_ENABLE_ANALYTICS
+          value: "{{ .Values.global.analytics.enabled }}"
+        {{- else }}
         - name: OPENEBS_IO_ENABLE_ANALYTICS
           value: "{{ .Values.analytics.enabled }}"
+        {{- end }}
         {{- if .Values.analytics.gaId }}
         - name: GA_ID
           value: {{ .Values.analytics.gaId | quote }}
@@ -94,7 +99,7 @@ spec:
         - name: OPENEBS_IO_BASE_PATH
           value: "{{ .Values.localpv.basePath }}"
         - name: OPENEBS_IO_HELPER_IMAGE
-          value: "{{ with .Values.helperPod.image.registry | default .Values.global.imageRegistry | trimSuffix "/" }}{{ . }}/{{ end }}{{ .Values.helperPod.image.repository }}:{{ .Values.helperPod.image.tag }}"
+          value: {{ include "localpv.common.image" (dict "imageRoot" .Values.helperPod.image "global" .Values.global "override" .Values.globalImageRegistryOverride) }}
         - name: OPENEBS_IO_HELPER_POD_HOST_NETWORK
           value: "{{ .Values.helperPod.hostNetwork }}"
         - name: OPENEBS_IO_INSTALLER_TYPE
@@ -103,10 +108,7 @@ spec:
         # leader election is enabled.
         - name: LEADER_ELECTION_ENABLED
           value: "{{ .Values.localpv.enableLeaderElection }}"
-{{- if .Values.imagePullSecrets }}
-        - name: OPENEBS_IO_IMAGE_PULL_SECRETS
-          value: "{{- range $index, $secret := .Values.imagePullSecrets}}{{if $index}},{{end}}{{ $secret.name }}{{- end}}"
-{{- end }}
+{{- include "localpv.helper.pullSecrets" . | indent 8 }}
         # Process name used for matching is limited to the 15 characters
         # present in the pgrep output.
         # So fullname can't be used here with pgrep (>15 chars).A regular expression
