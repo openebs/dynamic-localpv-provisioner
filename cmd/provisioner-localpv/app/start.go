@@ -105,12 +105,16 @@ func Start(ctx context.Context, nodeDeployment bool) error {
 	// events and invokes the Provisioner Handler.
 	leaderElection := isLeaderElectionEnabled(ctx, nodeDeployment)
 
+	threadiness := getWorkerThreads()
+	log.Info("Provisioner concurrency configured", "workerThreads", threadiness)
+
 	pc := pvController.NewProvisionController(
 		ctx,
 		kubeClient,
 		provisionerName,
 		provisioner,
 		pvController.LeaderElection(leaderElection),
+		pvController.Threadiness(threadiness),
 	)
 
 	if utils.GoogleAnalyticsEnabled(GoogleAnalyticsKey) {

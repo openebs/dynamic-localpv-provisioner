@@ -27,9 +27,9 @@ type podConfig struct {
 }
 
 var (
-	//CmdTimeoutCounts specifies the duration to wait for cleanup pod
-	//to be launched.
-	CmdTimeoutCounts = 120
+	//CmdTimeoutCounts specifies the maximum number of seconds to wait
+	//for a helper pod to complete. Configurable via OPENEBS_IO_HELPER_POD_TIMEOUT.
+	CmdTimeoutCounts = getHelperPodTimeout()
 )
 
 // HelperPodOptions contains the options that
