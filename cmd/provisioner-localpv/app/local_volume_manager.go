@@ -101,15 +101,15 @@ func (vm *LocalVolumeManager) DeleteVolume(ctx context.Context, req *VolumeReque
 		return fmt.Errorf("failed to extract paths: %v", err)
 	}
 
-	// Generate cleanup script using shared utility
+	// Generate cleanup argv using shared utility
 	// Node deployment mode accesses host filesystem via HostPathPrefix
-	cleanupScript := GenerateQuotaCleanupScript(QuotaScriptConfig{
+	cleanupArgs := QuotaScriptConfig{
 		ParentDir:      parentDir,
 		VolumeDir:      volumeDir,
 		HostPathPrefix: HostPathPrefix,
-	})
+	}.CleanupArgs()
 
-	if err := vm.executeCommand(ctx, "sh", "-c", cleanupScript); err != nil {
+	if err := vm.executeCommand(ctx, cleanupArgs[0], cleanupArgs[1:]...); err != nil {
 		return fmt.Errorf("failed to delete directory: %v", err)
 	}
 
@@ -254,16 +254,15 @@ func (vm *LocalVolumeManager) validateLimits(softLimitGrace, hardLimitGrace stri
 
 // applyQuotaByFilesystem applies quota based on the filesystem type
 func (vm *LocalVolumeManager) applyQuotaByFilesystem(ctx context.Context, parentDir, volumeDir, softLimitGrace, hardLimitGrace string) error {
-	// Generate quota script using shared utility
+	// Generate quota apply argv using shared utility
 	// Node deployment mode accesses host filesystem via HostPathPrefix
-	script := GenerateQuotaApplyScript(QuotaScriptConfig{
+	args := QuotaScriptConfig{
 		ParentDir:      parentDir,
 		VolumeDir:      volumeDir,
 		SoftLimitGrace: softLimitGrace,
 		HardLimitGrace: hardLimitGrace,
 		HostPathPrefix: HostPathPrefix,
-	})
+	}.ApplyArgs()
 
-	// Execute the quota script
-	return vm.executeCommand(ctx, "sh", "-c", script)
+	return vm.executeCommand(ctx, args[0], args[1:]...)
 }
