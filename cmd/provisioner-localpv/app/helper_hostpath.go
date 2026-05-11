@@ -212,15 +212,13 @@ func (p *Provisioner) createCleanupPod(ctx context.Context, pOpts *HelperPodOpti
 
 	config.taints = pOpts.selectedNodeTaints
 
-	// Generate cleanup script using shared utility
-	// Helper pod mounts parentDir at /data, so use /data as the parent path
-	cleanupScript := GenerateQuotaCleanupScript(QuotaScriptConfig{
+	// Generate cleanup argv using shared utility.
+	// Helper pod mounts parentDir at /data, so use /data as the parent path.
+	config.pOpts.cmdsForPath = QuotaScriptConfig{
 		ParentDir:      "/data",
 		VolumeDir:      config.volumeDir,
 		HostPathPrefix: "", // No prefix needed, /data is the mount point
-	})
-
-	config.pOpts.cmdsForPath = []string{"sh", "-c", cleanupScript}
+	}.CleanupArgs()
 
 	_, err := p.launchPod(ctx, config)
 	if err != nil && !k8serror.IsAlreadyExists(err) {
@@ -273,17 +271,15 @@ func (p *Provisioner) createQuotaPod(ctx context.Context, pOpts *HelperPodOption
 		return err
 	}
 
-	// Generate quota script using shared utility
-	// Helper pod mounts parentDir at /data, so use /data as the parent path
-	quotaScript := GenerateQuotaApplyScript(QuotaScriptConfig{
+	// Generate quota apply argv using shared utility.
+	// Helper pod mounts parentDir at /data, so use /data as the parent path.
+	config.pOpts.cmdsForPath = QuotaScriptConfig{
 		ParentDir:      "/data",
 		VolumeDir:      config.volumeDir,
 		SoftLimitGrace: config.pOpts.softLimitGrace,
 		HardLimitGrace: config.pOpts.hardLimitGrace,
 		HostPathPrefix: "", // No prefix needed, /data is the mount point
-	})
-
-	config.pOpts.cmdsForPath = []string{"sh", "-c", quotaScript}
+	}.ApplyArgs()
 
 	_, err := p.launchPod(ctx, config)
 	if err != nil && !k8serror.IsAlreadyExists(err) {
