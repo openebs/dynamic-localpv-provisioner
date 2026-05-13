@@ -39,7 +39,7 @@ localpv:
   image:
     registry: ""
     repository: openebs/provisioner-localpv
-    tag: 4.5.0-develop
+    tag: 4.5.0-prerelease
     pullPolicy: IfNotPresent
   updateStrategy:
     type: RollingUpdate
