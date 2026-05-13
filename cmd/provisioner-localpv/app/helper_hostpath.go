@@ -217,7 +217,8 @@ func (p *Provisioner) createCleanupPod(ctx context.Context, pOpts *HelperPodOpti
 	cleanupScript := GenerateQuotaCleanupScript(QuotaScriptConfig{
 		ParentDir:      "/data",
 		VolumeDir:      config.volumeDir,
-		HostPathPrefix: "", // No prefix needed, /data is the mount point
+		HostPathPrefix: "",   // No prefix needed, /data is the mount point
+		UseHostLock:    true, // serialize against concurrent helper pods
 	})
 
 	config.pOpts.cmdsForPath = []string{"sh", "-c", cleanupScript}
@@ -280,7 +281,8 @@ func (p *Provisioner) createQuotaPod(ctx context.Context, pOpts *HelperPodOption
 		VolumeDir:      config.volumeDir,
 		SoftLimitGrace: config.pOpts.softLimitGrace,
 		HardLimitGrace: config.pOpts.hardLimitGrace,
-		HostPathPrefix: "", // No prefix needed, /data is the mount point
+		HostPathPrefix: "",   // No prefix needed, /data is the mount point
+		UseHostLock:    true, // serialize project-ID allocation
 	})
 
 	config.pOpts.cmdsForPath = []string{"sh", "-c", quotaScript}
