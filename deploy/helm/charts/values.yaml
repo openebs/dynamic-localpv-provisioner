@@ -36,6 +36,10 @@ earlyEvictionTolerations:
 localpv:
   name: localpv-provisioner
   enabled: true
+  controller:
+    # The number of concurrent worker goroutines for processing PVC create and delete events.
+    # Higher values increase provisioning throughput when many PVC events are received simultaneously.
+    workers: 4
   image:
     registry: ""
     repository: openebs/provisioner-localpv
@@ -154,6 +158,8 @@ helperPod:
     # Overrides the image tag whose default is the chart appVersion.
     tag: 4.5.0
   hostNetwork: false
+  # The maximum number of seconds to wait for a helperPod (init, cleanup, quota) to complete before timing out.
+  timeoutSecs: 120
 
 # Additional labels to add to all chart resources
 extraLabels: {}

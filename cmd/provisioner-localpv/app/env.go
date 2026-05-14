@@ -54,7 +54,7 @@ const (
 	// ProvisionerHelperPodTimeout is the environment variable that controls
 	// the maximum number of seconds to wait for a helper pod (init, cleanup,
 	// quota) to complete before timing out. Default is 120.
-	ProvisionerHelperPodTimeout string = "OPENEBS_IO_HELPER_POD_TIMEOUT"
+	ProvisionerHelperPodTimeout string = "OPENEBS_IO_HELPER_POD_TIMEOUT_SECS"
 )
 
 var (
@@ -91,7 +91,7 @@ func getNodeName() string {
 
 func getWorkerThreads() int {
 	val, err := k8sEnv.GetInt(ProvisionerWorkerThreads, 4)
-	if err != nil || val < 1 {
+	if err != nil || val < 2 {
 		return 4
 	}
 	return val

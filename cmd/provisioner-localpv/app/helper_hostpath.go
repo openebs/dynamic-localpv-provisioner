@@ -28,7 +28,7 @@ type podConfig struct {
 
 var (
 	//CmdTimeoutCounts specifies the maximum number of seconds to wait
-	//for a helper pod to complete. Configurable via OPENEBS_IO_HELPER_POD_TIMEOUT.
+	//for a helper pod to complete. Configurable via OPENEBS_IO_HELPER_POD_TIMEOUT_SECS.
 	CmdTimeoutCounts = getHelperPodTimeout()
 )
 
