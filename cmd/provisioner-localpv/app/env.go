@@ -44,6 +44,17 @@ const (
 	//
 	// This environment variable is set via kubernetes downward API.
 	OpenebsServiceAccount string = "OPENEBS_SERVICE_ACCOUNT"
+
+	// ProvisionerWorkerThreads is the environment variable that controls the
+	// number of concurrent worker goroutines for processing PVC create and
+	// PV delete events. Higher values increase provisioning throughput when
+	// many PVCs are created simultaneously. Default is 4.
+	ProvisionerWorkerThreads string = "OPENEBS_IO_WORKER_THREADS"
+
+	// ProvisionerHelperPodTimeout is the environment variable that controls
+	// the maximum number of seconds to wait for a helper pod (init, cleanup,
+	// quota) to complete before timing out. Default is 120.
+	ProvisionerHelperPodTimeout string = "OPENEBS_IO_HELPER_POD_TIMEOUT"
 )
 
 var (
@@ -76,4 +87,20 @@ func getOpenEBSImagePullSecrets() string {
 // getNodeName returns the current node name from NODE_NAME environment variable
 func getNodeName() string {
 	return menv.Get("NODE_NAME")
+}
+
+func getWorkerThreads() int {
+	val, err := k8sEnv.GetInt(ProvisionerWorkerThreads, 4)
+	if err != nil || val < 1 {
+		return 4
+	}
+	return val
+}
+
+func getHelperPodTimeout() int {
+	val, err := k8sEnv.GetInt(ProvisionerHelperPodTimeout, 120)
+	if err != nil || val < 1 {
+		return 120
+	}
+	return val
 }
