@@ -212,3 +212,102 @@ func TestGetOpenEBSImagePullSecrets(t *testing.T) {
 		})
 	}
 }
+
+func TestGetPodName(t *testing.T) {
+	testCases := map[string]struct {
+		value         string
+		expectedValue string
+	}{
+		"Missing env variable": {
+			value:         "",
+			expectedValue: "",
+		},
+		"Present env variable with value": {
+			value:         "openebs-localpv-abc12",
+			expectedValue: "openebs-localpv-abc12",
+		},
+		"Present env variable with whitespaces": {
+			value:         " ",
+			expectedValue: "",
+		},
+	}
+	for k, v := range testCases {
+		v := v
+		t.Run(k, func(t *testing.T) {
+			if len(v.value) != 0 {
+				os.Setenv(PodName, v.value)
+			}
+			actualValue := getPodName()
+			if !reflect.DeepEqual(actualValue, v.expectedValue) {
+				t.Errorf("expected %s got %s", v.expectedValue, actualValue)
+			}
+			os.Unsetenv(PodName)
+		})
+	}
+}
+
+func TestGetAnalyticsStateCMName(t *testing.T) {
+	testCases := map[string]struct {
+		value         string
+		expectedValue string
+	}{
+		"Missing env variable": {
+			value:         "",
+			expectedValue: "",
+		},
+		"Present env variable with value": {
+			value:         "openebs-localpv-analytics-state",
+			expectedValue: "openebs-localpv-analytics-state",
+		},
+		"Present env variable with whitespaces": {
+			value:         " ",
+			expectedValue: "",
+		},
+	}
+	for k, v := range testCases {
+		v := v
+		t.Run(k, func(t *testing.T) {
+			if len(v.value) != 0 {
+				os.Setenv(AnalyticsStateCM, v.value)
+			}
+			actualValue := getAnalyticsStateCMName()
+			if !reflect.DeepEqual(actualValue, v.expectedValue) {
+				t.Errorf("expected %s got %s", v.expectedValue, actualValue)
+			}
+			os.Unsetenv(AnalyticsStateCM)
+		})
+	}
+}
+
+func TestGetAnalyticsLeaseName(t *testing.T) {
+	testCases := map[string]struct {
+		value         string
+		expectedValue string
+	}{
+		"Missing env variable falls back to default": {
+			value:         "",
+			expectedValue: defaultAnalyticsLeaseName,
+		},
+		"Present env variable with value": {
+			value:         "mything-localpv-analytics",
+			expectedValue: "mything-localpv-analytics",
+		},
+		"Present env variable with whitespaces falls back to default": {
+			value:         " ",
+			expectedValue: defaultAnalyticsLeaseName,
+		},
+	}
+	for k, v := range testCases {
+		v := v
+		t.Run(k, func(t *testing.T) {
+			if len(v.value) != 0 {
+				os.Setenv(AnalyticsLease, v.value)
+			}
+			actualValue := getAnalyticsLeaseName()
+			if !reflect.DeepEqual(actualValue, v.expectedValue) {
+				t.Errorf("expected %s got %s", v.expectedValue, actualValue)
+			}
+			os.Unsetenv(AnalyticsLease)
+		})
+	}
+}

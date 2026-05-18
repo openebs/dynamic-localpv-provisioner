@@ -88,6 +88,13 @@ spec:
         - name: OPENEBS_IO_ENABLE_ANALYTICS
           value: "{{ .Values.analytics.enabled }}"
         {{- end }}
+          # OPENEBS_IO_ANALYTICS_STATE_CM names the ConfigMap consulted to
+          # decide whether to emit the install event for this Helm release.
+          # Created by templates/analytics-state.yaml; deleted on helm
+          # uninstall so a fresh install fires install again. Without this,
+          # helper-pod mode would re-emit install on every pod restart.
+        - name: OPENEBS_IO_ANALYTICS_STATE_CM
+          value: {{ include "localpv.analyticsStateCM.name" . | quote }}
         {{- if .Values.analytics.gaId }}
         - name: GA_ID
           value: {{ .Values.analytics.gaId | quote }}
@@ -105,7 +112,7 @@ spec:
         - name: OPENEBS_IO_HELPER_POD_HOST_NETWORK
           value: "{{ .Values.helperPod.hostNetwork }}"
         - name: OPENEBS_IO_INSTALLER_TYPE
-          value: "localpv-charts-helm"
+          value: "localpv-charts-helm-helperpod"
         - name: OPENEBS_IO_HELPER_POD_TIMEOUT_SECS
           value: {{ .Values.helperPod.timeoutSecs | quote }}
         # LEADER_ELECTION_ENABLED is used to enable/disable leader election. By default
