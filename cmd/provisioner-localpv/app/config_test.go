@@ -154,3 +154,50 @@ func Test_listConfigToMap(t *testing.T) {
 		})
 	}
 }
+
+func TestConfigGetImagePullPolicy(t *testing.T) {
+	tests := map[string]struct {
+		input    string
+		expected corev1.PullPolicy
+	}{
+		"Always Policy": {
+			input:    "Always",
+			expected: corev1.PullAlways,
+		},
+		"Never Policy": {
+			input:    "Never",
+			expected: corev1.PullNever,
+		},
+		"IfNotPresent Policy": {
+			input:    "IfNotPresent",
+			expected: corev1.PullIfNotPresent,
+		},
+		"Empty String Defaults to IfNotPresent": {
+			input:    "",
+			expected: corev1.PullIfNotPresent,
+		},
+		"Invalid Value Defaults to IfNotPresent": {
+			input:    "invalid",
+			expected: corev1.PullIfNotPresent,
+		},
+		"Whitespace Value Defaults to IfNotPresent": {
+			input:    " ",
+			expected: corev1.PullIfNotPresent,
+		},
+	}
+
+	for name, tc := range tests {
+		tc := tc
+		t.Run(name, func(t *testing.T) {
+			actual := GetImagePullPolicy(tc.input)
+
+			if actual != tc.expected {
+				t.Errorf(
+					"expected %q, got %q",
+					tc.expected,
+					actual,
+				)
+			}
+		})
+	}
+}

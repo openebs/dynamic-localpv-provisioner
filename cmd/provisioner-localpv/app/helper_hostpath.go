@@ -68,6 +68,9 @@ type HelperPodOptions struct {
 
 	//hostNetwork is the network type of helper Pod
 	hostNetwork bool
+
+	//imagePullPolicy for helper pod container
+	imagePullPolicy corev1.PullPolicy
 }
 
 // validate checks that the required fields to launch
@@ -324,6 +327,7 @@ func (p *Provisioner) launchPod(ctx context.Context, config podConfig) (*corev1.
 						MountPath: "/data/",
 					},
 				}).
+				WithImagePullPolicy(config.pOpts.imagePullPolicy).
 				WithPrivilegedSecurityContext(&privileged),
 		).
 		WithImagePullSecrets(config.pOpts.imagePullSecrets).

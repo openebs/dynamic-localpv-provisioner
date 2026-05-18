@@ -52,6 +52,7 @@ func (p *Provisioner) ProvisionHostPath(ctx context.Context, opts pvController.P
 	}
 
 	imagePullSecrets := GetImagePullSecrets(getOpenEBSImagePullSecrets())
+	imagePullPolicy := GetImagePullPolicy(getOpenEBSImagePullPolicy())
 
 	hostNetwork := getHelperPodHostNetwork()
 
@@ -59,7 +60,9 @@ func (p *Provisioner) ProvisionHostPath(ctx context.Context, opts pvController.P
 		"volume", name,
 		"nodeAffinityLabels", nodeAffinityLabels,
 		"path", path,
-		"imagePullSecrets", imagePullSecrets)
+		"imagePullSecrets", imagePullSecrets,
+		"imagePullPolicy", imagePullPolicy,
+	)
 
 	//Before using the path for local PV, make sure it is created.
 	fsMode := volumeConfig.GetFsMode()
@@ -77,6 +80,7 @@ func (p *Provisioner) ProvisionHostPath(ctx context.Context, opts pvController.P
 		selectedNodeTaints: taints,
 		imagePullSecrets:   imagePullSecrets,
 		hostNetwork:        hostNetwork,
+		imagePullPolicy:    imagePullPolicy,
 	}
 
 	var (
@@ -111,6 +115,7 @@ func (p *Provisioner) ProvisionHostPath(ctx context.Context, opts pvController.P
 			hardLimitGrace:     hardLimitGrace,
 			pvcStorage:         pvcStorage,
 			hostNetwork:        hostNetwork,
+			imagePullPolicy:    imagePullPolicy,
 		}
 	}
 
@@ -289,6 +294,7 @@ func (p *Provisioner) DeleteHostPath(ctx context.Context, pv *v1.PersistentVolum
 	taints := GetTaints(nodeObject)
 
 	imagePullSecrets := GetImagePullSecrets(getOpenEBSImagePullSecrets())
+	imagePullPolicy := GetImagePullPolicy(getOpenEBSImagePullPolicy())
 
 	hostNetwork := getHelperPodHostNetwork()
 
@@ -307,6 +313,7 @@ func (p *Provisioner) DeleteHostPath(ctx context.Context, pv *v1.PersistentVolum
 		selectedNodeTaints: taints,
 		imagePullSecrets:   imagePullSecrets,
 		hostNetwork:        hostNetwork,
+		imagePullPolicy:    imagePullPolicy,
 	}
 
 	// In node deployment mode, use local operations directly
