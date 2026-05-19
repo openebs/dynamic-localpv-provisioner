@@ -72,9 +72,9 @@ Please check [here](./design/hostpath_localpv_provisioner.md) for complete desig
 
 |          | Kubernetes <= v1.18 | Kubernetes (v1.19 - v1.22) | Kubernetes >=v1.23 |
 |----------|--------------------|-----------------------------|--------------------|
-| `v4.2.x` | ✕                  | ✓                           | ✓                  |
 | `v4.3.x` | ✕                  | ✓                           | ✓                  |
 | `v4.4.x` | ✕                  | ✓                           | ✓                  |
+| `v4.5.x` | ✕                  | ✕                           | ✓                  |
 | `HEAD`   | ✕                  | ✕                           | ✓                  |
 
 ## Documents
