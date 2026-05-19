@@ -5,14 +5,6 @@ Elects a single analytics emitter across DaemonSet pods. Helm-managed so
 `helm uninstall` cleanly removes it; without this, the Lease would persist
 in the namespace with the previous holder's identity, and the next install
 would have to wait out LeaseDuration before acquiring leadership.
-
-`spec` is empty here; client-go fills holderIdentity, acquireTime, etc.
-at runtime, and Helm's three-way merge preserves those fields on upgrades
-because they are absent from this template.
-
-The analytics state ConfigMap is intentionally not chart-managed: the
-provisioner creates it itself on first run (with an AlreadyExists race
-handler) so that non-Helm deployers don't need to pre-create it.
 */}}
 {{- if .Values.localpv.enabled }}
 {{- $analyticsEnabled := .Values.analytics.enabled -}}
