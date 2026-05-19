@@ -12,6 +12,7 @@ import (
 // provisioner also uses the following:
 //   OPENEBS_NAMESPACE
 //   NODE_NAME
+//   POD_NAME
 //   OPENEBS_SERVICE_ACCOUNT
 //   OPENEBS_IO_K8S_MASTER
 //   OPENEBS_IO_KUBE_CONFIG
@@ -44,6 +45,26 @@ const (
 	//
 	// This environment variable is set via kubernetes downward API.
 	OpenebsServiceAccount string = "OPENEBS_SERVICE_ACCOUNT"
+
+	// PodName is the name of the current pod, set via the Kubernetes
+	// downward API. Used as the leader-election identity for analytics in
+	// node-deployment mode so that each DaemonSet pod has a stable, unique
+	// identity for lease acquisition.
+	PodName string = "POD_NAME"
+
+	// AnalyticsStateCM is the environment variable that names the
+	// ConfigMap used to record whether the analytics install event has
+	// been sent for the current Helm release. Both deployment modes
+	// consult this CM so a pod restart (helper-pod mode) or a leadership
+	// transition (node-deployment mode) does not re-emit install.
+	AnalyticsStateCM string = "OPENEBS_IO_ANALYTICS_STATE_CM"
+
+	// AnalyticsLease is the environment variable that names the Lease
+	// used to elect the single analytics emitter in node-deployment mode.
+	// Set by the chart via include "localpv.analyticsLease.name" so the
+	// Lease name is release-scoped, matching the rest of the chart's
+	// naming convention.
+	AnalyticsLease string = "OPENEBS_IO_ANALYTICS_LEASE"
 
 	// ProvisionerWorkerThreads is the environment variable that controls the
 	// number of concurrent worker goroutines for processing PVC create and
@@ -87,6 +108,38 @@ func getOpenEBSImagePullSecrets() string {
 // getNodeName returns the current node name from NODE_NAME environment variable
 func getNodeName() string {
 	return menv.Get("NODE_NAME")
+}
+
+// getPodName returns the current pod name from the POD_NAME environment
+// variable (set via the Kubernetes downward API). Returns an empty string if
+// POD_NAME is unset; callers should fall back to os.Hostname() in that case.
+func getPodName() string {
+	return menv.Get(PodName)
+}
+
+// getAnalyticsStateCMName returns the analytics-state ConfigMap name from
+// OPENEBS_IO_ANALYTICS_STATE_CM. Returns "" when unset, in which case
+// maybeEmitInstall treats this as a non-Helm deployment and emits install
+// unconditionally (legacy behavior).
+func getAnalyticsStateCMName() string {
+	return menv.Get(AnalyticsStateCM)
+}
+
+// defaultAnalyticsLeaseName is the fallback Lease name when the chart did
+// not provide one via OPENEBS_IO_ANALYTICS_LEASE. Matches the pre-Helm-
+// templated name so non-Helm deployers see no behavior change.
+const defaultAnalyticsLeaseName = "openebs-localpv-analytics"
+
+// getAnalyticsLeaseName returns the analytics Lease name from
+// OPENEBS_IO_ANALYTICS_LEASE, or defaultAnalyticsLeaseName if unset. Unlike
+// the state CM, the Lease has a hardcoded fallback because an empty name
+// would disable leader election entirely — and with it, all analytics in
+// node-deployment mode, which is worse than an inconsistent name.
+func getAnalyticsLeaseName() string {
+	if name := menv.Get(AnalyticsLease); name != "" {
+		return name
+	}
+	return defaultAnalyticsLeaseName
 }
 
 func getWorkerThreads() int {

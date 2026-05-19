@@ -50,6 +50,12 @@ rules:
 - apiGroups: ["coordination.k8s.io"]
   resources: ["leases"]
   verbs: ["get", "create", "update"]
+  # Narrow access to a single ConfigMap used to record install-event state
+  # for analytics.
+- apiGroups: [""]
+  resources: ["configmaps"]
+  resourceNames: [{{ include "localpv.analyticsStateCM.name" . | quote }}]
+  verbs: ["get", "patch"]
 - nonResourceURLs: ["/metrics"]
   verbs: ["get"]
 ---
@@ -116,3 +122,4 @@ subjects:
     namespace: {{ $.Release.Namespace }}
 {{- end }}
 {{- end }}
+
