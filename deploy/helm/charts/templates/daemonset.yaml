@@ -72,6 +72,14 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: spec.nodeName
+        # POD_NAME is consumed by the analytics leader-election code in
+        # node-deployment mode so that each DaemonSet pod has a stable,
+        # unique lease identity. Required for correct singleton behavior
+        # of install/ping/heartbeat events.
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
         # OPENEBS_SERVICE_ACCOUNT provides the service account of this pod as
         # environment variable
         - name: OPENEBS_SERVICE_ACCOUNT
@@ -87,6 +95,17 @@ spec:
         - name: OPENEBS_IO_ENABLE_ANALYTICS
           value: "{{ .Values.analytics.enabled }}"
         {{- end }}
+          # OPENEBS_IO_ANALYTICS_STATE_CM names the ConfigMap consulted to
+          # decide whether to emit the install event for this Helm release.
+          # Created by templates/analytics-state.yaml; deleted on helm
+          # uninstall so a fresh install fires install again.
+        - name: OPENEBS_IO_ANALYTICS_STATE_CM
+          value: {{ include "localpv.analyticsStateCM.name" . | quote }}
+          # OPENEBS_IO_ANALYTICS_LEASE names the Lease used to elect a single
+          # analytics emitter across all DaemonSet pods. Release-scoped so
+          # multiple releases in the same namespace do not collide.
+        - name: OPENEBS_IO_ANALYTICS_LEASE
+          value: {{ include "localpv.analyticsLease.name" . | quote }}
         {{- if .Values.analytics.gaId }}
         - name: GA_ID
           value: {{ .Values.analytics.gaId | quote }}
@@ -104,10 +123,11 @@ spec:
         - name: OPENEBS_IO_HELPER_POD_HOST_NETWORK
           value: "{{ .Values.helperPod.hostNetwork }}"
         - name: OPENEBS_IO_INSTALLER_TYPE
-          value: "localpv-charts-helm"
+          value: "localpv-charts-helm-nodedeploy"
         - name: OPENEBS_IO_HELPER_POD_TIMEOUT_SECS
           value: {{ .Values.helperPod.timeoutSecs | quote }}
-        # Disable leader election in node deployment mode
+        # Disable leader election in node deployment mode.
+        # Not related to anonymous usage analytics leader election.
         - name: LEADER_ELECTION_ENABLED
           value: "false"
         # Enable node deployment mode

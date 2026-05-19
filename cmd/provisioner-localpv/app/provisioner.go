@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	analytics "github.com/openebs/google-analytics-4/usage"
 	"github.com/pkg/errors"
@@ -30,6 +31,20 @@ const (
 
 	// GoogleAnalyticsKey This environment variable is set via env
 	GoogleAnalyticsKey string = "OPENEBS_IO_ENABLE_ANALYTICS"
+
+	// AnalyticsInstalledAtKey is the data key (within the analytics-state
+	// ConfigMap whose name is given by the OPENEBS_IO_ANALYTICS_STATE_CM
+	// environment variable) holding the RFC3339 timestamp at which the
+	// install event was emitted for this Helm release. Its presence is the
+	// signal that install has already happened.
+	AnalyticsInstalledAtKey string = "installed-at"
+)
+
+// Leader-election tuning for the analytics Lease.
+var (
+	AnalyticsLeaseDuration = 6 * time.Hour
+	AnalyticsRenewDeadline = 4 * time.Hour
+	AnalyticsRetryPeriod   = 1 * time.Hour
 )
 
 // NewProvisioner will create a new Provisioner object and initialize

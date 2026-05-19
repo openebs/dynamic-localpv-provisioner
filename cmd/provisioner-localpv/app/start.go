@@ -2,6 +2,8 @@ package app
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"os"
 	"os/signal"
 	"strings"
@@ -11,6 +13,13 @@ import (
 	analytics "github.com/openebs/google-analytics-4/usage"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/uuid"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/leaderelection"
+	"k8s.io/client-go/tools/leaderelection/resourcelock"
 	"k8s.io/klog/v2"
 	pvController "sigs.k8s.io/sig-storage-lib-external-provisioner/v13/controller"
 
@@ -58,6 +67,18 @@ func StartProvisioner() (*cobra.Command, error) {
 	cmd.Flags().BoolVar(&nodeDeployment, "node-deployment", false, "Enables deploying the provisioner together with a CSI driver on nodes to manage node-local volumes")
 	// Log flush frequency flag
 	cmd.Flags().DurationVar(&logFlushFreq, "log-flush-frequency", logger.DefaultFlushInterval, "Delay between log flushes")
+
+	// Analytics leader-election tuning. Drives API call rate for the analytics
+	// Lease in node-deployment mode; no effect in helper-pod mode. Must satisfy
+	// LeaseDuration > RenewDeadline > 1.2 × RetryPeriod — invalid combinations
+	// disable analytics for this pod without affecting the provisioner.
+	cmd.Flags().DurationVar(&AnalyticsLeaseDuration, "analytics-lease-duration", AnalyticsLeaseDuration,
+		"Duration after which an unrenewed analytics Lease is considered expired and can be taken over.")
+	cmd.Flags().DurationVar(&AnalyticsRenewDeadline, "analytics-renew-deadline", AnalyticsRenewDeadline,
+		"Maximum time the analytics leader will keep retrying to renew the Lease before giving up leadership.")
+	cmd.Flags().DurationVar(&AnalyticsRetryPeriod, "analytics-retry-period", AnalyticsRetryPeriod,
+		"Interval between renewal attempts (leader) and acquisition attempts (followers). Drives steady-state API call rate.")
+
 	return cmd, nil
 }
 
@@ -119,9 +140,11 @@ func Start(ctx context.Context, nodeDeployment bool) error {
 
 	if utils.GoogleAnalyticsEnabled(GoogleAnalyticsKey) {
 		analytics.RegisterVersionGetter(version.GetVersionDetails)
-		analytics.New().CommonBuild(DefaultCASType).InstallBuilder(true).Send()
-		go analytics.PingCheck(DefaultCASType, Ping, false)
-		go analytics.PingCheck(DefaultCASType, Heartbeat, true)
+		if nodeDeployment {
+			go runAnalyticsLeaderElected(ctx, kubeClient, provisioner.namespace)
+		} else {
+			go runAnalyticsHelperPod(ctx, kubeClient, provisioner.namespace)
+		}
 	}
 
 	log.V(4).Info("Provisioner started")
@@ -159,4 +182,150 @@ func isLeaderElectionEnabled(ctx context.Context, nodeDeployment bool) bool {
 		leader = false
 	}
 	return leader
+}
+
+// recoverAnalytics is deferred at every analytics goroutine and callback so
+// a panic never crashes the provisioner. Logs one line; no stack trace.
+func recoverAnalytics(where string) {
+	if r := recover(); r != nil {
+		klog.Errorf("analytics: recovered from panic in %s: %v", where, r)
+	}
+}
+
+// runPingLoop is a panic-safe wrapper around PingCheckCtx for use as a goroutine entry.
+func runPingLoop(ctx context.Context, category string, immediate bool) {
+	defer recoverAnalytics(category)
+	analytics.PingCheckCtx(ctx, DefaultCASType, category, immediate)
+}
+
+// startAnalyticsEmitters performs install bookkeeping and starts the ping
+// and heartbeat goroutines. Used by both helper-pod and leader-elected paths.
+func startAnalyticsEmitters(ctx context.Context, kubeClient kubernetes.Interface, namespace string) {
+	if err := maybeEmitInstall(ctx, kubeClient, namespace); err != nil {
+		klog.Warningf("analytics: install bookkeeping failed: %v", err)
+	}
+	go runPingLoop(ctx, Ping, false)
+	go runPingLoop(ctx, Heartbeat, true)
+}
+
+// runAnalyticsHelperPod runs the analytics path for helper-pod (Deployment) mode.
+// Single pod, no leader election; install is still CM-gated so a pod restart
+// does not re-emit it.
+func runAnalyticsHelperPod(ctx context.Context, kubeClient kubernetes.Interface, namespace string) {
+	defer recoverAnalytics("helperPod")
+	startAnalyticsEmitters(ctx, kubeClient, namespace)
+}
+
+// runAnalyticsLeaderElected runs the analytics path for node-deployment (DaemonSet)
+// mode under a dedicated Lease so exactly one pod emits at a time. Blocks until
+// ctx is cancelled. Uses NewLeaderElector + Run (not RunOrDie) so construction
+// errors are recoverable rather than process-fatal.
+func runAnalyticsLeaderElected(ctx context.Context, kubeClient kubernetes.Interface, namespace string) {
+	defer recoverAnalytics("leaderElected")
+
+	identity, err := analyticsLeaseIdentity()
+	if err != nil {
+		klog.Errorf("analytics: lease identity: %v", err)
+		return
+	}
+	leaseName := getAnalyticsLeaseName()
+
+	le, err := leaderelection.NewLeaderElector(leaderelection.LeaderElectionConfig{
+		Lock: &resourcelock.LeaseLock{
+			LeaseMeta:  metav1.ObjectMeta{Name: leaseName, Namespace: namespace},
+			Client:     kubeClient.CoordinationV1(),
+			LockConfig: resourcelock.ResourceLockConfig{Identity: identity},
+		},
+		ReleaseOnCancel: true,
+		LeaseDuration:   AnalyticsLeaseDuration,
+		RenewDeadline:   AnalyticsRenewDeadline,
+		RetryPeriod:     AnalyticsRetryPeriod,
+		Callbacks: leaderelection.LeaderCallbacks{
+			OnStartedLeading: func(leaderCtx context.Context) {
+				defer recoverAnalytics("OnStartedLeading")
+				klog.V(2).Infof("analytics: acquired lease %q as %q", leaseName, identity)
+				startAnalyticsEmitters(leaderCtx, kubeClient, namespace)
+				<-leaderCtx.Done()
+			},
+			OnStoppedLeading: func() {
+				klog.V(2).Infof("analytics: released lease %q (identity %q)", leaseName, identity)
+			},
+		},
+	})
+	if err != nil {
+		klog.Errorf("analytics: leader elector: %v", err)
+		return
+	}
+	le.Run(ctx)
+}
+
+// maybeEmitInstall sends the install event once per Helm release, gated by a
+// ConfigMap whose name is provided via OPENEBS_IO_ANALYTICS_STATE_CM. The chart
+// creates the CM empty on helm install and removes it on helm uninstall, so a
+// fresh install fires install again. When OPENEBS_IO_ANALYTICS_STATE_CM is
+// unset or names a CM that does not exist in the cluster (typical for non-Helm
+// deployments), install is emitted unconditionally — same behavior these
+// deployments had before CM gating existed.
+func maybeEmitInstall(ctx context.Context, kubeClient kubernetes.Interface, namespace string) error {
+	cmName := getAnalyticsStateCMName()
+	if cmName == "" {
+		// Non-Helm deployment that hasn't set the env var. Fall back to
+		// legacy emit-each-startup behavior rather than silently dropping
+		// install telemetry for these deployers.
+		emitInstall()
+		return nil
+	}
+
+	cm, err := kubeClient.CoreV1().ConfigMaps(namespace).Get(ctx, cmName, metav1.GetOptions{})
+	if apierrors.IsNotFound(err) {
+		// Env var set but the CM is absent from the cluster — chart
+		// updated without the analytics-state template, or someone
+		// deleted it. Same fallback as no-env-var: emit without state
+		// tracking.
+		klog.V(2).Infof("analytics: state ConfigMap %q not found; emitting install without state tracking", cmName)
+		emitInstall()
+		return nil
+	}
+	if err != nil {
+		return errors.Wrap(err, "get analytics state configmap")
+	}
+	if _, done := cm.Data[AnalyticsInstalledAtKey]; done {
+		return nil
+	}
+
+	// Send before marking: losing an install on Send failure is better than a
+	// permanent loss on Patch failure after a successful Send.
+	emitInstall()
+
+	patch, err := json.Marshal(map[string]any{
+		"data": map[string]string{AnalyticsInstalledAtKey: time.Now().UTC().Format(time.RFC3339)},
+	})
+	if err != nil {
+		return errors.Wrap(err, "marshal install-at patch")
+	}
+	if _, err := kubeClient.CoreV1().ConfigMaps(namespace).Patch(
+		ctx, cmName, types.MergePatchType, patch, metav1.PatchOptions{},
+	); err != nil {
+		return errors.Wrap(err, "patch analytics state configmap")
+	}
+	klog.V(2).Infof("analytics: install emitted; marked %q in %q", AnalyticsInstalledAtKey, cmName)
+	return nil
+}
+
+// emitInstall sends a single install event to GA. Fire-and-forget; failures
+// are logged inside the analytics library and do not propagate.
+func emitInstall() {
+	analytics.New().CommonBuild(DefaultCASType).InstallBuilder(true).Send()
+}
+
+// analyticsLeaseIdentity returns the leader-election identity for this pod.
+func analyticsLeaseIdentity() (string, error) {
+	if name := getPodName(); name != "" {
+		return name, nil
+	}
+	h, err := os.Hostname()
+	if err != nil {
+		return "", errors.Wrap(err, "hostname")
+	}
+	return fmt.Sprintf("%s_%s", h, uuid.NewUUID()), nil
 }

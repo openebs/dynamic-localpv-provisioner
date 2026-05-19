@@ -77,6 +77,28 @@ Create the name of the service account to use
 {{- end -}}
 
 {{/*
+Name of the ConfigMap used to record analytics install-event state for the
+current Helm release.
+
+Usage:
+  {{ include "localpv.analyticsStateCM.name" . }}
+*/}}
+{{- define "localpv.analyticsStateCM.name" -}}
+{{- printf "%s-analytics-state" (include "localpv.fullname" .) | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
+
+{{/*
+Name of the Lease used by the provisioner to elect a single analytics
+emitter in node-deployment mode.
+
+Usage:
+  {{ include "localpv.analyticsLease.name" . }}
+*/}}
+{{- define "localpv.analyticsLease.name" -}}
+{{- printf "%s-analytics" (include "localpv.fullname" .) | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
+
+{{/*
 Creates the tolerations based on the global tolerations, with early eviction
 Usage:
 {{ include "tolerations_with_early_eviction" . }}
