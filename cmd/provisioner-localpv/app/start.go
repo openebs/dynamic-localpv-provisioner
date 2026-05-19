@@ -244,16 +244,25 @@ func newAnalyticsEmitter(kubeClient kubernetes.Interface, namespace string) *ana
 // AnalyticsLastPingTSKey and AnalyticsLastHeartbeatTSKey) so a pod restart
 // — or a leadership transition in DaemonSet mode — picks up where the
 // previous emitter left off instead of immediately re-emitting.
+//
+// When persistence is expected (cmName != "") but the state ConfigMap
+// cannot be read or created, analytics is abandoned for this startup
+// rather than continuing without persistence — re-emitting install and
+// resetting cadence on every restart would be worse than going silent
+// until the API server recovers.
 func (a *analyticsEmitter) start(ctx context.Context) {
-	if err := a.maybeEmitInstall(ctx); err != nil {
-		klog.Warningf("analytics: install bookkeeping failed: %v", err)
+	cm, err := a.ensureStateCM(ctx)
+	if err != nil {
+		klog.Errorf("analytics: disabled for this startup: %v", err)
+		return
 	}
+	a.maybeEmitInstall(ctx, cm)
 	// Ping: legacy behavior was to wait one period before the first emit.
 	// Heartbeat: legacy behavior was to emit immediately and then every
 	// period. Persisted timestamps in the CM override these defaults when
 	// they are recent enough.
-	go a.runChannel(ctx, Ping, AnalyticsLastPingTSKey, false)
-	go a.runChannel(ctx, Heartbeat, AnalyticsLastHeartbeatTSKey, true)
+	go a.runChannel(ctx, cm, Ping, AnalyticsLastPingTSKey, false)
+	go a.runChannel(ctx, cm, Heartbeat, AnalyticsLastHeartbeatTSKey, true)
 }
 
 // runAnalyticsHelperPod runs the analytics path for helper-pod (Deployment) mode.
@@ -351,32 +360,25 @@ func (a *analyticsEmitter) ensureStateCM(ctx context.Context) (*corev1.ConfigMap
 }
 
 // maybeEmitInstall sends the install event once per analytics-state
-// ConfigMap, gated by the AnalyticsInstallTSKey data key. The provisioner
-// creates the ConfigMap itself on first run; reinstalls into a namespace
-// that still holds the previous ConfigMap will not re-fire install unless
-// the ConfigMap is deleted manually (matches rawfile-localpv).
+// ConfigMap, gated by the AnalyticsInstallTSKey data key. The CM is
+// resolved once by start() and passed in here so we never re-fetch (and
+// never silently continue without persistence on a transient API error).
+// A nil cm means cmName was unset (non-Helm deployment) — fall back to
+// the legacy emit-each-startup behavior in that case.
 //
-// When cmName is unset (typical for non-Helm deployments) install is
-// emitted unconditionally on every startup — same behavior these
-// deployments had before CM gating existed.
-func (a *analyticsEmitter) maybeEmitInstall(ctx context.Context) error {
-	if a.cmName == "" {
+// Reinstalls into a namespace that still holds the previous ConfigMap
+// will not re-fire install unless the ConfigMap is deleted manually
+// (matches rawfile-localpv).
+func (a *analyticsEmitter) maybeEmitInstall(ctx context.Context, cm *corev1.ConfigMap) {
+	if cm == nil {
 		// Non-Helm deployment that hasn't set the env var. Fall back to
 		// legacy emit-each-startup behavior rather than silently dropping
 		// install telemetry for these deployers.
 		emitInstall()
-		return nil
-	}
-
-	cm, err := a.ensureStateCM(ctx)
-	if err != nil {
-		// CM ops failed; emit unconditionally so a transient API error
-		// doesn't drop install telemetry, and let the caller log.
-		emitInstall()
-		return err
+		return
 	}
 	if _, done := cm.Data[AnalyticsInstallTSKey]; done {
-		return nil
+		return
 	}
 
 	// Send before marking: losing an install on Send failure is better than a
@@ -384,10 +386,10 @@ func (a *analyticsEmitter) maybeEmitInstall(ctx context.Context) error {
 	emitInstall()
 
 	if err := a.patchState(ctx, AnalyticsInstallTSKey, time.Now().UTC()); err != nil {
-		return errors.Wrap(err, "record install timestamp")
+		klog.Warningf("analytics: failed to record install timestamp; install may re-emit on restart: %v", err)
+		return
 	}
 	klog.V(2).Infof("analytics: install emitted; marked %q in %q", AnalyticsInstallTSKey, a.cmName)
-	return nil
 }
 
 // patchState writes a single RFC3339 timestamp into the state CM under
@@ -412,21 +414,22 @@ func (a *analyticsEmitter) patchState(ctx context.Context, dataKey string, ts ti
 // CM-persisted timestamp so cadence survives restarts and leadership
 // transitions.
 //
-// On entry it computes the wait until the next emit from the last persisted
-// timestamp and the configured period; if the previous emit is already older
-// than the period, the next emit fires immediately. When the CM is missing or
-// the data key is absent, the immediate parameter controls first-emit
-// behavior — true for heartbeat (preserves the immediate=true behavior the
-// library used) and false for ping (preserves immediate=false).
+// The initial wait is computed from the persisted timestamp passed in via
+// cm (resolved once by start()) and the configured period; if the
+// previous emit is already older than the period, the next emit fires
+// immediately. A nil cm means no persistence is configured — the
+// immediate parameter then controls first-emit behavior: true for
+// heartbeat, false for ping.
 //
-// Each successful send is followed by a best-effort patch to the CM; patch
-// failures are logged but do not stop the loop, so a transient API error
-// cannot silently halt analytics until the next restart.
-func (a *analyticsEmitter) runChannel(ctx context.Context, category, dataKey string, immediate bool) {
+// Each successful send is followed by a best-effort patch to the CM;
+// patch failures during the steady-state loop are logged but do not stop
+// the loop, so a transient API error cannot silently halt analytics
+// until the next restart.
+func (a *analyticsEmitter) runChannel(ctx context.Context, cm *corev1.ConfigMap, category, dataKey string, immediate bool) {
 	defer recoverAnalytics(category)
 
 	period := getAnalyticsPingPeriod()
-	timer := time.NewTimer(a.initialWait(ctx, dataKey, period, immediate))
+	timer := time.NewTimer(initialWait(cm, dataKey, period, immediate))
 	defer timer.Stop()
 
 	for {
@@ -446,22 +449,17 @@ func (a *analyticsEmitter) runChannel(ctx context.Context, category, dataKey str
 }
 
 // initialWait computes how long to wait before the first emit of a
-// channel. Reads the last-emit timestamp from the CM (if available) and
-// returns period minus elapsed, clamped to >= 0. Falls back to the legacy
-// immediate/period default when no timestamp is available.
-func (a *analyticsEmitter) initialWait(ctx context.Context, dataKey string, period time.Duration, immediate bool) time.Duration {
+// channel from the timestamp persisted under dataKey in cm. Returns
+// period minus elapsed, clamped to >= 0. Falls back to the legacy
+// immediate/period default when cm is nil or the key is absent:
+// immediate=true returns 0 (emit right away, used for heartbeat),
+// immediate=false returns one full period (used for ping).
+func initialWait(cm *corev1.ConfigMap, dataKey string, period time.Duration, immediate bool) time.Duration {
 	fallback := period
 	if immediate {
 		fallback = 0
 	}
-	if a.cmName == "" {
-		return fallback
-	}
-	cm, err := a.kubeClient.CoreV1().ConfigMaps(a.namespace).Get(ctx, a.cmName, metav1.GetOptions{})
-	if err != nil {
-		// Don't block startup on a transient API error: behave as if the
-		// CM were absent. ensureStateCM already logged the create path;
-		// here we just fall back.
+	if cm == nil {
 		return fallback
 	}
 	raw, ok := cm.Data[dataKey]
@@ -470,7 +468,7 @@ func (a *analyticsEmitter) initialWait(ctx context.Context, dataKey string, peri
 	}
 	last, err := time.Parse(time.RFC3339, raw)
 	if err != nil {
-		klog.Warningf("analytics: ignoring unparseable %q=%q in %q: %v", dataKey, raw, a.cmName, err)
+		klog.Warningf("analytics: ignoring unparseable %q=%q in %q: %v", dataKey, raw, cm.Name, err)
 		return fallback
 	}
 	remaining := period - time.Since(last)
