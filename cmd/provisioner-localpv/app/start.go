@@ -250,7 +250,12 @@ func newAnalyticsEmitter(kubeClient kubernetes.Interface, namespace string) *ana
 // rather than continuing without persistence — re-emitting install and
 // resetting cadence on every restart would be worse than going silent
 // until the API server recovers.
+//
+// A top-level recover ensures any panic in the analytics codepath is
+// logged but never reaches the provisioner.
 func (a *analyticsEmitter) start(ctx context.Context) {
+	defer recoverAnalytics("emitter")
+
 	cm, err := a.ensureStateCM(ctx)
 	if err != nil {
 		klog.Errorf("analytics: disabled for this startup: %v", err)
@@ -269,7 +274,6 @@ func (a *analyticsEmitter) start(ctx context.Context) {
 // Single pod, no leader election; install is still CM-gated so a pod restart
 // does not re-emit it.
 func runAnalyticsHelperPod(ctx context.Context, kubeClient kubernetes.Interface, namespace string) {
-	defer recoverAnalytics("helperPod")
 	newAnalyticsEmitter(kubeClient, namespace).start(ctx)
 }
 
@@ -284,11 +288,7 @@ func runAnalyticsHelperPod(ctx context.Context, kubeClient kubernetes.Interface,
 func runAnalyticsLeaderElected(ctx context.Context, kubeClient kubernetes.Interface, namespace string) {
 	defer recoverAnalytics("leaderElected")
 
-	identity, err := analyticsLeaseIdentity()
-	if err != nil {
-		klog.Errorf("analytics: lease identity: %v", err)
-		return
-	}
+	identity := analyticsLeaseIdentity()
 	leaseName := getAnalyticsLeaseName()
 	emitter := newAnalyticsEmitter(kubeClient, namespace)
 
@@ -304,7 +304,6 @@ func runAnalyticsLeaderElected(ctx context.Context, kubeClient kubernetes.Interf
 		RetryPeriod:     AnalyticsRetryPeriod,
 		Callbacks: leaderelection.LeaderCallbacks{
 			OnStartedLeading: func(leaderCtx context.Context) {
-				defer recoverAnalytics("OnStartedLeading")
 				klog.V(2).Infof("analytics: acquired lease %q as %q", leaseName, identity)
 				emitter.start(leaderCtx)
 				<-leaderCtx.Done()
@@ -493,13 +492,15 @@ func emitInstall() {
 }
 
 // analyticsLeaseIdentity returns the leader-election identity for this pod.
-func analyticsLeaseIdentity() (string, error) {
+// Prefers POD_NAME (downward API) for a stable identity across restarts;
+// otherwise falls back to hostname, and finally to a one-shot UUID so the
+// elector always has a unique non-empty identity.
+func analyticsLeaseIdentity() string {
 	if name := getPodName(); name != "" {
-		return name, nil
+		return name
 	}
-	h, err := os.Hostname()
-	if err != nil {
-		return "", errors.Wrap(err, "hostname")
+	if h, err := os.Hostname(); err == nil && h != "" {
+		return fmt.Sprintf("%s_%s", h, uuid.NewUUID())
 	}
-	return fmt.Sprintf("%s_%s", h, uuid.NewUUID()), nil
+	return string(uuid.NewUUID())
 }
