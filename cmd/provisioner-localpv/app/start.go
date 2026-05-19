@@ -193,31 +193,6 @@ func recoverAnalytics(where string) {
 	}
 }
 
-// Default ping cadence; mirrors the constants previously provided by
-// github.com/openebs/google-analytics-4/usage so removing that loop does not
-// change observed event frequency. OPENEBS_IO_ANALYTICS_PING_INTERVAL still
-// controls the interval at runtime.
-const (
-	analyticsPingPeriodEnv = "OPENEBS_IO_ANALYTICS_PING_INTERVAL"
-	defaultPingPeriod      = 24 * time.Hour
-	minimumPingPeriod      = 1 * time.Hour
-)
-
-// getAnalyticsPingPeriod returns the configured ping interval, falling back
-// to the default when unset or below the minimum. Matches the validation
-// previously done inside analytics.PingCheckCtx.
-func getAnalyticsPingPeriod() time.Duration {
-	raw := os.Getenv(analyticsPingPeriodEnv)
-	if raw == "" {
-		return defaultPingPeriod
-	}
-	d, err := time.ParseDuration(raw)
-	if err != nil || d < minimumPingPeriod {
-		return defaultPingPeriod
-	}
-	return d
-}
-
 // analyticsEmitter bundles the dependencies shared by every analytics
 // helper (kube client, target namespace and the persistence CM name) so
 // individual methods do not have to thread them through long parameter
@@ -427,7 +402,7 @@ func (a *analyticsEmitter) patchState(ctx context.Context, dataKey string, ts ti
 func (a *analyticsEmitter) runChannel(ctx context.Context, cm *corev1.ConfigMap, category, dataKey string, immediate bool) {
 	defer recoverAnalytics(category)
 
-	period := getAnalyticsPingPeriod()
+	period := analytics.GetPingPeriod()
 	timer := time.NewTimer(initialWait(cm, dataKey, period, immediate))
 	defer timer.Stop()
 
