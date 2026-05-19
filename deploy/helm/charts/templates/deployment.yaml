@@ -89,10 +89,12 @@ spec:
           value: "{{ .Values.analytics.enabled }}"
         {{- end }}
           # OPENEBS_IO_ANALYTICS_STATE_CM names the ConfigMap consulted to
-          # decide whether to emit the install event for this Helm release.
-          # Created by templates/analytics-state.yaml; deleted on helm
-          # uninstall so a fresh install fires install again. Without this,
-          # helper-pod mode would re-emit install on every pod restart.
+          # decide whether to emit the install event for this Helm release
+          # and to persist ping/heartbeat timestamps across pod restarts.
+          # The provisioner creates and updates this ConfigMap itself; it
+          # is not managed by Helm. helm uninstall does not remove it, so
+          # reinstalls into the same namespace will not re-fire the install
+          # event unless the ConfigMap is deleted manually.
         - name: OPENEBS_IO_ANALYTICS_STATE_CM
           value: {{ include "localpv.analyticsStateCM.name" . | quote }}
         {{- if .Values.analytics.gaId }}

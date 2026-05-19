@@ -50,12 +50,26 @@ rules:
 - apiGroups: ["coordination.k8s.io"]
   resources: ["leases"]
   verbs: ["get", "create", "update"]
-  # Narrow access to a single ConfigMap used to record install-event state
-  # for analytics.
+  # Analytics state ConfigMap.
+  #
+  # The provisioner creates and updates this ConfigMap itself (it is not
+  # Helm-managed) to persist analytics state: a one-shot install timestamp
+  # plus the last ping/heartbeat timestamps so that ping cadence survives
+  # pod restarts.
+  #
+  # `create` cannot be combined with `resourceNames` in Kubernetes RBAC, so
+  # we keep two rules: a narrow rule for in-place updates of the known
+  # ConfigMap, and a separate broader `create` rule scoped to the
+  # configmaps resource. Both rules are present unconditionally because the
+  # provisioner only touches the ConfigMap when analytics is enabled at
+  # runtime.
 - apiGroups: [""]
   resources: ["configmaps"]
   resourceNames: [{{ include "localpv.analyticsStateCM.name" . | quote }}]
-  verbs: ["get", "patch"]
+  verbs: ["get", "update", "patch"]
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["create"]
 - nonResourceURLs: ["/metrics"]
   verbs: ["get"]
 ---

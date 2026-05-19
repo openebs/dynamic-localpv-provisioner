@@ -1,0 +1,12 @@
+mode: atomic
+github.com/openebs/dynamic-localpv-provisioner/pkg/version/version.go:29.19,30.19 1 0
+github.com/openebs/dynamic-localpv-provisioner/pkg/version/version.go:30.19,32.3 1 0
+github.com/openebs/dynamic-localpv-provisioner/pkg/version/version.go:34.2,36.16 3 0
+github.com/openebs/dynamic-localpv-provisioner/pkg/version/version.go:36.16,39.3 2 0
+github.com/openebs/dynamic-localpv-provisioner/pkg/version/version.go:41.2,41.42 1 0
+github.com/openebs/dynamic-localpv-provisioner/pkg/version/version.go:47.28,48.21 1 0
+github.com/openebs/dynamic-localpv-provisioner/pkg/version/version.go:48.21,50.3 1 0
+github.com/openebs/dynamic-localpv-provisioner/pkg/version/version.go:52.2,54.16 3 0
+github.com/openebs/dynamic-localpv-provisioner/pkg/version/version.go:54.16,57.3 2 0
+github.com/openebs/dynamic-localpv-provisioner/pkg/version/version.go:59.2,59.42 1 0
+github.com/openebs/dynamic-localpv-provisioner/pkg/version/version.go:63.33,65.2 1 0

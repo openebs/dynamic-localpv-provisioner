@@ -1,0 +1,22 @@
+mode: atomic
+github.com/openebs/dynamic-localpv-provisioner/pkg/utils/alertlog.go:14.38,16.16 2 0
+github.com/openebs/dynamic-localpv-provisioner/pkg/utils/alertlog.go:16.16,18.3 1 0
+github.com/openebs/dynamic-localpv-provisioner/pkg/utils/alertlog.go:20.2,21.23 2 0
+github.com/openebs/dynamic-localpv-provisioner/pkg/utils/env.go:9.46,12.2 2 0
+github.com/openebs/dynamic-localpv-provisioner/pkg/utils/env.go:15.61,17.19 2 0
+github.com/openebs/dynamic-localpv-provisioner/pkg/utils/env.go:17.19,19.3 1 0
+github.com/openebs/dynamic-localpv-provisioner/pkg/utils/env.go:20.2,20.12 1 0
+github.com/openebs/dynamic-localpv-provisioner/pkg/utils/helpers.go:14.79,16.31 2 0
+github.com/openebs/dynamic-localpv-provisioner/pkg/utils/helpers.go:16.31,17.49 1 0
+github.com/openebs/dynamic-localpv-provisioner/pkg/utils/helpers.go:17.49,19.4 1 0
+github.com/openebs/dynamic-localpv-provisioner/pkg/utils/helpers.go:20.3,20.44 1 0
+github.com/openebs/dynamic-localpv-provisioner/pkg/utils/helpers.go:22.2,22.12 1 0
+github.com/openebs/dynamic-localpv-provisioner/pkg/utils/helpers.go:27.86,29.17 1 0
+github.com/openebs/dynamic-localpv-provisioner/pkg/utils/helpers.go:29.17,31.3 1 0
+github.com/openebs/dynamic-localpv-provisioner/pkg/utils/helpers.go:33.2,33.24 1 0
+github.com/openebs/dynamic-localpv-provisioner/pkg/utils/helpers.go:33.24,35.3 1 0
+github.com/openebs/dynamic-localpv-provisioner/pkg/utils/helpers.go:37.2,37.13 1 0
+github.com/openebs/dynamic-localpv-provisioner/pkg/utils/helpers.go:42.62,43.33 1 0
+github.com/openebs/dynamic-localpv-provisioner/pkg/utils/helpers.go:43.33,44.22 1 0
+github.com/openebs/dynamic-localpv-provisioner/pkg/utils/helpers.go:44.22,46.4 1 0
+github.com/openebs/dynamic-localpv-provisioner/pkg/utils/helpers.go:48.2,48.14 1 0

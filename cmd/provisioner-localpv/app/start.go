@@ -13,6 +13,7 @@ import (
 	analytics "github.com/openebs/google-analytics-4/usage"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -192,20 +193,50 @@ func recoverAnalytics(where string) {
 	}
 }
 
-// runPingLoop is a panic-safe wrapper around PingCheckCtx for use as a goroutine entry.
-func runPingLoop(ctx context.Context, category string, immediate bool) {
-	defer recoverAnalytics(category)
-	analytics.PingCheckCtx(ctx, DefaultCASType, category, immediate)
+// Default ping cadence; mirrors the constants previously provided by
+// github.com/openebs/google-analytics-4/usage so removing that loop does not
+// change observed event frequency. OPENEBS_IO_ANALYTICS_PING_INTERVAL still
+// controls the interval at runtime.
+const (
+	analyticsPingPeriodEnv = "OPENEBS_IO_ANALYTICS_PING_INTERVAL"
+	defaultPingPeriod      = 24 * time.Hour
+	minimumPingPeriod      = 1 * time.Hour
+)
+
+// getAnalyticsPingPeriod returns the configured ping interval, falling back
+// to the default when unset or below the minimum. Matches the validation
+// previously done inside analytics.PingCheckCtx.
+func getAnalyticsPingPeriod() time.Duration {
+	raw := os.Getenv(analyticsPingPeriodEnv)
+	if raw == "" {
+		return defaultPingPeriod
+	}
+	d, err := time.ParseDuration(raw)
+	if err != nil || d < minimumPingPeriod {
+		return defaultPingPeriod
+	}
+	return d
 }
 
 // startAnalyticsEmitters performs install bookkeeping and starts the ping
 // and heartbeat goroutines. Used by both helper-pod and leader-elected paths.
+//
+// Ping/heartbeat cadence is persisted in the state ConfigMap (data keys
+// AnalyticsLastPingTSKey and AnalyticsLastHeartbeatTSKey) so a pod restart
+// — or a leadership transition in DaemonSet mode — picks up where the
+// previous emitter left off instead of immediately re-emitting.
 func startAnalyticsEmitters(ctx context.Context, kubeClient kubernetes.Interface, namespace string) {
-	if err := maybeEmitInstall(ctx, kubeClient, namespace); err != nil {
+	cmName := getAnalyticsStateCMName()
+
+	if err := maybeEmitInstall(ctx, kubeClient, namespace, cmName); err != nil {
 		klog.Warningf("analytics: install bookkeeping failed: %v", err)
 	}
-	go runPingLoop(ctx, Ping, false)
-	go runPingLoop(ctx, Heartbeat, true)
+	// Ping: legacy behavior was to wait one period before the first emit.
+	// Heartbeat: legacy behavior was to emit immediately and then every
+	// period. Persisted timestamps in the CM override these defaults when
+	// they are recent enough.
+	go runAnalyticsChannel(ctx, kubeClient, namespace, cmName, Ping, AnalyticsLastPingTSKey, false)
+	go runAnalyticsChannel(ctx, kubeClient, namespace, cmName, Heartbeat, AnalyticsLastHeartbeatTSKey, true)
 }
 
 // runAnalyticsHelperPod runs the analytics path for helper-pod (Deployment) mode.
@@ -220,6 +251,10 @@ func runAnalyticsHelperPod(ctx context.Context, kubeClient kubernetes.Interface,
 // mode under a dedicated Lease so exactly one pod emits at a time. Blocks until
 // ctx is cancelled. Uses NewLeaderElector + Run (not RunOrDie) so construction
 // errors are recoverable rather than process-fatal.
+//
+// The Lease itself is no longer pre-created by the Helm chart; client-go's
+// LeaseLock creates it on first acquisition, matching the same app-managed
+// model used for the analytics state ConfigMap.
 func runAnalyticsLeaderElected(ctx context.Context, kubeClient kubernetes.Interface, namespace string) {
 	defer recoverAnalytics("leaderElected")
 
@@ -259,15 +294,53 @@ func runAnalyticsLeaderElected(ctx context.Context, kubeClient kubernetes.Interf
 	le.Run(ctx)
 }
 
-// maybeEmitInstall sends the install event once per Helm release, gated by a
-// ConfigMap whose name is provided via OPENEBS_IO_ANALYTICS_STATE_CM. The chart
-// creates the CM empty on helm install and removes it on helm uninstall, so a
-// fresh install fires install again. When OPENEBS_IO_ANALYTICS_STATE_CM is
-// unset or names a CM that does not exist in the cluster (typical for non-Helm
-// deployments), install is emitted unconditionally — same behavior these
+// ensureAnalyticsStateCM returns the existing analytics state ConfigMap,
+// creating an empty one if it is not present. Returns (nil, nil) when
+// cmName is empty (non-Helm deployments that did not set the env var) so
+// callers can fall back to no-persistence behavior.
+//
+// A 409 AlreadyExists on create is treated as a successful read race: a
+// concurrent emitter (or a previous run of this process) created the CM
+// between our Get and Create, and we just re-fetch it.
+func ensureAnalyticsStateCM(ctx context.Context, kubeClient kubernetes.Interface, namespace, cmName string) (*corev1.ConfigMap, error) {
+	if cmName == "" {
+		return nil, nil
+	}
+	cm, err := kubeClient.CoreV1().ConfigMaps(namespace).Get(ctx, cmName, metav1.GetOptions{})
+	if err == nil {
+		return cm, nil
+	}
+	if !apierrors.IsNotFound(err) {
+		return nil, errors.Wrap(err, "get analytics state configmap")
+	}
+	created, err := kubeClient.CoreV1().ConfigMaps(namespace).Create(ctx, &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{Name: cmName, Namespace: namespace},
+		Data:       map[string]string{},
+	}, metav1.CreateOptions{})
+	if err == nil {
+		klog.V(2).Infof("analytics: created state ConfigMap %q", cmName)
+		return created, nil
+	}
+	if apierrors.IsAlreadyExists(err) {
+		cm, getErr := kubeClient.CoreV1().ConfigMaps(namespace).Get(ctx, cmName, metav1.GetOptions{})
+		if getErr != nil {
+			return nil, errors.Wrap(getErr, "re-get analytics state configmap after AlreadyExists race")
+		}
+		return cm, nil
+	}
+	return nil, errors.Wrap(err, "create analytics state configmap")
+}
+
+// maybeEmitInstall sends the install event once per analytics-state
+// ConfigMap, gated by the AnalyticsInstallTSKey data key. The provisioner
+// creates the ConfigMap itself on first run; reinstalls into a namespace
+// that still holds the previous ConfigMap will not re-fire install unless
+// the ConfigMap is deleted manually (matches rawfile-localpv).
+//
+// When cmName is unset (typical for non-Helm deployments) install is
+// emitted unconditionally on every startup — same behavior these
 // deployments had before CM gating existed.
-func maybeEmitInstall(ctx context.Context, kubeClient kubernetes.Interface, namespace string) error {
-	cmName := getAnalyticsStateCMName()
+func maybeEmitInstall(ctx context.Context, kubeClient kubernetes.Interface, namespace, cmName string) error {
 	if cmName == "" {
 		// Non-Helm deployment that hasn't set the env var. Fall back to
 		// legacy emit-each-startup behavior rather than silently dropping
@@ -276,20 +349,14 @@ func maybeEmitInstall(ctx context.Context, kubeClient kubernetes.Interface, name
 		return nil
 	}
 
-	cm, err := kubeClient.CoreV1().ConfigMaps(namespace).Get(ctx, cmName, metav1.GetOptions{})
-	if apierrors.IsNotFound(err) {
-		// Env var set but the CM is absent from the cluster — chart
-		// updated without the analytics-state template, or someone
-		// deleted it. Same fallback as no-env-var: emit without state
-		// tracking.
-		klog.V(2).Infof("analytics: state ConfigMap %q not found; emitting install without state tracking", cmName)
-		emitInstall()
-		return nil
-	}
+	cm, err := ensureAnalyticsStateCM(ctx, kubeClient, namespace, cmName)
 	if err != nil {
-		return errors.Wrap(err, "get analytics state configmap")
+		// CM ops failed; emit unconditionally so a transient API error
+		// doesn't drop install telemetry, and let the caller log.
+		emitInstall()
+		return err
 	}
-	if _, done := cm.Data[AnalyticsInstalledAtKey]; done {
+	if _, done := cm.Data[AnalyticsInstallTSKey]; done {
 		return nil
 	}
 
@@ -297,19 +364,111 @@ func maybeEmitInstall(ctx context.Context, kubeClient kubernetes.Interface, name
 	// permanent loss on Patch failure after a successful Send.
 	emitInstall()
 
+	if err := patchAnalyticsState(ctx, kubeClient, namespace, cmName, AnalyticsInstallTSKey, time.Now().UTC()); err != nil {
+		return errors.Wrap(err, "record install timestamp")
+	}
+	klog.V(2).Infof("analytics: install emitted; marked %q in %q", AnalyticsInstallTSKey, cmName)
+	return nil
+}
+
+// patchAnalyticsState writes a single RFC3339 timestamp into the named CM
+// under dataKey using a strategic merge patch so it never clobbers unrelated
+// keys written by other goroutines. cmName must be non-empty.
+func patchAnalyticsState(ctx context.Context, kubeClient kubernetes.Interface, namespace, cmName, dataKey string, ts time.Time) error {
 	patch, err := json.Marshal(map[string]any{
-		"data": map[string]string{AnalyticsInstalledAtKey: time.Now().UTC().Format(time.RFC3339)},
+		"data": map[string]string{dataKey: ts.UTC().Format(time.RFC3339)},
 	})
 	if err != nil {
-		return errors.Wrap(err, "marshal install-at patch")
+		return errors.Wrap(err, "marshal analytics state patch")
 	}
 	if _, err := kubeClient.CoreV1().ConfigMaps(namespace).Patch(
 		ctx, cmName, types.MergePatchType, patch, metav1.PatchOptions{},
 	); err != nil {
 		return errors.Wrap(err, "patch analytics state configmap")
 	}
-	klog.V(2).Infof("analytics: install emitted; marked %q in %q", AnalyticsInstalledAtKey, cmName)
 	return nil
+}
+
+// runAnalyticsChannel drives one analytics event channel (ping or heartbeat)
+// off a CM-persisted timestamp so cadence survives restarts and leadership
+// transitions.
+//
+// On entry it computes the wait until the next emit from the last persisted
+// timestamp and the configured period; if the previous emit is already older
+// than the period, the next emit fires immediately. When the CM is missing or
+// the data key is absent, the immediate parameter controls first-emit
+// behavior — true for heartbeat (preserves the immediate=true behavior the
+// library used) and false for ping (preserves immediate=false).
+//
+// Each successful send is followed by a best-effort patch to the CM; patch
+// failures are logged but do not stop the loop, so a transient API error
+// cannot silently halt analytics until the next restart.
+func runAnalyticsChannel(ctx context.Context, kubeClient kubernetes.Interface, namespace, cmName, category, dataKey string, immediate bool) {
+	defer recoverAnalytics(category)
+
+	period := getAnalyticsPingPeriod()
+	wait := initialAnalyticsWait(ctx, kubeClient, namespace, cmName, dataKey, period, immediate)
+
+	timer := time.NewTimer(wait)
+	defer timer.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-timer.C:
+		}
+		emitPing(category)
+		if cmName != "" {
+			if err := patchAnalyticsState(ctx, kubeClient, namespace, cmName, dataKey, time.Now()); err != nil {
+				klog.Warningf("analytics: %s: persist %q: %v", category, dataKey, err)
+			}
+		}
+		timer.Reset(period)
+	}
+}
+
+// initialAnalyticsWait computes how long to wait before the first emit of a
+// channel. Reads the last-emit timestamp from the CM (if available) and
+// returns period minus elapsed, clamped to >= 0. Falls back to the legacy
+// immediate/period default when no timestamp is available.
+func initialAnalyticsWait(ctx context.Context, kubeClient kubernetes.Interface, namespace, cmName, dataKey string, period time.Duration, immediate bool) time.Duration {
+	fallback := period
+	if immediate {
+		fallback = 0
+	}
+	if cmName == "" {
+		return fallback
+	}
+	cm, err := kubeClient.CoreV1().ConfigMaps(namespace).Get(ctx, cmName, metav1.GetOptions{})
+	if err != nil {
+		// Don't block startup on a transient API error: behave as if the
+		// CM were absent. ensureAnalyticsStateCM already logged the
+		// create path; here we just fall back.
+		return fallback
+	}
+	raw, ok := cm.Data[dataKey]
+	if !ok || raw == "" {
+		return fallback
+	}
+	last, err := time.Parse(time.RFC3339, raw)
+	if err != nil {
+		klog.Warningf("analytics: ignoring unparseable %q=%q in %q: %v", dataKey, raw, cmName, err)
+		return fallback
+	}
+	remaining := period - time.Since(last)
+	if remaining < 0 {
+		return 0
+	}
+	return remaining
+}
+
+// emitPing sends a single ping/heartbeat event under the given category. It
+// mirrors the payload that analytics.PingCheckCtx used to build internally
+// (CommonBuild + InstallBuilder(true) + SetCategory), so the analytics
+// backend continues to see the same event shape.
+func emitPing(category string) {
+	analytics.New().CommonBuild(DefaultCASType).InstallBuilder(true).SetCategory(category).Send()
 }
 
 // emitInstall sends a single install event to GA. Fire-and-forget; failures
