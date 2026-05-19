@@ -1,0 +1,2 @@
+mode: atomic
+github.com/openebs/dynamic-localpv-provisioner/pkg/castemplate/cas_template_engine.go:12.79,15.2 2 0
