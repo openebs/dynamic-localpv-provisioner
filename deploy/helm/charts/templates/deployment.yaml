@@ -88,6 +88,15 @@ spec:
         - name: OPENEBS_IO_ENABLE_ANALYTICS
           value: "{{ .Values.analytics.enabled }}"
         {{- end }}
+          # OPENEBS_IO_ANALYTICS_STATE_CM names the ConfigMap consulted to
+          # decide whether to emit the install event for this Helm release
+          # and to persist ping/heartbeat timestamps across pod restarts.
+          # The provisioner creates and updates this ConfigMap itself; it
+          # is not managed by Helm. helm uninstall does not remove it, so
+          # reinstalls into the same namespace will not re-fire the install
+          # event unless the ConfigMap is deleted manually.
+        - name: OPENEBS_IO_ANALYTICS_STATE_CM
+          value: {{ include "localpv.analyticsStateCM.name" . | quote }}
         {{- if .Values.analytics.gaId }}
         - name: GA_ID
           value: {{ .Values.analytics.gaId | quote }}
@@ -98,12 +107,16 @@ spec:
         {{- end }}
         - name: OPENEBS_IO_BASE_PATH
           value: "{{ .Values.localpv.basePath }}"
+        - name: OPENEBS_IO_WORKER_THREADS
+          value: {{ .Values.localpv.controller.workers | quote }}
         - name: OPENEBS_IO_HELPER_IMAGE
           value: {{ include "localpv.common.image" (dict "imageRoot" .Values.helperPod.image "global" .Values.global "override" .Values.globalImageRegistryOverride) }}
         - name: OPENEBS_IO_HELPER_POD_HOST_NETWORK
           value: "{{ .Values.helperPod.hostNetwork }}"
         - name: OPENEBS_IO_INSTALLER_TYPE
-          value: "localpv-charts-helm"
+          value: "localpv-charts-helm-helperpod"
+        - name: OPENEBS_IO_HELPER_POD_TIMEOUT_SECS
+          value: {{ .Values.helperPod.timeoutSecs | quote }}
         # LEADER_ELECTION_ENABLED is used to enable/disable leader election. By default
         # leader election is enabled.
         - name: LEADER_ELECTION_ENABLED

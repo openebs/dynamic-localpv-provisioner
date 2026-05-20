@@ -1,3 +1,16 @@
+v4.5.0 / 2025-05-20
+===================
+* Add Node-Deployment Mode ([#306](https://github.com/openebs/dynamic-localpv-provisioner/pull/306),[@laik](https://github.com/laik))
+* Fix bug where quota metadata on hosts is not cleaned up after volume delete ([#306](https://github.com/openebs/dynamic-localpv-provisioner/pull/306),[@laik](https://github.com/laik))
+* Fix quota project name race for NodeDeployment mode ([#306](https://github.com/openebs/dynamic-localpv-provisioner/pull/306),[@laik](https://github.com/laik))
+* Update sigs.k8s.io/sig-storage-lib-external-provisioner to v13 ([#312](https://github.com/openebs/dynamic-localpv-provisioner/pull/312),[@niladrih](https://github.com/niladrih))
+* Add global helm values for managing config across all components ([#315](https://github.com/openebs/dynamic-localpv-provisioner/pull/315),[@krishnaGajabi](https://github.com/krishnaGajabi))
+* Honor logging lib klog stderrthreshold when logtostderr option is enabled ([#317](https://github.com/openebs/dynamic-localpv-provisioner/pull/317),[@pierluigilenoci](https://github.com/pierluigilenoci))
+* Make worker threads and helper pod timeout configurable via envs ([#321](https://github.com/openebs/dynamic-localpv-provisioner/pull/321),[@kotyara85](https://github.com/kotyara85))
+* Fix quota project name race bug for helperPod mode via flock ([#323](https://github.com/openebs/dynamic-localpv-provisioner/pull/323),[@niladrih](https://github.com/niladrih))
+* Update helperPod to 4.5.0 ([#324](https://github.com/openebs/dynamic-localpv-provisioner/pull/324),[@niladrih](https://github.com/niladrih))
+* Update alpine base image to 3.23.4 ([#330](https://github.com/openebs/dynamic-localpv-provisioner/pull/330),[@niladrih](https://github.com/niladrih))
+
 v4.4.0 / 2025-11-17
 ===================
 * Add support for empty PVC selector ([#286](https://github.com/openebs/dynamic-localpv-provisioner/pull/286),[@speedfl](https://github.com/speedfl))

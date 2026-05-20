@@ -72,6 +72,14 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: spec.nodeName
+        # POD_NAME is consumed by the analytics leader-election code in
+        # node-deployment mode so that each DaemonSet pod has a stable,
+        # unique lease identity. Required for correct singleton behavior
+        # of install/ping/heartbeat events.
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
         # OPENEBS_SERVICE_ACCOUNT provides the service account of this pod as
         # environment variable
         - name: OPENEBS_SERVICE_ACCOUNT
@@ -87,6 +95,20 @@ spec:
         - name: OPENEBS_IO_ENABLE_ANALYTICS
           value: "{{ .Values.analytics.enabled }}"
         {{- end }}
+          # OPENEBS_IO_ANALYTICS_STATE_CM names the ConfigMap consulted to
+          # decide whether to emit the install event for this Helm release
+          # and to persist ping/heartbeat timestamps across pod restarts.
+          # The provisioner creates and updates this ConfigMap itself; it
+          # is not managed by Helm.
+        - name: OPENEBS_IO_ANALYTICS_STATE_CM
+          value: {{ include "localpv.analyticsStateCM.name" . | quote }}
+          # OPENEBS_IO_ANALYTICS_LEASE names the Lease used to elect a single
+          # analytics emitter across all DaemonSet pods. Release-scoped so
+          # multiple releases in the same namespace do not collide. The
+          # provisioner creates the Lease on-demand via client-go's
+          # leader-election; it is not managed by Helm.
+        - name: OPENEBS_IO_ANALYTICS_LEASE
+          value: {{ include "localpv.analyticsLease.name" . | quote }}
         {{- if .Values.analytics.gaId }}
         - name: GA_ID
           value: {{ .Values.analytics.gaId | quote }}
@@ -97,13 +119,18 @@ spec:
         {{- end }}
         - name: OPENEBS_IO_BASE_PATH
           value: "{{ .Values.localpv.basePath }}"
+        - name: OPENEBS_IO_WORKER_THREADS
+          value: {{ .Values.localpv.controller.workers | quote }}
         - name: OPENEBS_IO_HELPER_IMAGE
           value: {{ include "localpv.common.image" (dict "imageRoot" .Values.helperPod.image "global" .Values.global "override" .Values.globalImageRegistryOverride) }}
         - name: OPENEBS_IO_HELPER_POD_HOST_NETWORK
           value: "{{ .Values.helperPod.hostNetwork }}"
         - name: OPENEBS_IO_INSTALLER_TYPE
-          value: "localpv-charts-helm"
-        # Disable leader election in node deployment mode
+          value: "localpv-charts-helm-nodedeploy"
+        - name: OPENEBS_IO_HELPER_POD_TIMEOUT_SECS
+          value: {{ .Values.helperPod.timeoutSecs | quote }}
+        # Disable leader election in node deployment mode.
+        # Not related to anonymous usage analytics leader election.
         - name: LEADER_ELECTION_ENABLED
           value: "false"
         # Enable node deployment mode

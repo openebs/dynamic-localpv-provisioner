@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	analytics "github.com/openebs/google-analytics-4/usage"
 	"github.com/pkg/errors"
@@ -30,6 +31,31 @@ const (
 
 	// GoogleAnalyticsKey This environment variable is set via env
 	GoogleAnalyticsKey string = "OPENEBS_IO_ENABLE_ANALYTICS"
+
+	// AnalyticsInstallTSKey is the data key (within the analytics-state
+	// ConfigMap whose name is given by the OPENEBS_IO_ANALYTICS_STATE_CM
+	// environment variable) holding the RFC3339 timestamp at which the
+	// install event was emitted. Its presence is the signal that install
+	// has already happened; absence (including a missing ConfigMap)
+	// triggers a one-shot install emit on next startup.
+	AnalyticsInstallTSKey string = "install-ts"
+
+	// AnalyticsLastPingTSKey is the data key holding the RFC3339 timestamp
+	// of the most recent `ping` event. Used to drive the ping cadence
+	// across pod restarts so a restart does not reset the interval.
+	AnalyticsLastPingTSKey string = "last-ping-ts"
+
+	// AnalyticsLastHeartbeatTSKey is the data key holding the RFC3339
+	// timestamp of the most recent `heartbeat` event. Used to drive the
+	// heartbeat cadence across pod restarts.
+	AnalyticsLastHeartbeatTSKey string = "last-heartbeat-ts"
+)
+
+// Leader-election tuning for the analytics Lease.
+var (
+	AnalyticsLeaseDuration = 6 * time.Hour
+	AnalyticsRenewDeadline = 4 * time.Hour
+	AnalyticsRetryPeriod   = 1 * time.Hour
 )
 
 // NewProvisioner will create a new Provisioner object and initialize
