@@ -50,12 +50,11 @@ rules:
 - apiGroups: ["coordination.k8s.io"]
   resources: ["leases"]
   verbs: ["get", "create", "update"]
-  # Narrow access to a single ConfigMap used to record install-event state
-  # for analytics.
+  # Analytics state ConfigMap: the provisioner creates and updates this
+  # ConfigMap itself to persist install/ping/heartbeat timestamps.
 - apiGroups: [""]
   resources: ["configmaps"]
-  resourceNames: [{{ include "localpv.analyticsStateCM.name" . | quote }}]
-  verbs: ["get", "patch"]
+  verbs: ["get", "create", "update", "patch"]
 - nonResourceURLs: ["/metrics"]
   verbs: ["get"]
 ---
