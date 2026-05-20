@@ -17,3 +17,4 @@ tests/tests.test
 /nixos.qcow2
 
 /nix/bins/sudo
+coverage/
