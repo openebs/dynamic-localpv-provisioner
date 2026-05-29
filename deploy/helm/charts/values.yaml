@@ -2,6 +2,15 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
+# NOTE: This option is required so that .global.imageRegistry works as an override
+#       for the local image registry values. By default, this option is set to false
+#       and that's to retain backwards compatibility with v4.4.0 where .global.imageRegistry
+#       was introduced as the default and the local options were overrides for the global default.
+#       The other .global options do not work this way, and they are all overrides for their
+#       respective options. If you're not upgrading from v4.4.0, you'll want to enable
+#       this option (set to 'true').
+globalImageRegistryOverride: false
+
 global:
   # Global override for container image registry (when `globalImageRegistryOverride` is set to true)
   imageRegistry: "docker.io"
@@ -13,9 +22,6 @@ global:
   analytics:
     # Global override for analytics
     enabled:
-
-# When set to true, the value of `global.imageRegistry` will override all image registry settings defined at local level
-globalImageRegistryOverride: false
 
 rbac:
   # rbac.create: `true` if rbac resources should be created
