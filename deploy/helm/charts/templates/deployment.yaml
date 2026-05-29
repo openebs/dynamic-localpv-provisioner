@@ -97,11 +97,17 @@ spec:
           # event unless the ConfigMap is deleted manually.
         - name: OPENEBS_IO_ANALYTICS_STATE_CM
           value: {{ include "localpv.analyticsStateCM.name" . | quote }}
-        {{- if .Values.analytics.gaId }}
+        {{- if .Values.global.analytics.gaId }}
+        - name: GA_ID
+          value: {{ .Values.global.analytics.gaId | quote }}
+        {{- else if .Values.analytics.gaId }}
         - name: GA_ID
           value: {{ .Values.analytics.gaId | quote }}
         {{- end }}
-        {{- if .Values.analytics.gaKey }}
+        {{- if .Values.global.analytics.gaKey }}
+        - name: GA_KEY
+          value: {{ .Values.global.analytics.gaKey | quote }}
+        {{- else if .Values.analytics.gaKey }}
         - name: GA_KEY
           value: {{ .Values.analytics.gaKey | quote }}
         {{- end }}
