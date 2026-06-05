@@ -35,6 +35,10 @@ const (
 	// init pod to use as authentication when pulling helper image, it is used in the scene where authentication is required
 	ProvisionerImagePullSecrets string = "OPENEBS_IO_IMAGE_PULL_SECRETS"
 
+	// ProvisionerImagePullPolicy is the environment variable that provides the
+	// helper pod container the imagePullPolicy to be used
+	ProvisionerImagePullPolicy string = "OPENEBS_IO_IMAGE_PULL_POLICY"
+
 	// OpenebsNamespace is the env where we read the kubernetes namespace of the Pod.
 	//
 	// This environment variable is set via kubernetes downward API
@@ -103,6 +107,9 @@ func getOpenEBSServiceAccountName() string {
 }
 func getOpenEBSImagePullSecrets() string {
 	return menv.Get(ProvisionerImagePullSecrets)
+}
+func getOpenEBSImagePullPolicy() string {
+	return menv.Get(ProvisionerImagePullPolicy)
 }
 
 // getNodeName returns the current node name from NODE_NAME environment variable

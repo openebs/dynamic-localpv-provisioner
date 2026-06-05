@@ -472,6 +472,17 @@ func GetTaints(n *corev1.Node) []corev1.Taint {
 	return n.Spec.Taints
 }
 
+func GetImagePullPolicy(s string) corev1.PullPolicy {
+	pullpolicy := corev1.PullPolicy(s)
+	switch pullpolicy {
+	case corev1.PullAlways, corev1.PullNever, corev1.PullIfNotPresent:
+		return pullpolicy
+
+	default:
+		return corev1.PullIfNotPresent
+	}
+}
+
 // GetImagePullSecrets  parse image pull secrets from env
 // transform  string to corev1.LocalObjectReference
 // multiple secrets are separated by commas
