@@ -42,8 +42,9 @@ var (
 // StartProvisioner will start a new dynamic Host Path PV provisioner
 func StartProvisioner() (*cobra.Command, error) {
 	var (
-		nodeDeployment bool
-		logFlushFreq   time.Duration
+		nodeDeployment                   bool
+		allowInsecurePvcBasePathOverride bool
+		logFlushFreq                     time.Duration
 	)
 
 	// Create a new command.
@@ -60,12 +61,17 @@ func StartProvisioner() (*cobra.Command, error) {
 			ctx = logger.InitLogging(ctx, logFlushFreq)
 			defer logger.FinishLogging()
 
-			logger.CheckErr(Start(ctx, nodeDeployment), logger.Fatal)
+			logger.CheckErr(Start(ctx, nodeDeployment, allowInsecurePvcBasePathOverride), logger.Fatal)
 		},
 	}
 
 	// Add node deployment flag
 	cmd.Flags().BoolVar(&nodeDeployment, "node-deployment", false, "Enables deploying the provisioner together with a CSI driver on nodes to manage node-local volumes")
+	// Allow PVC-level BasePath override (insecure, disabled by default)
+	cmd.Flags().BoolVar(&allowInsecurePvcBasePathOverride, "allow-insecure-pvc-basepath-override", false,
+		"When set, permits BasePath values in PVC cas.openebs.io/config annotations to override "+
+			"the StorageClass or default BasePath. This is insecure: a namespace tenant who can "+
+			"create PVCs can choose arbitrary host directories.")
 	// Log flush frequency flag
 	cmd.Flags().DurationVar(&logFlushFreq, "log-flush-frequency", logger.DefaultFlushInterval, "Delay between log flushes")
 
@@ -84,7 +90,7 @@ func StartProvisioner() (*cobra.Command, error) {
 }
 
 // Start will initialize and run the dynamic provisioner daemon
-func Start(ctx context.Context, nodeDeployment bool) error {
+func Start(ctx context.Context, nodeDeployment bool, allowInsecurePvcBasePathOverride bool) error {
 	log := klog.FromContext(ctx)
 	log.Info("Starting Provisioner...")
 
@@ -112,6 +118,13 @@ func Start(ctx context.Context, nodeDeployment bool) error {
 
 	// Set node deployment mode in provisioner
 	provisioner.nodeDeployment = nodeDeployment
+	provisioner.allowInsecurePvcBasePathOverride = allowInsecurePvcBasePathOverride
+
+	if allowInsecurePvcBasePathOverride {
+		log.Info("WARNING: --allow-insecure-pvc-basepath-override is enabled. " +
+			"PVC annotations can override the StorageClass BasePath. " +
+			"This is insecure and not recommended for production use.")
+	}
 
 	// In node deployment mode, set the current node name for filtering
 	if nodeDeployment {

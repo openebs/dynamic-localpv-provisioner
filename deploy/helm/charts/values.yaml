@@ -79,6 +79,13 @@ localpv:
     additionalVolumeMounts: []
     # Additional volumes for the provisioner pod
     additionalVolumes: []
+  # Enabling (setting to 'true') this option enables namespaced PVC tenants to be able
+  #  to set the BasePath cas-config value of their hostpath volume via PVC annotations.
+  #  It's reasonable to want to not allow the namespace tenant to decide this for
+  #  themselves, and to only allow setting BasePath via the StorageClass/default env
+  #  (at a cluster admin level). The default value 'false' does not allow namespace tenants
+  #  to set BasePath via PVC cas-config annotations.
+  allowInsecurePvcBasePathOverride: false
   resources:
   # We usually recommend not to specify default resources and to leave this as a conscious
   # choice for the user. This also increases chances charts run on environments with little

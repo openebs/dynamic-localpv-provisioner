@@ -137,6 +137,26 @@ const (
 	k8sNodeLabelKeyHostname = "kubernetes.io/hostname"
 )
 
+// filterPVCConfig removes security-sensitive keys from PVC-supplied CAS
+// config entries. Currently only BasePath is filtered.
+func filterPVCConfig(configs []Config, restrictedKeys []string) []Config {
+	filtered := make([]Config, 0, len(configs))
+	for _, c := range configs {
+		name := strings.TrimSpace(c.Name)
+		skip := false
+		for _, key := range restrictedKeys {
+			if name == key {
+				skip = true
+				break
+			}
+		}
+		if !skip {
+			filtered = append(filtered, c)
+		}
+	}
+	return filtered
+}
+
 // GetVolumeConfig creates a new VolumeConfig struct by
 // parsing and merging the configuration provided in the PVC/SC
 // annotation - cas.openebs.io/config with the
@@ -179,6 +199,11 @@ func (p *Provisioner) GetVolumeConfig(ctx context.Context, pvName string, pvc *c
 	if len(strings.TrimSpace(pvcCASConfigStr)) != 0 {
 		err = yaml.Unmarshal([]byte(pvcCASConfigStr), &pvcConfig)
 		if err == nil {
+			if !p.allowInsecurePvcBasePathOverride {
+				pvcConfig = filterPVCConfig(pvcConfig, []string{KeyPVBasePath})
+				log.V(4).Info("Filtered BasePath from PVC config",
+					"pvc", pvc.Name)
+			}
 			pvConfig = MergeConfigs(pvConfig, pvcConfig)
 		} else {
 			return nil, errors.Wrapf(err, "failed to get config: invalid config {%v}"+

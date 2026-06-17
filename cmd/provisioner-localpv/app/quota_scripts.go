@@ -40,6 +40,14 @@ func quotaPaths(cfg QuotaScriptConfig) (parent, volume string) {
 	return parent, volume
 }
 
+// shellQuote wraps value in POSIX single quotes, escaping any embedded
+// single quotes with the standard break-and-rejoin technique ('…'"'"'…').
+// The result is safe to interpolate into a shell script without risking
+// command injection.
+func shellQuote(value string) string {
+	return "'" + strings.ReplaceAll(value, "'", `'"'"'`) + "'"
+}
+
 // quotaLockPrologue returns a flock snippet on $PARENT_PATH/.openebs-quota.lock,
 // or "" when disabled. fd 9 is util-linux's conventional lock fd; the kernel
 // releases the lock when the shell exits.
@@ -78,13 +86,13 @@ func GenerateQuotaApplyScript(cfg QuotaScriptConfig) string {
 	extHard := strings.TrimSuffix(cfg.HardLimitGrace, "k")
 
 	header := fmt.Sprintf(`set -e
-PARENT_PATH="%s"
-VOLUME_PATH="%s"
-XFS_SOFT="%s"
-XFS_HARD="%s"
-EXT_SOFT="%s"
-EXT_HARD="%s"
-`, parent, volume, cfg.SoftLimitGrace, cfg.HardLimitGrace, extSoft, extHard)
+PARENT_PATH=%s
+VOLUME_PATH=%s
+XFS_SOFT=%s
+XFS_HARD=%s
+EXT_SOFT=%s
+EXT_HARD=%s
+`, shellQuote(parent), shellQuote(volume), shellQuote(cfg.SoftLimitGrace), shellQuote(cfg.HardLimitGrace), shellQuote(extSoft), shellQuote(extHard))
 
 	return header + quotaLockPrologue(cfg.UseHostLock) + applyScriptBody
 }
@@ -95,9 +103,9 @@ func GenerateQuotaCleanupScript(cfg QuotaScriptConfig) string {
 	parent, volume := quotaPaths(cfg)
 
 	header := fmt.Sprintf(`set -e
-PARENT_PATH="%s"
-VOLUME_PATH="%s"
-`, parent, volume)
+PARENT_PATH=%s
+VOLUME_PATH=%s
+`, shellQuote(parent), shellQuote(volume))
 
 	return header + quotaLockPrologue(cfg.UseHostLock) + cleanupScriptBody
 }

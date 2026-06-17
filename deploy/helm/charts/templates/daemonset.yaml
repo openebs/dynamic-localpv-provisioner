@@ -147,6 +147,9 @@ spec:
 {{- include "localpv.helper.pullSecrets" . | indent 8 }}
         args:
         - "--node-deployment=true"
+        {{- if .Values.localpv.allowInsecurePvcBasePathOverride }}
+        - "--allow-insecure-pvc-basepath-override"
+        {{- end }}
         # Process name used for matching is limited to the 15 characters
         # present in the pgrep output.
         # So fullname can't be used here with pgrep (>15 chars).A regular expression

@@ -130,6 +130,22 @@ spec:
         - name: LEADER_ELECTION_ENABLED
           value: "{{ .Values.localpv.enableLeaderElection }}"
 {{- include "localpv.helper.pullSecrets" . | indent 8 }}
+        {{/* Add args below */}}
+        {{/* All args are optional (so far, at least), so the 'args' PodTemplate key
+           *  is only included if there is at least one arg. And that's why we're doing
+           *  it this way.
+           */}}
+        {{- $args := list }}
+        {{- if .Values.localpv.allowInsecurePvcBasePathOverride }}
+          {{- $args = append $args "--allow-insecure-pvc-basepath-override" }}
+        {{- end }}
+
+        {{- if $args }}
+        args:
+        {{- range $args }}
+          - {{ . | quote }} {{/* Add new args to the above $args list */}}
+        {{- end }}
+        {{- end }}
         # Process name used for matching is limited to the 15 characters
         # present in the pgrep output.
         # So fullname can't be used here with pgrep (>15 chars).A regular expression

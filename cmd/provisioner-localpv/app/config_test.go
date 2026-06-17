@@ -201,3 +201,56 @@ func TestConfigGetImagePullPolicy(t *testing.T) {
 		})
 	}
 }
+
+func TestFilterPVCConfig(t *testing.T) {
+	tests := map[string]struct {
+		configs        []Config
+		restrictedKeys []string
+		expectedNames  []string
+	}{
+		"filters BasePath": {
+			configs: []Config{
+				{Name: "BasePath", Value: "/evil/path"},
+				{Name: "NodeAffinityLabels", List: []string{"kubernetes.io/hostname"}},
+				{Name: "StorageType", Value: "hostpath"},
+			},
+			restrictedKeys: []string{KeyPVBasePath},
+			expectedNames:  []string{"NodeAffinityLabels", "StorageType"},
+		},
+		"no restricted keys leaves all configs": {
+			configs: []Config{
+				{Name: "BasePath", Value: "/some/path"},
+				{Name: "StorageType", Value: "hostpath"},
+			},
+			restrictedKeys: []string{},
+			expectedNames:  []string{"BasePath", "StorageType"},
+		},
+		"empty config list": {
+			configs:        []Config{},
+			restrictedKeys: []string{KeyPVBasePath},
+			expectedNames:  []string{},
+		},
+		"filters with whitespace in name": {
+			configs: []Config{
+				{Name: " BasePath ", Value: "/evil/path"},
+				{Name: "StorageType", Value: "hostpath"},
+			},
+			restrictedKeys: []string{KeyPVBasePath},
+			expectedNames:  []string{"StorageType"},
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			got := filterPVCConfig(tc.configs, tc.restrictedKeys)
+			if len(got) != len(tc.expectedNames) {
+				t.Fatalf("filterPVCConfig returned %d configs, want %d", len(got), len(tc.expectedNames))
+			}
+			for i, c := range got {
+				if c.Name != tc.expectedNames[i] {
+					t.Errorf("config[%d].Name = %q, want %q", i, c.Name, tc.expectedNames[i])
+				}
+			}
+		})
+	}
+}

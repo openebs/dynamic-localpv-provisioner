@@ -23,6 +23,11 @@ type Provisioner struct {
 	helperImage    string
 	nodeDeployment bool
 	nodeName       string // Current node name (used in node-deployment mode)
+	// allowInsecurePvcBasePathOverride when true permits BasePath values
+	// supplied via PVC annotations, restoring the legacy behaviour. By
+	// default PVC-supplied BasePath is rejected to prevent namespace
+	// tenants from overriding the cluster-scoped StorageClass BasePath.
+	allowInsecurePvcBasePathOverride bool
 	// defaultConfig is the default configurations
 	// provided from ENV or Code
 	defaultConfig []mconfig.Config
