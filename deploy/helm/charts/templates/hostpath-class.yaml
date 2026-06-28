@@ -40,4 +40,8 @@ metadata:
 provisioner: openebs.io/local
 volumeBindingMode: WaitForFirstConsumer
 reclaimPolicy: {{ .Values.hostpathClass.reclaimPolicy }}
+{{- if .Values.hostpathClass.allowedTopologies }}
+allowedTopologies:
+{{ toYaml .Values.hostpathClass.allowedTopologies }}
+{{- end }}
 {{- end }}
