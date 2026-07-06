@@ -97,6 +97,9 @@ func TestConfig(t *testing.T) {
 			}
 			_, err := c.Config()
 			if mock.isErr && err == nil {
+				t.Fatalf("test '%s' failed: expected error actual no error", name)
+			}
+			if !mock.isErr && err != nil {
 				t.Fatalf("test '%s' failed: expected no error actual '%s'", name, err)
 			}
 		})
