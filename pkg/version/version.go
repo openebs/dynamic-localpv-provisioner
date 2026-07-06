@@ -20,7 +20,7 @@ var (
 )
 
 const (
-	versionFile string = "/src/github.com/openebs/zfs-localpv/VERSION"
+	versionFile string = "/src/github.com/openebs/dynamic-localpv-provisioner/VERSION"
 )
 
 // Get returns current version from global
@@ -61,5 +61,5 @@ func GetGitCommit() string {
 
 // GetVersionDetails return version info from git commit
 func GetVersionDetails() string {
-	return "zfs-" + strings.Join([]string{Get(), GetGitCommit()[0:7]}, "-")
+	return "hostpath-" + strings.Join([]string{Get(), GetGitCommit()[0:7]}, "-")
 }
