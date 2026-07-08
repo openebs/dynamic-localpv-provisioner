@@ -61,8 +61,31 @@ localpv:
   podLabels:
     name: openebs-localpv-provisioner
   healthCheck:
-    initialDelaySeconds: 30
-    periodSeconds: 60
+    # Container port the provisioner serves its HTTP health endpoints on:
+    #  /healthz (liveness) and /readyz (readiness).
+    port: 8081
+    liveness:
+      # Enable the liveness probe (httpGet /healthz).
+      enabled: true
+      # No. of failures the liveness probe will tolerate.
+      failureThreshold: 3
+      # No. of seconds of delay before checking the liveness status.
+      initialDelaySeconds: 1
+      # No. of seconds between liveness probe checks.
+      periodSeconds: 30
+      # No. of seconds of timeout tolerance.
+      timeoutSeconds: 5
+    readiness:
+      # Enable the readiness probe (httpGet /readyz).
+      enabled: true
+      # No. of failures the readiness probe will tolerate.
+      failureThreshold: 3
+      # No. of seconds of delay before checking the readiness status.
+      initialDelaySeconds: 1
+      # No. of seconds between readiness probe checks.
+      periodSeconds: 20
+      # No. of seconds of timeout tolerance.
+      timeoutSeconds: 5
   replicas: 1
   enableLeaderElection: true
   basePath: "/var/openebs/local"

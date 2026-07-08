@@ -80,6 +80,13 @@ const (
 	// the maximum number of seconds to wait for a helper pod (init, cleanup,
 	// quota) to complete before timing out. Default is 120.
 	ProvisionerHelperPodTimeout string = "OPENEBS_IO_HELPER_POD_TIMEOUT_SECS"
+
+	// ProvisionerHealthProbeBindAddress is the environment variable that sets
+	// the address the health-probe HTTP server binds to (serving /healthz for
+	// liveness and /readyz for readiness). Format is "host:port"; a leading
+	// colon (e.g. ":8081") binds all interfaces. When unset or empty, the
+	// server binds ":8081".
+	ProvisionerHealthProbeBindAddress string = "OPENEBS_IO_HEALTH_PROBE_BIND_ADDRESS"
 )
 
 var (
@@ -163,4 +170,11 @@ func getHelperPodTimeout() int {
 		return 120
 	}
 	return val
+}
+
+// getHealthProbeBindAddress returns the bind address for the health-probe
+// HTTP server, falling back to defaultHealthProbeBindAddress when the
+// environment variable is unset or empty.
+func getHealthProbeBindAddress() string {
+	return utils.GetStringEnvOrDefault(ProvisionerHealthProbeBindAddress, ":8081")
 }

@@ -18,12 +18,14 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/uuid"
+	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/leaderelection"
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
 	"k8s.io/klog/v2"
 	pvController "sigs.k8s.io/sig-storage-lib-external-provisioner/v13/controller"
 
+	"github.com/openebs/dynamic-localpv-provisioner/pkg/health"
 	mKube "github.com/openebs/dynamic-localpv-provisioner/pkg/kubernetes/client"
 	"github.com/openebs/dynamic-localpv-provisioner/pkg/logger"
 	"github.com/openebs/dynamic-localpv-provisioner/pkg/utils"
@@ -37,6 +39,19 @@ var (
 	// localpv provisioner
 	LeaderElectionKey = "LEADER_ELECTION_ENABLED"
 	usage             = cmdName
+)
+
+const (
+	// healthProbeHeartbeatInterval is the WRITE cadence. Every interval the
+	// heartbeat goroutine does exactly one thing: write the current time into
+	// an in-memory variable (an atomic int64).
+	healthProbeHeartbeatInterval = 10 * time.Second
+
+	// healthProbeStaleAfter is the READ-side tolerance. When the kubelet hits
+	// /healthz, the handler reads that same in-memory variable and compares
+	// its age to this value, reporting failure once the most recent write is
+	// older than this.
+	healthProbeStaleAfter = 25 * time.Second
 )
 
 // StartProvisioner will start a new dynamic Host Path PV provisioner
@@ -143,6 +158,37 @@ func Start(ctx context.Context, nodeDeployment bool, allowInsecurePvcBasePathOve
 	threadiness := getWorkerThreads()
 	log.Info("Provisioner concurrency configured", "workerThreads", threadiness)
 
+	// Build the PersistentVolumeClaim informer ourselves and inject it into
+	// the provision controller via ClaimsInformer. This does two things:
+	//   1. gives the readiness probe a real signal — the controller consumes
+	//      exactly this informer, so its HasSynced() reflects the controller's
+	//      own data path rather than a decorative parallel watch; and
+	//   2. keeps a single PVC watch — since we pass the informer in, the
+	//      controller no longer creates its own, so the watch count per pod is
+	//      unchanged.
+	//
+	// Per the library contract, passing ClaimsInformer marks the informer as
+	// external, so the controller will NOT start it — we own its lifecycle and
+	// start it via informerFactory.Start below (after NewProvisionController
+	// has registered its handlers and indexers on the informer). The resync
+	// period mirrors the controller's default so provisioning retry cadence is
+	// unchanged.
+	informerFactory := informers.NewSharedInformerFactory(kubeClient, pvController.DefaultResyncPeriod)
+	claimInformer := informerFactory.Core().V1().PersistentVolumeClaims().Informer()
+
+	// Health probe server. Liveness (/healthz) is a self-contained heartbeat.
+	// Readiness (/readyz) additionally waits for the PVC cache to sync.
+	healthProbeAddr := getHealthProbeBindAddress()
+	checker := health.New(healthProbeStaleAfter, claimInformer.HasSynced)
+	go checker.StartHeartbeat(ctx, healthProbeHeartbeatInterval)
+	go func() {
+		if err := checker.ListenAndServe(ctx, healthProbeAddr); err != nil {
+			log.Error(err, "Health probe server failed", "address", healthProbeAddr)
+		}
+	}()
+	log.Info("Health probe server started", "address", healthProbeAddr,
+		"livenessPath", health.LivenessPath, "readinessPath", health.ReadinessPath)
+
 	pc := pvController.NewProvisionController(
 		ctx,
 		kubeClient,
@@ -150,6 +196,7 @@ func Start(ctx context.Context, nodeDeployment bool, allowInsecurePvcBasePathOve
 		provisioner,
 		pvController.LeaderElection(leaderElection),
 		pvController.Threadiness(threadiness),
+		pvController.ClaimsInformer(claimInformer),
 	)
 
 	if utils.GoogleAnalyticsEnabled(GoogleAnalyticsKey) {
@@ -160,6 +207,10 @@ func Start(ctx context.Context, nodeDeployment bool, allowInsecurePvcBasePathOve
 			go runAnalyticsHelperPod(ctx, kubeClient, provisioner.namespace)
 		}
 	}
+
+	// Start the injected PVC informer. Because ClaimsInformer was passed, the
+	// provision controller will not start it itself.
+	informerFactory.Start(ctx.Done())
 
 	log.V(4).Info("Provisioner started")
 	//Run the provisioner till a shutdown signal is received.
