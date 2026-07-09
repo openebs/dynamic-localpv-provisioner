@@ -33,9 +33,10 @@ const (
 	//        Instead use "KeyBlockDeviceSelectors" key
 	KeyBDTag = "BlockDeviceTag"
 
-	//KeyBlockDeviceSelectors defines the value for the Block Device selectors
-	//during bdc to bd claim configured via the StorageClass annotations.
+	//KeyNodeAffinityLabel defines the label key that should be
+	//used in the nodeAffinitySpec, configured via the StorageClass annotations.
 	// NOTE: This key should not be used as it is deprecated.
+	//        Instead use "KeyNodeAffinityLabels" key
 	KeyNodeAffinityLabel = "NodeAffinityLabel"
 
 	//KeyNodeAffinityLabels defines the label keys that should be
