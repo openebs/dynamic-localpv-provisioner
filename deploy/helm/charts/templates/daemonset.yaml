@@ -1,5 +1,6 @@
 {{- if .Values.localpv.enabled }}
 {{- if .Values.localpv.nodeDeployment.enabled }}
+{{- $healthPort := default 8081 .Values.localpv.healthCheck.port }}
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
@@ -144,26 +145,40 @@ spec:
         # Enable node deployment mode
         - name: NODE_DEPLOYMENT
           value: "true"
+        # OPENEBS_IO_HEALTH_PROBE_BIND_ADDRESS is the address the health-probe
+        # HTTP server binds to. /healthz serves liveness, /readyz serves readiness.
+        - name: OPENEBS_IO_HEALTH_PROBE_BIND_ADDRESS
+          value: ":{{ $healthPort }}"
 {{- include "localpv.helper.pullSecrets" . | indent 8 }}
         args:
         - "--node-deployment=true"
         {{- if .Values.localpv.allowInsecurePvcBasePathOverride }}
         - "--allow-insecure-pvc-basepath-override"
         {{- end }}
-        # Process name used for matching is limited to the 15 characters
-        # present in the pgrep output.
-        # So fullname can't be used here with pgrep (>15 chars).A regular expression
-        # that matches the entire command name has to specified.
-        # Anchor `^` : matches any string that starts with `provisioner-loc`
-        # `.*`: matches any string that has `provisioner-loc` followed by zero or more char
+        ports:
+        - name: healthz
+          containerPort: {{ $healthPort }}
+          protocol: TCP
+        {{- if .Values.localpv.healthCheck.liveness.enabled }}
         livenessProbe:
-          exec:
-            command:
-            - sh
-            - -c
-            - test `pgrep -c "^provisioner-loc.*"` = 1
-          initialDelaySeconds: {{ .Values.localpv.healthCheck.initialDelaySeconds }}
-          periodSeconds: {{ .Values.localpv.healthCheck.periodSeconds }}
+          httpGet:
+            path: /healthz
+            port: healthz
+          initialDelaySeconds: {{ .Values.localpv.healthCheck.liveness.initialDelaySeconds }}
+          periodSeconds: {{ .Values.localpv.healthCheck.liveness.periodSeconds }}
+          timeoutSeconds: {{ .Values.localpv.healthCheck.liveness.timeoutSeconds }}
+          failureThreshold: {{ .Values.localpv.healthCheck.liveness.failureThreshold }}
+        {{- end }}
+        {{- if .Values.localpv.healthCheck.readiness.enabled }}
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: healthz
+          initialDelaySeconds: {{ .Values.localpv.healthCheck.readiness.initialDelaySeconds }}
+          periodSeconds: {{ .Values.localpv.healthCheck.readiness.periodSeconds }}
+          timeoutSeconds: {{ .Values.localpv.healthCheck.readiness.timeoutSeconds }}
+          failureThreshold: {{ .Values.localpv.healthCheck.readiness.failureThreshold }}
+        {{- end }}
         volumeMounts:
         - name: host-root
           mountPath: /host
