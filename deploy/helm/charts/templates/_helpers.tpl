@@ -114,21 +114,40 @@ Usage:
 
 {{/*
 Creates the image URL ie registry/repository:tag
+
+Registry resolution is tolerant of upgrades from chart versions that predate
+.global.imageRegistry (for example v4.1.4, which had no `global` block and left
+`registry` unset). Each registry source is normalised to a trimmed string
+(an unset/null value becomes "") before precedence is applied, so a stripped
+registry - e.g. under `helm upgrade --reuse-values` - no longer fails with
+"invalid value; expected string".
+
+  - override (globalImageRegistryOverride=true): .global.imageRegistry takes
+    precedence over the image-local registry, falling back to the local one
+    when the global registry is unset.
+  - default  (globalImageRegistryOverride=false): the image-local registry
+    takes precedence, falling back to .global.imageRegistry when the local
+    one is unset (retains v4.4.0 behaviour where the global was the default).
+
+If neither registry resolves (both unset), the image defaults to the docker.io
+registry - matching the chart's default .global.imageRegistry - so upgrades that
+dropped the value still render a fully-qualified reference rather than an
+unprefixed one.
 */}}
 {{- define "localpv.common.image" -}}
-{{ $registryName := "" }}
-{{- if .override -}}
-{{- $registryName = default .imageRoot.registry .global.imageRegistry | trimSuffix "/" -}}
-{{- else -}}
-{{- $registryName = default .global.imageRegistry .imageRoot.registry | trimSuffix "/" -}}
-{{- end -}}
-{{- $repositoryName := .imageRoot.repository -}}
-{{- $termination := .imageRoot.tag | toString -}}
-{{- if $registryName }}
-    {{- printf "%s/%s:%s" $registryName $repositoryName $termination -}}
-{{- else -}}
-    {{- printf "%s:%s"  $repositoryName $termination -}}
-{{- end -}}
+  {{- $global := .global | default dict -}}
+  {{- $localRegistry := .imageRoot.registry | default "" | toString | trimSuffix "/" -}}
+  {{- $globalRegistry := $global.imageRegistry | default "" | toString | trimSuffix "/" -}}
+  {{- $registryName := "" -}}
+  {{- if .override -}}
+    {{- $registryName = $globalRegistry | default $localRegistry -}}
+  {{- else -}}
+    {{- $registryName = $localRegistry | default $globalRegistry -}}
+  {{- end -}}
+  {{- $registryName = $registryName | default "docker.io" -}}
+  {{- $repositoryName := .imageRoot.repository -}}
+  {{- $termination := .imageRoot.tag | toString -}}
+  {{- printf "%s/%s:%s" $registryName $repositoryName $termination -}}
 {{- end -}}
 
 {{/*
