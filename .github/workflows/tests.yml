@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Nix
         uses: ./.github/actions/setup-nix
@@ -32,7 +32,7 @@ jobs:
       # Also the bdd coverage is incorrect, it's not collecting the data from the pods...
       # P. S.: Above comes directly out of openebs/zfs-localpv. I lack context here, won't worry
       # about this for now.
-      - uses: codecov/codecov-action@v5
+      - uses: codecov/codecov-action@v7
         if: inputs.coverage
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -49,7 +49,7 @@ jobs:
       matrix:
         kubernetes: [v1.34.3]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: ./.github/actions/setup-go
 
@@ -69,7 +69,7 @@ jobs:
           make helm-install
           make integration-test
 
-      - uses: codecov/codecov-action@v5
+      - uses: codecov/codecov-action@v7
         if: inputs.coverage
         with:
           token: ${{ secrets.CODECOV_TOKEN }}

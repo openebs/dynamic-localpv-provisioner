@@ -28,7 +28,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - uses: ./.github/actions/setup-nix
         with:
@@ -56,7 +56,7 @@ jobs:
 
       - name: Docker meta
         id: docker_meta
-        uses: docker/metadata-action@v4
+        uses: docker/metadata-action@v6
         with:
           images: |
             ghcr.io/${{ env.IMAGE_ORG }}/dev/provisioner-localpv
@@ -70,13 +70,13 @@ jobs:
           echo "RELEASE_TAG: ${{ steps.docker_meta.outputs.tags }}"
 
       - name: Setup QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4
         with:
           platforms: all
 
       - name: Setup Docker Buildx
         id: buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
         with:
           version: v0.13.1
 
@@ -85,7 +85,7 @@ jobs:
           ghcr-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and Push Image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: ./buildscripts/provisioner-localpv/provisioner-localpv.Dockerfile
@@ -103,7 +103,7 @@ jobs:
     runs-on: ubuntu-22.04
     needs: ['tests', 'provisioner-localpv']
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: ./.github/actions/setup-nix
         with:
@@ -128,7 +128,7 @@ jobs:
             echo "VERSION=${TAG#v}" >> $GITHUB_ENV
 
       - name: Push chart to staging repo
-        uses: appany/helm-oci-chart-releaser@v0.4.2
+        uses: appany/helm-oci-chart-releaser@v0.5.0
         with:
             name: localpv-provisioner
             repository: ${{ env.IMAGE_ORG }}/helm
