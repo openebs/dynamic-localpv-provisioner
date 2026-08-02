@@ -12,6 +12,9 @@ on:
 jobs:
   unit-tests:
     runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -35,7 +38,7 @@ jobs:
       - uses: codecov/codecov-action@v7
         if: inputs.coverage
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
+          use_oidc: true
           directory: coverage
           flags: unittests
           fail_ci_if_error: true
@@ -44,6 +47,9 @@ jobs:
   integration-test:
     runs-on: ubuntu-22.04
     needs: ["unit-tests"]
+    permissions:
+      contents: read
+      id-token: write
     strategy:
       fail-fast: true
       matrix:
@@ -72,7 +78,7 @@ jobs:
       - uses: codecov/codecov-action@v7
         if: inputs.coverage
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
+          use_oidc: true
           disable_search: true
           files: ./tests/integration_coverage.txt
           flags: integrationtests
