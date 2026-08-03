@@ -21,6 +21,9 @@ jobs:
 
   tests:
     needs: ["lint"]
+    permissions:
+      contents: read
+      id-token: write
     uses: ./.github/workflows/tests.yml
     secrets: inherit
 
@@ -29,7 +32,7 @@ jobs:
     needs: ['lint']
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set Image Org
         # sets the default IMAGE_ORG to openebs
@@ -51,7 +54,7 @@ jobs:
 
       - name: Docker meta
         id: docker_meta
-        uses: docker/metadata-action@v4
+        uses: docker/metadata-action@v6
         with:
           # add each registry to which the image needs to be pushed here
           images: |
@@ -68,13 +71,13 @@ jobs:
           echo "${{ steps.docker_meta.outputs.tags }}"
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4
         with:
           platforms: all
 
       - name: Set up Docker Buildx
         id: buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
         with:
           version: v0.13.1
 
@@ -87,7 +90,7 @@ jobs:
           ghcr-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and Push multi-arch Image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: ./buildscripts/provisioner-localpv/provisioner-localpv.Dockerfile
@@ -106,7 +109,7 @@ jobs:
     runs-on: ubuntu-22.04
     needs: ['tests', 'provisioner-localpv']
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Publish provisioner-localpv develop or prerelease helm chart
         uses: stefanprodan/helm-gh-pages@master
         with:

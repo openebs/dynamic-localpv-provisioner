@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Nix
         uses: ./.github/actions/setup-nix
@@ -88,7 +88,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           charts_dir: ./deploy/helm
 
-      - uses: appany/helm-oci-chart-releaser@v0.4.2
+      - uses: appany/helm-oci-chart-releaser@v0.5.0
         with:
           name: localpv-provisioner
           repository: ${{ github.repository_owner }}/charts
