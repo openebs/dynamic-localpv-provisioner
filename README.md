@@ -66,7 +66,7 @@ graph TD
 
 ```
 
-Please check [here](./design/hostpath_localpv_provisioner.md) for complete design and architecture.
+Please check [here](./design/hostpath_localpv_provisioner.md) for the complete design and architecture.
 
 ## Kubernetes Compatibility Matrix
 
