@@ -28,7 +28,7 @@ jobs:
 
   provisioner-localpv:
     needs: ['lint']
-    runs-on: ubuntu-22.04
+    runs-on: cncf-ubuntu-16-64-x86
     steps:
       - name: Checkout
         uses: actions/checkout@v7

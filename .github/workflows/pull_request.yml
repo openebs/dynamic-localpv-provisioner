@@ -30,7 +30,7 @@ jobs:
     secrets: inherit
 
   provisioner-localpv:
-    runs-on: ubuntu-22.04
+    runs-on: cncf-ubuntu-16-64-x86
     needs: ['lint']
     steps:
       - name: Setup QEMU
