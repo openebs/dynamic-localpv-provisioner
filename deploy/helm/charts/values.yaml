@@ -178,7 +178,7 @@ hostpathClass:
   # Prerequisite: EXT4 Quota requires an EXT4 filesystem mounted with
   # the 'prjquota' mount option.
   ext4Quota:
-    # If true, enables XFS project quota
+    # If true, enables EXT4 project quota
     enabled: false
     # Detailed configuration options for EXT4 project quota.
     # If EXT4 Quota is enabled with the default values, the usage limit
