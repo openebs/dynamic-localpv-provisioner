@@ -4,15 +4,11 @@ queue_rules:
     branch_protection_injection_mode: merge
     update_bot_account: openebs-ci
     merge_conditions:
-      - check-success = lint
-      - check-success = tests
-      - check-success = provisioner-localpv
+      - check-success = ci
       - -label ~= do-not-merge
       - -draft
     queue_conditions:
-      - check-success = lint
-      - check-success = tests
-      - check-success = provisioner-localpv
+      - check-success = ci
       - -label ~= do-not-merge
       - -draft
 merge_queue:
