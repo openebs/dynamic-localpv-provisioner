@@ -148,6 +148,13 @@ helm-install:
 integration-test:
 	./ci/ci-test.sh run -t
 
+# The upgrade tests install the last released chart themselves, and upgrade it
+# to the chart in the working tree. They expect no localpv-provisioner helm
+# release to be installed beforehand.
+.PHONY: upgrade-test
+upgrade-test:
+	./ci/ci-test.sh upgrade
+
 .PHONY: format
 format:
 	@echo "--> Running go fmt"

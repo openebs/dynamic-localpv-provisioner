@@ -12,6 +12,7 @@ Usage: $(basename "${0}") [COMMAND] [OPTIONS]
 
 Commands:
   run                          Run the tests.
+  upgrade                      Run the upgrade tests. These install the last released chart themselves.
   load                         Build and load the image into the K8s cluster.
   install                      Install helm chart and wait for it to be ready.
   clean                        Clean the leftovers.
@@ -19,14 +20,20 @@ Commands:
 Options:
   -h, --help                   Display this text.
 
-Options for run:
+Options for run and upgrade:
   -r, --reset                  Clean before running the tests.
   -x, --no-cleanup             Don't cleanup after running the tests.
   -b, --build-always           Build and load the images before running the tests. [ By default image is built if not present only ]
   -t, --test-only              Don't install, test only.
 
+Environment Variables for upgrade:
+  UPGRADE_FROM_VERSION         The released chart version to upgrade from. [ By default the newest release below the
+                               working tree's chart version, which is the last minor release on develop, and the last
+                               patch release of x.y on release/x.y ]
+
 Examples:
   $(basename "${0}") run -rxb
+  UPGRADE_FROM_VERSION=4.4.0 $(basename "${0}") upgrade
 EOF
 }
 
@@ -68,7 +75,11 @@ cleanup() {
 
 dump_provisioner_logs() {
   NR=$1
-  POD=$(kubectl get pods -l app=localpv-provisioner -o jsonpath='{.items[0].metadata.name}' -n "$OPENEBS_NAMESPACE")
+  POD=$(kubectl get pods -l app=localpv-provisioner -o jsonpath='{.items[0].metadata.name}' -n "$OPENEBS_NAMESPACE" 2>/dev/null)
+  if [ -z "$POD" ]; then
+    echo "No localpv-provisioner Pod in namespace $OPENEBS_NAMESPACE to collect logs from"
+    return 0
+  fi
   kubectl describe po "$POD" -n "$OPENEBS_NAMESPACE"
   printf "\n\n"
   kubectl logs --tail="${NR}" "$POD" -n "$OPENEBS_NAMESPACE" -c localpv-provisioner
@@ -158,6 +169,57 @@ run() {
   [ "$CLEAN_AFTER" = "true" ] && cleanup
 }
 
+run_upgrade_test_suit() {
+  cd "$TEST_DIR"/upgrade
+
+  echo "running ginkgo upgrade test case"
+
+  # The upgrade suite installs and uninstalls the release itself, so --no-cleanup
+  # has to reach it as well, or it tears down the very resources which were asked
+  # to be kept.
+  if [ "$CLEAN_AFTER" = "false" ]; then
+    export UPGRADE_SKIP_CLEANUP="true"
+  fi
+
+  # The suite refuses to run when the release name is already taken, rather than
+  # remove a release it does not own. --reset is the opt-in to removing it.
+  if [ "$CLEAN_BEFORE" = "true" ]; then
+    export UPGRADE_UNINSTALL_EXISTING="true"
+  fi
+
+  if ! sudo -E env "PATH=${PATH}" ginkgo -v; then
+    # The suite uninstalls the release on its way out, so there may well be
+    # nothing left to collect logs from. Dump whatever is still there.
+    dump_logs || true
+    if [ "$CLEAN_AFTER" = "true" ]; then
+      cleanup
+    fi
+    exit 1
+  fi
+}
+
+upgrade() {
+  if [ "$CLEAN_BEFORE" = "true" ]; then
+    cleanup
+  fi
+
+  # The upgrade tests install the released chart themselves, so there is nothing
+  # to install here. The image of the chart under test does have to be in the
+  # cluster's runtime by the time the upgrade is issued.
+  if [ "$TEST_ONLY" = "false" ]; then
+    maybe_load_image
+  fi
+
+  run_upgrade_test_suit
+
+  printf "\n\n"
+  echo "######### All upgrade test cases passed #########"
+
+  if [ "$CLEAN_AFTER" = "true" ]; then
+    cleanup
+  fi
+}
+
 load_k3s() {
   if [ "${CI_K3S:-}" = "true" ]; then
     local img="${1:-}"
@@ -222,7 +284,7 @@ TEST_ONLY="false"
 while test $# -gt 0; do
   arg="$1"
   case "$arg" in
-    run | clean | load | install)
+    run | upgrade | clean | load | install)
       [ -n "$COMMAND" ] && needs_help "Can't specify two commands"
       COMMAND="$1"
       ;;
@@ -283,6 +345,9 @@ case "$COMMAND" in
     ;;
   run)
     run
+    ;;
+  upgrade)
+    upgrade
     ;;
   *)
     needs_help "Missing Command"
