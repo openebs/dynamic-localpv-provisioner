@@ -28,7 +28,7 @@ jobs:
     secrets: inherit
 
   provisioner-localpv:
-    runs-on: ubuntu-22.04
+    runs-on: cncf-ubuntu-16-64-x86
     needs: ['lint']
     steps:
       - name: Checkout
@@ -96,6 +96,8 @@ jobs:
           file: ./buildscripts/provisioner-localpv/provisioner-localpv.Dockerfile
           push: true
           load: false
+          sbom: true
+          provenance: mode=max
           platforms: linux/amd64, linux/arm64, linux/arm/v7, linux/ppc64le
           tags: |
             ${{ steps.docker_meta.outputs.tags }}

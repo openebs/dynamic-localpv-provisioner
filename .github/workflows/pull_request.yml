@@ -3,26 +3,40 @@ name: Pull Request
 on:
   pull_request:
     branches:
-      # on pull requests to develop and release branches
       - 'develop'
       - 'release/**'
-    paths-ignore:
-      - '**.md'
-      - 'changelogs/**'
-      - 'docs/**'
-      - 'design/**'
-      - 'LICENSE'
-      - 'MAINTAINERS'
 
 jobs:
+  non-docs:
+    runs-on: ubuntu-latest
+    outputs:
+      relevant: ${{ steps.filter.outputs.relevant }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Detect relevant changes
+        id: filter
+        uses: dorny/paths-filter@v4
+        with:
+          filters: |
+            relevant:
+              - '**'
+              - '!*.md'
+              - '!changelogs/**'
+              - '!docs/**'
+              - '!design/**'
+              - '!LICENSE'
+              - '!MAINTAINERS'
   lint:
     uses: ./.github/workflows/lint.yml
+    needs: ['non-docs']
+    if: needs.non-docs.outputs.relevant == 'true'
     with:
       validate-codegen: true
       branch-name: ${{ github.event.pull_request.base.ref }}
 
   tests:
-    needs: ["lint"]
+    needs: ['non-docs', 'lint']
+    if: needs.non-docs.outputs.relevant == 'true'
     permissions:
       contents: read
       id-token: write
@@ -30,8 +44,9 @@ jobs:
     secrets: inherit
 
   provisioner-localpv:
-    runs-on: ubuntu-22.04
-    needs: ['lint']
+    runs-on: cncf-ubuntu-16-64-x86
+    needs: ['non-docs', 'lint']
+    if: needs.non-docs.outputs.relevant == 'true'
     steps:
       - name: Setup QEMU
         uses: docker/setup-qemu-action@v4
@@ -54,4 +69,17 @@ jobs:
           file: ./buildscripts/provisioner-localpv/provisioner-localpv.Dockerfile
           push: false
           load: false
+          sbom: true
+          provenance: mode=max
           platforms: linux/amd64, linux/arm64, linux/arm/v7, linux/ppc64le
+  ci:
+    if: ${{ success() || needs.non-docs.outputs.relevant == 'false' }}
+    needs:
+      - non-docs
+      - lint
+      - tests
+      - provisioner-localpv
+    runs-on: ubuntu-latest
+    steps:
+      - name: CI succeeded
+        run: exit 0

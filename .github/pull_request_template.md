@@ -19,7 +19,7 @@ _Mention if this PR is part of any design or a continuation of previous PRs_
 - [ ] Commit has unit tests
 - [ ] Commit has integration tests
 - [ ] (Optional) Are upgrade changes included in this PR? If not, mention the issue/PR to track: 
-- [ ] (Optional) If documentation changes are required, which issue on https://github.com/openebs/openebs-docs is used to track them: 
+- [ ] (Optional) If documentation changes are required, which issue on https://github.com/openebs/website is used to track them: 
 
 
 **PLEASE REMOVE BELOW INFORMATION BEFORE SUBMITTING**
@@ -35,6 +35,7 @@ Where:
     * `docs`        - changes related to documentation
     * `style`       - formatting, missing semi colons, linting fix etc; no significant production code changes
     * `test`        - adding missing tests, refactoring tests; no production code change
+    * `ci`          - anything related to github actions CI runs
     * `refactor`    - refactoring production code, eg. renaming a variable or function name, there should not be any significant production code changes
     * `cherry-pick` - if PR is merged in master branch and raised to release branch(like v0.4.x)
     
