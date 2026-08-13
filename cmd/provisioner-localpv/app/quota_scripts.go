@@ -142,7 +142,7 @@ if [[ "$FS" == "xfs" ]]; then
     ID=$(xfs_io -c stat "$VOLUME_PATH" 2>/dev/null | awk '/projid/{print $3}' | head -1)
     echo "projid=$ID"
     if [ -n "$ID" ] && [ "$ID" != "0" ]; then
-        find -P "$VOLUME_PATH" \! -type p -print0 | tac | xargs -0 -n 64 xfs_io -c 'chproj 0' 2>/dev/null || true
+        xfs_io -c "chproj -D 0" "$VOLUME_PATH" 2>/dev/null || true
         xfs_quota -x -c "limit -p bsoft=0 bhard=0 $ID" "$PARENT_PATH" 2>/dev/null || true
     fi
 elif [[ "$FS" == "ext2/ext3" ]]; then
