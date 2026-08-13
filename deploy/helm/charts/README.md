@@ -81,6 +81,7 @@ helm install openebs-localpv openebs-localpv/localpv-provisioner --namespace ope
 | `helperPod.image.pullPolicy`               | Pull policy for helper pod                                                                                                         | `IfNotPresent`                |
 | `helperPod.image.tag`                      | Image tag for helper image                                                                                                         | `4.5.0`                       |
 | `helperPod.timeoutSecs`                    | The maximum number of seconds to wait for a helperPod (init, cleanup, quota) to complete                                           | `120`                         |
+| `hostpathClass.allowedTopologies`          | Restrict provisioning/scheduling of openebs-hostpath volumes to nodes matching these topology label selectors                      | `[]`                          |
 | `hostpathClass.basePath`                   | BasePath for openebs-hostpath StorageClass                                                                                         | `"/var/openebs/local"`        |
 | `hostpathClass.enabled`                    | Enables creation of default Hostpath StorageClass                                                                                  | `true`                        |
 | `hostpathClass.isDefaultClass`             | Make openebs-hostpath the default StorageClass                                                                                     | `"false"`                     |

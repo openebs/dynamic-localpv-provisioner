@@ -165,6 +165,18 @@ hostpathClass:
   #            - "openebs.io/node-affinity-key-1"
   #            - "openebs.io/node-affinity-key-2"
   nodeAffinityLabels: []
+  # Custom allowedTopologies for the openebs-hostpath StorageClass. Restricts the
+  # set of nodes where volumes of this StorageClass may be provisioned/scheduled,
+  # by matching node labels. See:
+  # https://kubernetes.io/docs/concepts/storage/storage-classes/#allowed-topologies
+  # Example:
+  #          allowedTopologies:
+  #            - matchLabelExpressions:
+  #                - key: kubernetes.io/hostname
+  #                  values:
+  #                    - worker-2
+  #                    - worker-3
+  allowedTopologies: []
   # Prerequisite: XFS Quota requires an XFS filesystem mounted with
   # the 'pquota' or 'prjquota' mount option.
   xfsQuota:
