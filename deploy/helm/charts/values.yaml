@@ -192,7 +192,7 @@ helperPod:
     repository: openebs/linux-utils
     pullPolicy: IfNotPresent
     # Overrides the image tag whose default is the chart appVersion.
-    tag: 4.5.0
+    tag: 4.6.0
   hostNetwork: false
   # The maximum number of seconds to wait for a helperPod (init, cleanup, quota) to complete before timing out.
   timeoutSecs: 120
