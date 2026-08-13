@@ -14,6 +14,15 @@ inputs:
 runs:
   using: composite
   steps:
+    # TODO: Drop this step once medyagh/setup-minikube releases a version which
+    # carries the fix from medyagh/setup-minikube#836. Until then its none-driver
+    # setup runs a bare 'chmod 755 /etc/cni/net.d', which dies on the runner
+    # images that no longer ship that directory (medyagh/setup-minikube#835):
+    #   chmod: cannot access '/etc/cni/net.d': No such file or directory
+    - name: Ensure the CNI configuration directory exists
+      shell: bash
+      run: sudo mkdir -p /etc/cni/net.d
+
     - name: Setup Minikube-Kubernetes
       uses: medyagh/setup-minikube@latest
       with:
