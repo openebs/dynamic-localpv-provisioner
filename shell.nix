@@ -14,7 +14,7 @@ pkgs.mkShell {
       curl
       git
       gnumake
-      go_1_24
+      go_1_25
       golint
       jq
       kubectl

@@ -1,4 +1,4 @@
-FROM golang:1.24.12 as build
+FROM golang:1.25.0 as build
 
 ARG BRANCH
 ARG RELEASE_TAG
