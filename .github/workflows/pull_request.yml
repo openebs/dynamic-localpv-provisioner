@@ -5,14 +5,17 @@ on:
     branches:
       - 'develop'
       - 'release/**'
+  workflow_call:
 
 jobs:
-  non-docs:
+  preconditions:
     runs-on: ubuntu-latest
     outputs:
-      relevant: ${{ steps.filter.outputs.relevant }}
+      run: ${{ steps.filter.outputs.relevant == 'true' || github.event_name != 'pull_request' }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
       - name: Detect relevant changes
         id: filter
         uses: dorny/paths-filter@v4
@@ -29,15 +32,15 @@ jobs:
               - '!MAINTAINERS'
   lint:
     uses: ./.github/workflows/lint.yml
-    needs: ['non-docs']
-    if: needs.non-docs.outputs.relevant == 'true'
+    needs: ['preconditions']
+    if: needs.preconditions.outputs.run == 'true'
     with:
       validate-codegen: true
       branch-name: ${{ github.event.pull_request.base.ref }}
 
   tests:
-    needs: ['non-docs', 'lint']
-    if: needs.non-docs.outputs.relevant == 'true'
+    needs: ['preconditions', 'lint']
+    if: needs.preconditions.outputs.run == 'true'
     permissions:
       contents: read
       id-token: write
@@ -46,8 +49,8 @@ jobs:
 
   provisioner-localpv:
     runs-on: cncf-ubuntu-16-64-x86
-    needs: ['non-docs', 'lint']
-    if: needs.non-docs.outputs.relevant == 'true'
+    needs: ['preconditions', 'lint']
+    if: needs.preconditions.outputs.run == 'true'
     steps:
       - name: Setup QEMU
         uses: docker/setup-qemu-action@v4
@@ -74,9 +77,9 @@ jobs:
           provenance: mode=max
           platforms: linux/amd64, linux/arm64, linux/arm/v7, linux/ppc64le
   ci:
-    if: ${{ success() || needs.non-docs.outputs.relevant == 'false' }}
+    if: ${{ success() || needs.preconditions.outputs.run == 'false' }}
     needs:
-      - non-docs
+      - preconditions
       - lint
       - tests
       - provisioner-localpv
