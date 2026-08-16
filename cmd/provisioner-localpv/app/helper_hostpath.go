@@ -24,6 +24,9 @@ type podConfig struct {
 	pOpts                         *HelperPodOptions
 	parentDir, volumeDir, podName string
 	taints                        []corev1.Taint
+	// mountHostProc mounts host /proc at /host/proc so quota scripts can
+	// nsenter --mount=/host/proc/1/ns/mnt. Init pods do not need this.
+	mountHostProc bool
 }
 
 var (
@@ -219,15 +222,17 @@ func (p *Provisioner) createCleanupPod(ctx context.Context, pOpts *HelperPodOpti
 
 	config.taints = pOpts.selectedNodeTaints
 
-	// Generate cleanup script using shared utility.
-	// ParentDir is the host path; HostPathPrefix lets the script flock via the
-	// /host bind-mount and run quota tools via nsenter into the host mount ns.
+	// ParentDir is the host path (used via nsenter). HostPathPrefix
+	// points at /host so the script can nsenter /host/proc/1/ns/mnt.
+	// Flock uses the existing /data bind-mount of parentDir.
 	cleanupScript := GenerateQuotaCleanupScript(QuotaScriptConfig{
-		ParentDir:      config.parentDir,
-		VolumeDir:      config.volumeDir,
-		HostPathPrefix: HostPathPrefix,
-		UseHostLock:    true, // serialize against concurrent helper pods
+		ParentDir:          config.parentDir,
+		VolumeDir:          config.volumeDir,
+		HostPathPrefix:     HostPathPrefix,
+		ContainerParentDir: "/data",
+		UseHostLock:        true, // serialize against concurrent helper pods
 	})
+	config.mountHostProc = true
 
 	config.pOpts.cmdsForPath = []string{"sh", "-c", cleanupScript}
 
@@ -282,17 +287,19 @@ func (p *Provisioner) createQuotaPod(ctx context.Context, pOpts *HelperPodOption
 		return err
 	}
 
-	// Generate quota script using shared utility.
-	// ParentDir is the host path; HostPathPrefix lets the script flock via the
-	// /host bind-mount and run quota tools via nsenter into the host mount ns.
+	// ParentDir is the host path (used via nsenter). HostPathPrefix
+	// points at /host so the script can nsenter /host/proc/1/ns/mnt.
+	// Flock uses the existing /data bind-mount of parentDir.
 	quotaScript := GenerateQuotaApplyScript(QuotaScriptConfig{
-		ParentDir:      config.parentDir,
-		VolumeDir:      config.volumeDir,
-		SoftLimitGrace: config.pOpts.softLimitGrace,
-		HardLimitGrace: config.pOpts.hardLimitGrace,
-		HostPathPrefix: HostPathPrefix,
-		UseHostLock:    true, // serialize project-ID allocation
+		ParentDir:          config.parentDir,
+		VolumeDir:          config.volumeDir,
+		SoftLimitGrace:     config.pOpts.softLimitGrace,
+		HardLimitGrace:     config.pOpts.hardLimitGrace,
+		HostPathPrefix:     HostPathPrefix,
+		ContainerParentDir: "/data",
+		UseHostLock:        true, // serialize project-ID allocation
 	})
+	config.mountHostProc = true
 
 	config.pOpts.cmdsForPath = []string{"sh", "-c", quotaScript}
 
@@ -315,11 +322,25 @@ func (p *Provisioner) launchPod(ctx context.Context, config podConfig) (*corev1.
 	// Privileged is also required for nsenter into the host mount namespace when
 	// applying/cleaning XFS/EXT4 project quotas.
 	privileged := true
-	// HostToContainer so nested mounts on the host (e.g. the XFS base path)
-	// are visible under /host for flock and nsenter path checks.
-	hostMountPropagation := corev1.MountPropagationHostToContainer
 
-	helperPod, err := pod.NewBuilder().
+	volumeMounts := []corev1.VolumeMount{
+		{
+			Name:      "data",
+			ReadOnly:  false,
+			MountPath: "/data/",
+		},
+	}
+	if config.mountHostProc {
+		// Host /proc so nsenter can enter /host/proc/1/ns/mnt.
+		// Quota/cleanup need the host mount namespace; init does not.
+		volumeMounts = append(volumeMounts, corev1.VolumeMount{
+			Name:      "host-proc",
+			ReadOnly:  true,
+			MountPath: filepath.Join(HostPathPrefix, "proc"),
+		})
+	}
+
+	podBuilder := pod.NewBuilder().
 		WithName(config.podName + "-" + config.pOpts.name).
 		WithRestartPolicy(corev1.RestartPolicyNever).
 		//WithNodeSelectorHostnameNew(config.pOpts.nodeHostname).
@@ -331,21 +352,7 @@ func (p *Provisioner) launchPod(ctx context.Context, config podConfig) (*corev1.
 				WithName("local-path-" + config.podName).
 				WithImage(p.helperImage).
 				WithCommandNew(config.pOpts.cmdsForPath).
-				WithVolumeMountsNew([]corev1.VolumeMount{
-					{
-						Name:      "data",
-						ReadOnly:  false,
-						MountPath: "/data/",
-					},
-					{
-						// Host root: enables nsenter --mount=/host/proc/1/ns/mnt
-						// and container-visible paths for flock lockfiles.
-						Name:             "host-root",
-						ReadOnly:         false,
-						MountPath:        HostPathPrefix,
-						MountPropagation: &hostMountPropagation,
-					},
-				}).
+				WithVolumeMountsNew(volumeMounts).
 				WithImagePullPolicy(config.pOpts.imagePullPolicy).
 				WithPrivilegedSecurityContext(&privileged),
 		).
@@ -354,12 +361,16 @@ func (p *Provisioner) launchPod(ctx context.Context, config podConfig) (*corev1.
 			volume.NewBuilder().
 				WithName("data").
 				WithHostDirectory(config.parentDir),
-		).
-		WithVolumeBuilder(
+		)
+	if config.mountHostProc {
+		podBuilder = podBuilder.WithVolumeBuilder(
 			volume.NewBuilder().
-				WithName("host-root").
-				WithHostDirectory("/"),
-		).
+				WithName("host-proc").
+				WithHostDirectory("/proc"),
+		)
+	}
+
+	helperPod, err := podBuilder.
 		WithHostNetwork(config.pOpts.hostNetwork).
 		Build()
 

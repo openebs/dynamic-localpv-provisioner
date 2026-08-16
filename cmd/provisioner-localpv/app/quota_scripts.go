@@ -14,9 +14,10 @@ import (
 //   - When HostPathPrefix is set (typically "/host"), the script runs quota tools
 //     via nsenter into the host mount namespace so XFS/EXT4 project quota resolves
 //     the real host mount. Bind-mounted pod paths alone are not sufficient.
-//   - CONTAINER_PARENT_PATH (HostPathPrefix+ParentDir, or ParentDir when the
-//     prefix is empty) is used only for flock lockfiles, which must be opened
-//     from the container mount namespace.
+//   - CONTAINER_PARENT_PATH is used only for flock lockfiles, which must be
+//     opened from the container mount namespace. It is ContainerParentDir
+//     when set; otherwise HostPathPrefix+ParentDir, or ParentDir when the
+//     prefix is empty.
 type QuotaScriptConfig struct {
 	// ParentDir is the base directory path as seen on the host
 	// (e.g., "/var/openebs/local").
@@ -27,12 +28,17 @@ type QuotaScriptConfig struct {
 	SoftLimitGrace string
 	// HardLimitGrace is the hard quota limit with 'k' suffix (e.g., "1024k")
 	HardLimitGrace string
-	// HostPathPrefix is the container mount of the host root filesystem.
-	// For DaemonSet and HelperPod (with host-root mounted): "/host".
-	// When set, quota tools run via nsenter --mount=$HostPathPrefix/proc/1/ns/mnt
-	// using host paths (ParentDir), not the bind-mount path under HostPathPrefix.
-	// Empty disables nsenter (paths are used as-is in the current mount namespace).
+	// HostPathPrefix is the container path prefix used to reach the host
+	// mount namespace: $HostPathPrefix/proc/1/ns/mnt.
+	// DaemonSet mounts the host root at "/host". Helper pods mount only
+	// host /proc at "/host/proc". Empty disables nsenter (paths are used
+	// as-is in the current mount namespace).
 	HostPathPrefix string
+	// ContainerParentDir, when set, is the flock lockfile directory as seen
+	// in the container (e.g. HelperPod "/data", which already bind-mounts
+	// ParentDir). When empty, the path is derived from HostPathPrefix and
+	// ParentDir.
+	ContainerParentDir string
 	// UseHostLock serializes the script via flock on a lockfile in the parent
 	// directory. Set for HelperPod mode; NodeDeployment relies on an in-process
 	// mutex instead.
@@ -44,9 +50,15 @@ type QuotaScriptConfig struct {
 func quotaPaths(cfg QuotaScriptConfig) (hostParent, hostVolume, containerParent string) {
 	hostParent = cfg.ParentDir
 	hostVolume = filepath.Join(cfg.ParentDir, cfg.VolumeDir)
-	if cfg.HostPathPrefix != "" {
+	switch {
+	case cfg.ContainerParentDir != "":
+		containerParent = cfg.ContainerParentDir
+	case cfg.HostPathPrefix != "":
+		// filepath.Join keeps the prefix when ParentDir is absolute:
+		// Join("/host", "/var/x") is "/host/var/x", unlike Python's
+		// os.path.join which would discard "/host".
 		containerParent = filepath.Join(cfg.HostPathPrefix, cfg.ParentDir)
-	} else {
+	default:
 		// ParentDir is already the path visible in the container.
 		containerParent = cfg.ParentDir
 	}
