@@ -87,6 +87,20 @@ const (
 	// colon (e.g. ":8081") binds all interfaces. When unset or empty, the
 	// server binds ":8081".
 	ProvisionerHealthProbeBindAddress string = "OPENEBS_IO_HEALTH_PROBE_BIND_ADDRESS"
+
+	// ProvisionerClientQPS is the environment variable that overrides the
+	// maximum queries per second (QPS) the provisioner sends to the
+	// Kubernetes API server. When unset (or invalid), it is left to the
+	// client-go default (5), so behavior is unchanged unless explicitly
+	// overridden.
+	ProvisionerClientQPS string = "OPENEBS_IO_CLIENT_QPS"
+
+	// ProvisionerClientBurst is the environment variable that overrides the
+	// maximum burst of queries above the QPS limit the provisioner allows
+	// when talking to the Kubernetes API server. When unset (or invalid), it
+	// is left to the client-go default (10), so behavior is unchanged unless
+	// explicitly overridden.
+	ProvisionerClientBurst string = "OPENEBS_IO_CLIENT_BURST"
 )
 
 var (
@@ -177,4 +191,28 @@ func getHelperPodTimeout() int {
 // environment variable is unset or empty.
 func getHealthProbeBindAddress() string {
 	return utils.GetStringEnvOrDefault(ProvisionerHealthProbeBindAddress, ":8081")
+}
+
+// getClientQPS returns the configured Kubernetes API client QPS override and
+// whether it was explicitly set. When the env var is unset, empty or invalid,
+// it returns (0, false) so callers leave rest.Config.QPS untouched and
+// client-go applies its default (5).
+func getClientQPS() (float32, bool) {
+	val, err := k8sEnv.GetFloat64(ProvisionerClientQPS, 0.0)
+	if err != nil || val <= 0.0 {
+		return 0.0, false
+	}
+	return float32(val), true
+}
+
+// getClientBurst returns the configured Kubernetes API client burst override
+// and whether it was explicitly set. When the env var is unset, empty or
+// invalid, it returns (0, false) so callers leave rest.Config.Burst untouched
+// and client-go applies its default (10).
+func getClientBurst() (int, bool) {
+	val, err := k8sEnv.GetInt(ProvisionerClientBurst, 0)
+	if err != nil || val <= 0 {
+		return 0, false
+	}
+	return val, true
 }

@@ -91,6 +91,8 @@ helm install openebs-localpv openebs-localpv/localpv-provisioner --namespace ope
 | `hostpathClass.reclaimPolicy`              | ReclaimPolicy for Hostpath PVs                                                                                                     | `"Delete"`                    |
 | `imagePullSecrets`                         | Provides image pull secret                                                                                                         | `""`                          |
 | `localpv.controller.workers`               | The no. of concurrent worker goroutines for processing PVC create/delete events                                                    | `4`                           |
+| `localpv.controller.client.qps`            | Max queries/sec to the Kubernetes API server. Empty uses the client-go default (5)                                                 | `""`                          |
+| `localpv.controller.client.burst`          | Max burst of queries above `client.qps` to the Kubernetes API server. Empty uses the client-go default (10)                        | `""`                          |
 | `localpv.enabled`                          | Enable LocalPV Provisioner                                                                                                         | `true`                        |
 | `localpv.image.registry`                   | Registry for LocalPV Provisioner image                                                                                             | `""`                          |
 | `localpv.image.repository`                 | Image repository for LocalPV Provisioner                                                                                           | `openebs/provisioner-localpv` |
@@ -116,7 +118,6 @@ helm install openebs-localpv openebs-localpv/localpv-provisioner --namespace ope
 | `localpv.priorityClassName`                | Sets priorityClassName in pod                                                                                                      | `""`                          |
 | `rbac.create`                              | Enable RBAC Resources                                                                                                              | `true`                        |
 | `rbac.pspEnabled`                          | Create pod security policy resources                                                                                               | `false`                       |
-
 
 A YAML file that specifies the values for the parameters can be provided while installing the chart. For example,
 

@@ -279,6 +279,136 @@ func TestGetAnalyticsStateCMName(t *testing.T) {
 	}
 }
 
+func TestGetClientQPS(t *testing.T) {
+	testCases := map[string]struct {
+		value     string
+		setEnv    bool
+		expectQPS float32
+		expectOK  bool
+	}{
+		"Missing env variable leaves default": {
+			setEnv:    false,
+			expectQPS: 0,
+			expectOK:  false,
+		},
+		"Empty env variable leaves default": {
+			value:     "",
+			setEnv:    true,
+			expectQPS: 0,
+			expectOK:  false,
+		},
+		"Valid integer value": {
+			value:     "50",
+			setEnv:    true,
+			expectQPS: 50,
+			expectOK:  true,
+		},
+		"Valid fractional value": {
+			value:     "7.5",
+			setEnv:    true,
+			expectQPS: 7.5,
+			expectOK:  true,
+		},
+		"Invalid value leaves default": {
+			value:     "not-a-number",
+			setEnv:    true,
+			expectQPS: 0,
+			expectOK:  false,
+		},
+		"Zero value leaves default": {
+			value:     "0",
+			setEnv:    true,
+			expectQPS: 0,
+			expectOK:  false,
+		},
+		"Negative value leaves default": {
+			value:     "-1",
+			setEnv:    true,
+			expectQPS: 0,
+			expectOK:  false,
+		},
+	}
+
+	for k, v := range testCases {
+		v := v
+		t.Run(k, func(t *testing.T) {
+			if v.setEnv {
+				os.Setenv(ProvisionerClientQPS, v.value)
+			}
+			qps, ok := getClientQPS()
+			if qps != v.expectQPS || ok != v.expectOK {
+				t.Errorf("expected (%v, %v) got (%v, %v)", v.expectQPS, v.expectOK, qps, ok)
+			}
+			os.Unsetenv(ProvisionerClientQPS)
+		})
+	}
+}
+
+func TestGetClientBurst(t *testing.T) {
+	testCases := map[string]struct {
+		value       string
+		setEnv      bool
+		expectBurst int
+		expectOK    bool
+	}{
+		"Missing env variable leaves default": {
+			setEnv:      false,
+			expectBurst: 0,
+			expectOK:    false,
+		},
+		"Empty env variable leaves default": {
+			value:       "",
+			setEnv:      true,
+			expectBurst: 0,
+			expectOK:    false,
+		},
+		"Valid value": {
+			value:       "100",
+			setEnv:      true,
+			expectBurst: 100,
+			expectOK:    true,
+		},
+		"Invalid value leaves default": {
+			value:       "not-a-number",
+			setEnv:      true,
+			expectBurst: 0,
+			expectOK:    false,
+		},
+		"Fractional value leaves default": {
+			value:       "10.5",
+			setEnv:      true,
+			expectBurst: 0,
+			expectOK:    false,
+		},
+		"Zero value leaves default": {
+			value:       "0",
+			setEnv:      true,
+			expectBurst: 0,
+			expectOK:    false,
+		},
+		"Negative value leaves default": {
+			value:       "-1",
+			setEnv:      true,
+			expectBurst: 0,
+			expectOK:    false,
+		},
+	}
+
+	for k, v := range testCases {
+		v := v
+		t.Run(k, func(t *testing.T) {
+			if v.setEnv {
+				os.Setenv(ProvisionerClientBurst, v.value)
+			}
+			burst, ok := getClientBurst()
+			if burst != v.expectBurst || ok != v.expectOK {
+				t.Errorf("expected (%v, %v) got (%v, %v)", v.expectBurst, v.expectOK, burst, ok)
+			}
+			os.Unsetenv(ProvisionerClientBurst)
+		})
+	}
+}
+
 func TestGetAnalyticsLeaseName(t *testing.T) {
 	testCases := map[string]struct {
 		value         string
