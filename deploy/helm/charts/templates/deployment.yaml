@@ -116,6 +116,14 @@ spec:
           value: "{{ .Values.localpv.basePath }}"
         - name: OPENEBS_IO_WORKER_THREADS
           value: {{ .Values.localpv.controller.workers | quote }}
+        {{- if .Values.localpv.controller.client.qps }}
+        - name: OPENEBS_IO_CLIENT_QPS
+          value: {{ .Values.localpv.controller.client.qps | quote }}
+        {{- end }}
+        {{- if .Values.localpv.controller.client.burst }}
+        - name: OPENEBS_IO_CLIENT_BURST
+          value: {{ .Values.localpv.controller.client.burst | quote }}
+        {{- end }}
         - name: OPENEBS_IO_IMAGE_PULL_POLICY
           value: "{{ default .Values.helperPod.image.pullPolicy .Values.global.imagePullPolicy }}"
         - name: OPENEBS_IO_HELPER_IMAGE

@@ -46,6 +46,17 @@ localpv:
     # The number of concurrent worker goroutines for processing PVC create and delete events.
     # Higher values increase provisioning throughput when many PVC events are received simultaneously.
     workers: 4
+    # Client-side rate limits for requests to the Kubernetes API server.
+    client:
+      # Maximum queries per second (QPS) the provisioner sends to the Kubernetes API server.
+      # Leave empty to use the client-go default (5). Raise it alongside `workers` to avoid
+      # client-side throttling when provisioning many volumes concurrently.
+      qps: ""
+      # Maximum burst of queries above `client.qps` the provisioner allows to the Kubernetes
+      # API server. Leave empty to use the client-go default (10). Setting `client.qps`
+      # without `client.burst` leaves burst at the client-go default of 10, which may
+      # throttle bursts well below the configured QPS; prefer setting both together.
+      burst: ""
   image:
     registry: ""
     repository: openebs/provisioner-localpv

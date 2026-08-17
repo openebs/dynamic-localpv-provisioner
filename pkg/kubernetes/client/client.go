@@ -102,6 +102,16 @@ type Client struct {
 	// handle to get kubernetes config path
 	// from environment variable
 	getKubeConfigPathFromENV getKubeConfigPathFromENVFn
+
+	// qps optionally overrides the maximum queries per second the client
+	// sends to the Kubernetes API server. Zero leaves the rest.Config
+	// default in place (client-go applies QPS 5).
+	qps float32
+
+	// burst optionally overrides the maximum burst of queries above qps the
+	// client allows. Zero leaves the rest.Config default in place (client-go
+	// applies Burst 10).
+	burst int
 }
 
 // OptionFn is a typed function to abstract
@@ -235,6 +245,30 @@ func WithKubeConfigPath(kubeConfigPath string) OptionFn {
 	}
 }
 
+// WithQPS sets the maximum queries per second the client may send to the
+// Kubernetes API server. A non-positive value is ignored, leaving the
+// client-go default in place.
+func WithQPS(qps float32) OptionFn {
+	return func(c *Client) {
+		if qps <= 0 {
+			return
+		}
+		c.qps = qps
+	}
+}
+
+// WithBurst sets the maximum burst of queries above the QPS limit the client
+// may send to the Kubernetes API server. A non-positive value is ignored,
+// leaving the client-go default in place.
+func WithBurst(burst int) OptionFn {
+	return func(c *Client) {
+		if burst <= 0 {
+			return
+		}
+		c.burst = burst
+	}
+}
+
 // GetConfig returns Kubernetes config instance
 // from the provided client
 func GetConfig(c *Client) (*rest.Config, error) {
@@ -306,7 +340,33 @@ func (c *Client) Clientset() (*kubernetes.Clientset, error) {
 		)
 	}
 
+	c.applyRateLimits(config)
 	return c.getKubeClientset(config)
+}
+
+// applyRateLimits overrides the client-side QPS and burst on the provided
+// config when they have been explicitly set via WithQPS/WithBurst. Zero
+// values are left untouched so client-go applies its own defaults (QPS 5,
+// Burst 10), keeping behavior unchanged unless an override is supplied. The
+// one exception is a QPS-only override, which additionally needs an explicit
+// burst to satisfy kubernetes.NewForConfig (see below).
+func (c *Client) applyRateLimits(config *rest.Config) {
+	if config == nil {
+		return
+	}
+	if c.qps > 0 {
+		config.QPS = c.qps
+	}
+	if c.burst > 0 {
+		config.Burst = c.burst
+	}
+	// kubernetes.NewForConfig rejects a config with QPS > 0 and Burst <= 0,
+	// so a QPS-only override would fail client construction. Fall back to the
+	// burst client-go would otherwise have defaulted to, keeping the burst
+	// dimension unchanged from the caller's point of view.
+	if config.QPS > 0 && config.Burst <= 0 {
+		config.Burst = rest.DefaultBurst
+	}
 }
 
 // Dynamic returns a kubernetes dynamic client capable

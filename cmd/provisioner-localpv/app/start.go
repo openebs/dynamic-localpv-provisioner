@@ -119,7 +119,20 @@ func Start(ctx context.Context, nodeDeployment bool, allowInsecurePvcBasePathOve
 	// OutOfCluster by using the following ENV variables:
 	//   OPENEBS_IO_K8S_MASTER - Kubernetes master IP address
 	//   OPENEBS_IO_KUBE_CONFIG - Path to the kubeConfig file.
-	kubeClient, err := mKube.New().Clientset()
+	// Apply client-side API rate-limit overrides only when explicitly set,
+	// so an unconfigured provisioner keeps the client-go defaults (QPS 5,
+	// Burst 10).
+	clientOpts := make([]mKube.OptionFn, 0, 2)
+	if qps, ok := getClientQPS(); ok {
+		clientOpts = append(clientOpts, mKube.WithQPS(qps))
+		log.Info("Kubernetes API client QPS overridden", "qps", qps)
+	}
+	if burst, ok := getClientBurst(); ok {
+		clientOpts = append(clientOpts, mKube.WithBurst(burst))
+		log.Info("Kubernetes API client burst overridden", "burst", burst)
+	}
+
+	kubeClient, err := mKube.New(clientOpts...).Clientset()
 	if err != nil {
 		return errors.Wrap(err, "unable to get k8s client")
 	}
