@@ -37,11 +37,12 @@ type LocalVolumeManager struct {
 	mu *sync.Mutex
 }
 
-const (
-	// HostPathPrefix is the mount point where the host root filesystem is mounted
-	// in the node DaemonSet. This allows the provisioner to access any path on the host.
-	HostPathPrefix = "/host"
-)
+// HostPathPrefix is the mount point where the host root filesystem is mounted
+// in the node DaemonSet. This allows the provisioner to access any path on the host.
+//
+// It is a var rather than a const so that tests can point it at a temporary
+// directory and assert on what actually lands on disk.
+var HostPathPrefix = "/host"
 
 // NewLocalVolumeManager creates a new LocalVolumeManager instance
 func NewLocalVolumeManager() *LocalVolumeManager {

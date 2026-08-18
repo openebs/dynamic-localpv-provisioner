@@ -1,0 +1,1 @@
+fix(provisioner): honor the FilePermissions mode when provisioning in node-deployment mode
