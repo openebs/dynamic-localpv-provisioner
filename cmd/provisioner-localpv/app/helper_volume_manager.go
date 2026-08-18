@@ -28,7 +28,7 @@ func (p *Provisioner) createVolumeLocally(ctx context.Context, pOpts *HelperPodO
 
 	// Use the provisioner's volume manager so that its mutex serializes local
 	// operations across concurrent requests
-	vm := p.localVolumeManager
+	vm := &p.localVolumeManager
 
 	req := newLocalVolumeRequest(pOpts)
 
@@ -42,7 +42,7 @@ func (p *Provisioner) deleteVolumeLocally(ctx context.Context, pOpts *HelperPodO
 
 	// Use the provisioner's volume manager so that its mutex serializes local
 	// operations across concurrent requests
-	vm := p.localVolumeManager
+	vm := &p.localVolumeManager
 
 	req := &VolumeRequest{
 		Name: pOpts.name,

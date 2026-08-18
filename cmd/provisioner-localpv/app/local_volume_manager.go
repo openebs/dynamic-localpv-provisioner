@@ -28,13 +28,20 @@ type VolumeRequest struct {
 	PVCStorage     int64  `json:"pvcStorage,omitempty"`
 }
 
-// LocalVolumeManager handles volume operations on the local node
+// LocalVolumeManager handles volume operations on the local node.
+//
+// The zero value is ready to use. mu is held for the whole of every local
+// volume operation, so a single manager shared across requests is what
+// serializes them; a per-request manager serializes nothing.
+//
+// mu is a value rather than a pointer on purpose: it makes the zero value
+// usable, and it lets `go vet`'s copylocks analysis report any accidental
+// copy of a LocalVolumeManager (or of a Provisioner holding one), which is
+// the mistake that caused issue #359.
 type LocalVolumeManager struct {
-	// Add any necessary fields for volume management
-
 	// race condition protection
 	// mutex for thread-safe operations
-	mu *sync.Mutex
+	mu sync.Mutex
 }
 
 // HostPathPrefix is the mount point where the host root filesystem is mounted
@@ -44,11 +51,11 @@ type LocalVolumeManager struct {
 // directory and assert on what actually lands on disk.
 var HostPathPrefix = "/host"
 
-// NewLocalVolumeManager creates a new LocalVolumeManager instance
+// NewLocalVolumeManager creates a new LocalVolumeManager instance.
+// The zero value is equally valid; this exists for callers that want a
+// heap-allocated manager of their own.
 func NewLocalVolumeManager() *LocalVolumeManager {
-	return &LocalVolumeManager{
-		mu: &sync.Mutex{},
-	}
+	return &LocalVolumeManager{}
 }
 
 // CreateVolume creates a new volume directory on the local node

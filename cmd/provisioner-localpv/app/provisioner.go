@@ -80,7 +80,6 @@ func NewProvisioner(kubeClient kubernetes.Interface) (*Provisioner, error) {
 		},
 	}
 	p.getVolumeConfig = p.GetVolumeConfig
-	p.localVolumeManager = NewLocalVolumeManager()
 
 	return p, nil
 }

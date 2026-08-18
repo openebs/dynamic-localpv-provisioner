@@ -34,9 +34,10 @@ type Provisioner struct {
 	// getVolumeConfig is a reference to a function
 	getVolumeConfig GetVolumeConfigFn
 	// localVolumeManager performs volume operations directly on the node in
-	// node-deployment mode. It is shared by every request so that its mutex
-	// serializes those operations across concurrent provisioning requests.
-	localVolumeManager *LocalVolumeManager
+	// node-deployment mode. Every request shares this one manager so that its
+	// mutex serializes those operations against each other. It is held by
+	// value so the zero Provisioner is usable and cannot be nil here.
+	localVolumeManager LocalVolumeManager
 }
 
 // VolumeConfig struct contains the merged configuration of the PVC
