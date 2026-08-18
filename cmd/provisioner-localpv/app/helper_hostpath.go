@@ -50,6 +50,10 @@ type HelperPodOptions struct {
 	//path is the volume hostpath directory
 	path string
 
+	//fsMode is the file mode to apply to the volume directory,
+	//derived from the FilePermissions config (defaults to 0777).
+	fsMode string
+
 	//serviceAccountName is the service account with which the pod should be launched
 	serviceAccountName string
 
