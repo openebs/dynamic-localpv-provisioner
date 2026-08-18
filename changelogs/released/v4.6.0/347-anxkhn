@@ -1,0 +1,1 @@
+feat(chart): allow setting allowedTopologies on the hostpath StorageClass

@@ -1,0 +1,1 @@
+fix(charts): normalise registry sources to a trimmed string before resolution

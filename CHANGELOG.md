@@ -1,3 +1,23 @@
+v4.6.0 / 2026-08-18
+===================
+* Make helperPod imagePullPolicy configurable ([#329](https://github.com/openebs/dynamic-localpv-provisioner/pull/329),[@krishnaGajabi](https://github.com/krishnaGajabi))
+* Add global overrides for the Google Analytics ID and key ([#335](https://github.com/openebs/dynamic-localpv-provisioner/pull/335),[@krishnaGajabi](https://github.com/krishnaGajabi))
+* Replace the pgrep liveness probe with an HTTP health server ([#339](https://github.com/openebs/dynamic-localpv-provisioner/pull/339),[@niladrih](https://github.com/niladrih))
+* Make Kubernetes API client QPS and burst configurable ([#342](https://github.com/openebs/dynamic-localpv-provisioner/pull/342),[@oneubauer](https://github.com/oneubauer))
+* Allow setting allowedTopologies on the hostpath StorageClass ([#347](https://github.com/openebs/dynamic-localpv-provisioner/pull/347),[@anxkhn](https://github.com/anxkhn))
+* Update Go to 1.25.0 and bump security dependencies ([#350](https://github.com/openebs/dynamic-localpv-provisioner/pull/350),[@niladrih](https://github.com/niladrih))
+* Fix zfs-localpv copy-paste in the version metadata ([#354](https://github.com/openebs/dynamic-localpv-provisioner/pull/354),[@anxkhn](https://github.com/anxkhn))
+* Fix FilePermissions mode being ignored in node-deployment mode ([#355](https://github.com/openebs/dynamic-localpv-provisioner/pull/355),[@anxkhn](https://github.com/anxkhn))
+* Fix registry source resolution by normalising it to a trimmed string ([#356](https://github.com/openebs/dynamic-localpv-provisioner/pull/356),[@niladrih](https://github.com/niladrih))
+* Fix XFS volume cleanup hanging on pipes ([#361](https://github.com/openebs/dynamic-localpv-provisioner/pull/361),[@miminar](https://github.com/miminar))
+* Fix concurrent local volume operations not being serialized in node-deployment mode ([#367](https://github.com/openebs/dynamic-localpv-provisioner/pull/367),[@taaahaaa](https://github.com/taaahaaa))
+* Update helperPod to 4.6.0 ([#368](https://github.com/openebs/dynamic-localpv-provisioner/pull/368),[@niladrih](https://github.com/niladrih))
+* Update alpine base image to 3.23.5 ([#368](https://github.com/openebs/dynamic-localpv-provisioner/pull/368),[@niladrih](https://github.com/niladrih))
+
+v4.5.1 / 2026-06-09
+===================
+* Fix unquoted image values in the helm chart templates ([#337](https://github.com/openebs/dynamic-localpv-provisioner/pull/337),[@hmonsalv](https://github.com/hmonsalv))
+
 v4.5.0 / 2025-05-20
 ===================
 * Add Node-Deployment Mode ([#306](https://github.com/openebs/dynamic-localpv-provisioner/pull/306),[@laik](https://github.com/laik))
