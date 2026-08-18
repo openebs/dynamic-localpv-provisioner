@@ -194,6 +194,12 @@ func TestGenerateQuotaCleanupScript_UsesNsenterWithHostPaths(t *testing.T) {
 	if !strings.Contains(script, `host_exec() { nsenter --mount="$HOST_MOUNT_NS" -- "$@"; }`) {
 		t.Errorf("expected nsenter-based host_exec, got:\n%s", script)
 	}
+	if !strings.Contains(script, `host_exec xfs_io -c "chproj -D 0" "$VOLUME_PATH"`) {
+		t.Errorf("expected xfs_io chproj -D via host_exec, got:\n%s", script)
+	}
+	if strings.Contains(script, `chproj -R`) {
+		t.Errorf("chproj -R hangs on pipes; develop uses -D, got:\n%s", script)
+	}
 	if !strings.Contains(script, `host_exec xfs_quota -x -c "limit -p bsoft=0 bhard=0 $ID" "$PARENT_PATH"`) {
 		t.Errorf("expected xfs_quota cleanup via host_exec, got:\n%s", script)
 	}
