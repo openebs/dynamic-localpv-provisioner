@@ -26,8 +26,9 @@ func (p *Provisioner) createVolumeLocally(ctx context.Context, pOpts *HelperPodO
 	log := klog.FromContext(ctx)
 	log.Info("Creating volume locally", "volume", pOpts.name)
 
-	// Create a temporary volume manager to perform local operations
-	vm := NewLocalVolumeManager()
+	// Use the provisioner's volume manager so that its mutex serializes local
+	// operations across concurrent requests
+	vm := &p.localVolumeManager
 
 	req := newLocalVolumeRequest(pOpts)
 
@@ -39,8 +40,9 @@ func (p *Provisioner) deleteVolumeLocally(ctx context.Context, pOpts *HelperPodO
 	log := klog.FromContext(ctx)
 	log.Info("Deleting volume locally", "volume", pOpts.name)
 
-	// Create a temporary volume manager to perform local operations
-	vm := NewLocalVolumeManager()
+	// Use the provisioner's volume manager so that its mutex serializes local
+	// operations across concurrent requests
+	vm := &p.localVolumeManager
 
 	req := &VolumeRequest{
 		Name: pOpts.name,
