@@ -5,6 +5,7 @@ apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: {{ template "localpv.fullname" . }}-node
+  namespace: {{ .Release.Namespace }}
   {{- with .Values.localpv.annotations }}
   annotations: {{ toYaml . | nindent 4 }}
   {{- end }}
