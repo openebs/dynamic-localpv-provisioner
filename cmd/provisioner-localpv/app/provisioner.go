@@ -9,6 +9,7 @@ import (
 	analytics "github.com/openebs/google-analytics-4/usage"
 	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -128,6 +129,9 @@ func (p *Provisioner) Provision(ctx context.Context, opts pvController.Provision
 	// Fetch the full Node object since we need labels and taints
 	selectedNode, err := p.getSelectedNode(ctx, opts.SelectedNodeName)
 	if err != nil {
+		if k8serrors.IsNotFound(err) {
+			return nil, pvController.ProvisioningReschedule, fmt.Errorf("selected node %s not found, rescheduling: %v", opts.SelectedNodeName, err)
+		}
 		return nil, pvController.ProvisioningFinished, fmt.Errorf("failed to get node %s: %v", opts.SelectedNodeName, err)
 	}
 
