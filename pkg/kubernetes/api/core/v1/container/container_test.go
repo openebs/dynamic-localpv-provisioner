@@ -228,6 +228,45 @@ func TestBuilderWithArgumentsNew(t *testing.T) {
 	}
 }
 
+func TestBuilderWithTerminationMessagePolicy(t *testing.T) {
+	tests := map[string]struct {
+		policy    corev1.TerminationMessagePolicy
+		builder   *Builder
+		expectErr bool
+	}{
+		"Test Builder with termination message policy": {
+			policy: corev1.TerminationMessageFallbackToLogsOnError,
+			builder: &Builder{con: &container{
+				corev1.Container{},
+			}},
+			expectErr: false,
+		},
+		"Test Builder without termination message policy": {
+			policy: "",
+			builder: &Builder{con: &container{
+				corev1.Container{},
+			}},
+			expectErr: true,
+		},
+	}
+	for name, mock := range tests {
+		name, mock := name, mock
+		t.Run(name, func(t *testing.T) {
+			b := mock.builder.WithTerminationMessagePolicy(mock.policy)
+			if mock.expectErr && len(b.errors) == 0 {
+				t.Fatalf("Test %q failed: expected error not to be nil", name)
+			}
+			if !mock.expectErr && len(b.errors) > 0 {
+				t.Fatalf("Test %q failed: expected error to be nil", name)
+			}
+			if !mock.expectErr && b.con.TerminationMessagePolicy != mock.policy {
+				t.Fatalf("Test %q failed: expected termination message policy %q, got %q",
+					name, mock.policy, b.con.TerminationMessagePolicy)
+			}
+		})
+	}
+}
+
 func TestBuilderWithPrivilegedSecurityContext(t *testing.T) {
 	tests := map[string]struct {
 		secCont   bool

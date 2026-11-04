@@ -2,11 +2,14 @@ package app
 
 import (
 	"context"
+	"fmt"
 	"math"
 	"path/filepath"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -31,6 +34,10 @@ var (
 	//for a helper pod to complete. Configurable via OPENEBS_IO_HELPER_POD_TIMEOUT_SECS.
 	CmdTimeoutCounts = getHelperPodTimeout()
 )
+
+// maxHelperPodMessageLen caps the length of a status message reported for a
+// helper pod, e.g. the container log tail used as its termination message.
+const maxHelperPodMessageLen = 512
 
 // HelperPodOptions contains the options that
 // will launch a Pod on a specific node (nodeHostname)
@@ -332,6 +339,10 @@ func (p *Provisioner) launchPod(ctx context.Context, config podConfig) (*corev1.
 					},
 				}).
 				WithImagePullPolicy(config.pOpts.imagePullPolicy).
+				// Use the tail of the container logs as the termination message
+				// when the helper command fails, so that its error output is
+				// available after the helper pod has been deleted.
+				WithTerminationMessagePolicy(corev1.TerminationMessageFallbackToLogsOnError).
 				WithPrivilegedSecurityContext(&privileged),
 		).
 		WithImagePullSecrets(config.pOpts.imagePullSecrets).
@@ -364,24 +375,74 @@ func (p *Provisioner) exitPod(ctx context.Context, hPodName string) error {
 	}()
 
 	//Wait for the helper pod to complete it job and exit
-	completed := false
+	var checkPod *corev1.Pod
 	for i := 0; i < CmdTimeoutCounts; i++ {
-		checkPod, err := p.kubeClient.CoreV1().Pods(p.namespace).Get(ctx, hPodName, metav1.GetOptions{})
+		var err error
+		checkPod, err = p.kubeClient.CoreV1().Pods(p.namespace).Get(ctx, hPodName, metav1.GetOptions{})
 		if err != nil {
 			return err
 		} else if checkPod.Status.Phase == corev1.PodSucceeded {
-			completed = true
-			break
+			return nil
 		} else {
 			// Currently we use `RestartPolicyNever`, if this changes we may need a different logic here, ex: x many restarts.
 			if checkPod.Spec.RestartPolicy == corev1.RestartPolicyNever && checkPod.Status.Phase == corev1.PodFailed {
-				return errors.Errorf("pod %v has failed", checkPod.Name)
+				return errors.Errorf("pod %v has failed: %s", checkPod.Name, describeHelperPodStatus(checkPod))
 			}
 		}
 		time.Sleep(1 * time.Second)
 	}
-	if !completed {
+	if checkPod == nil {
 		return errors.Errorf("create process timeout after %v seconds", CmdTimeoutCounts)
 	}
-	return nil
+	return errors.Errorf("create process timeout after %v seconds, pod %v status: %s",
+		CmdTimeoutCounts, checkPod.Name, describeHelperPodStatus(checkPod))
+}
+
+// describeHelperPodStatus summarizes why a helper pod has not succeeded, i.e.
+// the pod phase, the reason it could not be scheduled and the state of its
+// containers. The helper pod is deleted once it exits or times out, so this
+// is the only place where the cause of a failure is visible to the user.
+func describeHelperPodStatus(hPod *corev1.Pod) string {
+	details := []string{fmt.Sprintf("phase %v", hPod.Status.Phase)}
+	if hPod.Status.Reason != "" || hPod.Status.Message != "" {
+		details = append(details, formatReason("pod", hPod.Status.Reason, hPod.Status.Message))
+	}
+	for _, condition := range hPod.Status.Conditions {
+		if condition.Type == corev1.PodScheduled && condition.Status == corev1.ConditionFalse {
+			details = append(details, formatReason("not scheduled", condition.Reason, condition.Message))
+		}
+	}
+	for _, status := range hPod.Status.ContainerStatuses {
+		if waiting := status.State.Waiting; waiting != nil {
+			details = append(details, formatReason(
+				fmt.Sprintf("container %v waiting", status.Name), waiting.Reason, waiting.Message))
+		}
+		if terminated := status.State.Terminated; terminated != nil {
+			details = append(details, formatReason(
+				fmt.Sprintf("container %v terminated with exit code %d", status.Name, terminated.ExitCode),
+				terminated.Reason, terminated.Message))
+		}
+	}
+	return strings.Join(details, "; ")
+}
+
+// formatReason appends the non-empty reason and message to the given prefix.
+// The message is collapsed into a single line and capped, as it may be the
+// tail of the helper command's output and ends up in the PVC/PV events.
+func formatReason(prefix, reason, message string) string {
+	if reason != "" {
+		prefix += ": " + reason
+	}
+	if message = strings.Join(strings.Fields(message), " "); message != "" {
+		if len(message) > maxHelperPodMessageLen {
+			cut := maxHelperPodMessageLen
+			// Do not split a multi-byte character.
+			for cut > 0 && !utf8.RuneStart(message[cut]) {
+				cut--
+			}
+			message = message[:cut] + "..."
+		}
+		prefix += ": " + message
+	}
+	return prefix
 }

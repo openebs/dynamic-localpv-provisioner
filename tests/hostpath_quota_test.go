@@ -133,6 +133,11 @@ var _ = Describe("TEST HOSTPATH XFS QUOTA LOCAL PV WITH UNSUPPORTED FILESYSTEM",
 
 			By("verifying the pvc phase as pending")
 			Expect(createdPvc.Status.Phase).To(Equal(corev1.ClaimPending), "while verifying the pvc pending state")
+
+			By("verifying the quota helper pod's error is reported on the pvc")
+			Expect(ops.IsPVCEventPresentEventually(
+				namespaceObj.Name, pvcName, "ProvisioningFailed", "Unsupported filesystem type",
+			)).To(BeTrue(), "while verifying the ProvisioningFailed event of pvc {%s}", pvcName)
 		})
 	})
 
