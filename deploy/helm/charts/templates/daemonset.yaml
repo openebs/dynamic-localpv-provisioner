@@ -49,9 +49,13 @@ spec:
       - name: {{ template "localpv.fullname" . }}
         image: "{{ include "localpv.common.image" (dict "imageRoot" .Values.localpv.image "global" .Values.global "override" .Values.globalImageRegistryOverride) }}"
         imagePullPolicy: {{ default .Values.localpv.image.pullPolicy .Values.global.imagePullPolicy }}
-        {{- if .Values.localpv.privileged }}
+        {{- $securityContext := deepCopy (.Values.localpv.securityContext | default dict) }}
+        {{- if and .Values.localpv.privileged (not (hasKey $securityContext "privileged")) }}
+        {{- $_ := set $securityContext "privileged" true }}
+        {{- end }}
+        {{- with $securityContext }}
         securityContext:
-          privileged: true
+          {{- toYaml . | nindent 10 }}
         {{- end }}
         resources:
 {{ toYaml .Values.localpv.resources | indent 10 }}
