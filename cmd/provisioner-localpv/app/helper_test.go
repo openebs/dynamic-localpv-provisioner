@@ -240,3 +240,41 @@ func TestExitPod(t *testing.T) {
 		})
 	}
 }
+
+func TestFormatReason(t *testing.T) {
+	longOutput := strings.Repeat("x", maxHelperPodMessageLen+10)
+
+	tests := map[string]struct {
+		reason  string
+		message string
+		want    string
+	}{
+		"no reason or message": {
+			want: "prefix",
+		},
+		"reason only": {
+			reason: "Error",
+			want:   "prefix: Error",
+		},
+		"multi-line message is collapsed into one line": {
+			reason:  "Error",
+			message: "\n+ set -e\n  mkdir: can't create directory\t'/data/pvc-1'\n\n",
+			want:    "prefix: Error: + set -e mkdir: can't create directory '/data/pvc-1'",
+		},
+		"long message is capped": {
+			message: longOutput,
+			want:    "prefix: " + longOutput[:maxHelperPodMessageLen] + "...",
+		},
+		"long message is not capped inside a multi-byte character": {
+			message: strings.Repeat("x", maxHelperPodMessageLen-1) + "é",
+			want:    "prefix: " + strings.Repeat("x", maxHelperPodMessageLen-1) + "...",
+		},
+	}
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			if got := formatReason("prefix", tc.reason, tc.message); got != tc.want {
+				t.Errorf("formatReason() = %q, want %q", got, tc.want)
+			}
+		})
+	}
+}

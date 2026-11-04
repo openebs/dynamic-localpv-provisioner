@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -33,6 +34,10 @@ var (
 	//for a helper pod to complete. Configurable via OPENEBS_IO_HELPER_POD_TIMEOUT_SECS.
 	CmdTimeoutCounts = getHelperPodTimeout()
 )
+
+// maxHelperPodMessageLen caps the length of a status message reported for a
+// helper pod, e.g. the container log tail used as its termination message.
+const maxHelperPodMessageLen = 512
 
 // HelperPodOptions contains the options that
 // will launch a Pod on a specific node (nodeHostname)
@@ -422,11 +427,21 @@ func describeHelperPodStatus(hPod *corev1.Pod) string {
 }
 
 // formatReason appends the non-empty reason and message to the given prefix.
+// The message is collapsed into a single line and capped, as it may be the
+// tail of the helper command's output and ends up in the PVC/PV events.
 func formatReason(prefix, reason, message string) string {
 	if reason != "" {
 		prefix += ": " + reason
 	}
-	if message = strings.TrimSpace(message); message != "" {
+	if message = strings.Join(strings.Fields(message), " "); message != "" {
+		if len(message) > maxHelperPodMessageLen {
+			cut := maxHelperPodMessageLen
+			// Do not split a multi-byte character.
+			for cut > 0 && !utf8.RuneStart(message[cut]) {
+				cut--
+			}
+			message = message[:cut] + "..."
+		}
 		prefix += ": " + message
 	}
 	return prefix
