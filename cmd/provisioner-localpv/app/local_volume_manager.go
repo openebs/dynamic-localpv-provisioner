@@ -149,7 +149,8 @@ func (vm *LocalVolumeManager) ApplyQuota(ctx context.Context, req *VolumeRequest
 	}
 
 	// Validate limits
-	if err := vm.validateLimits(softLimitGrace, hardLimitGrace, req.PVCStorage); err != nil {
+	softLimitGrace, hardLimitGrace, err = vm.validateLimits(softLimitGrace, hardLimitGrace, req.PVCStorage)
+	if err != nil {
 		return fmt.Errorf("invalid limits: %v", err)
 	}
 
@@ -237,27 +238,26 @@ func (vm *LocalVolumeManager) convertToK(limit string, pvcStorage int64) (string
 	return valueString, nil
 }
 
-// validateLimits validates quota limits
-func (vm *LocalVolumeManager) validateLimits(softLimitGrace, hardLimitGrace string, pvcStorage int64) error {
+// validateLimits validates quota limits and returns the soft and hard
+// limits to apply. When neither limit is set, both default to the PVC size.
+func (vm *LocalVolumeManager) validateLimits(softLimitGrace, hardLimitGrace string, pvcStorage int64) (string, string, error) {
 	if softLimitGrace == "0k" && hardLimitGrace == "0k" {
 		// Use PVC storage as both limits
 		pvcStorageInK := math.Ceil(float64(pvcStorage) / 1024)
 		pvcStorageInKString := strconv.FormatFloat(pvcStorageInK, 'f', -1, 64) + "k"
-		softLimitGrace = pvcStorageInKString
-		hardLimitGrace = pvcStorageInKString
-		return nil
+		return pvcStorageInKString, pvcStorageInKString, nil
 	}
 
 	if softLimitGrace == "0k" || hardLimitGrace == "0k" {
-		return nil
+		return softLimitGrace, hardLimitGrace, nil
 	}
 
 	if len(softLimitGrace) > len(hardLimitGrace) ||
 		(len(softLimitGrace) == len(hardLimitGrace) && softLimitGrace > hardLimitGrace) {
-		return fmt.Errorf("hard limit cannot be smaller than soft limit")
+		return "", "", fmt.Errorf("hard limit cannot be smaller than soft limit")
 	}
 
-	return nil
+	return softLimitGrace, hardLimitGrace, nil
 }
 
 // applyQuotaByFilesystem applies quota based on the filesystem type
