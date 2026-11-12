@@ -1,6 +1,9 @@
 package app
 
 import (
+	"os"
+	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -132,86 +135,186 @@ func TestGenerateQuotaCleanupScript_InjectionAttempt(t *testing.T) {
 	}
 }
 
-func TestGenerateQuotaApplyScript_UsesNsenterWithHostPaths(t *testing.T) {
-	cfg := QuotaScriptConfig{
-		ParentDir:      "/var/openebs/local",
-		VolumeDir:      "pvc-abc123",
-		SoftLimitGrace: "1024k",
-		HardLimitGrace: "2048k",
-		HostPathPrefix: "/host",
+func TestGenerateQuotaApplyScript_UsesMountPointAndNumericProjectIDs(t *testing.T) {
+	tests := []struct {
+		name     string
+		fs       string
+		commands map[string]string
+		wantLog  []string
+	}{
+		{
+			name: "xfs",
+			fs:   "xfs",
+			commands: map[string]string{
+				"xfs_quota": `printf 'xfs_quota %s\n' "$*" >> "$COMMAND_LOG"
+case "$*" in
+*"report -h -n"*) printf '#41 0 0\nfooter\n' ;;
+*"report"*) printf 'named-project 0 0\nfooter\n' ;;
+esac`,
+			},
+			wantLog: []string{
+				"xfs_quota -x -c report -h -n /resolved/quota-mount",
+				"xfs_quota -x -c project -s -p ",
+				" 42 /resolved/quota-mount",
+				"xfs_quota -x -c limit -p bsoft=1024k bhard=2048k 42 /resolved/quota-mount",
+			},
+		},
+		{
+			name: "ext4",
+			fs:   "ext2/ext3",
+			commands: map[string]string{
+				"repquota": `printf 'repquota %s\n' "$*" >> "$COMMAND_LOG"
+printf '#41 -- 0 0\nfooter\nfooter\n'`,
+				"chattr":   `printf 'chattr %s\n' "$*" >> "$COMMAND_LOG"`,
+				"setquota": `printf 'setquota %s\n' "$*" >> "$COMMAND_LOG"`,
+			},
+			wantLog: []string{
+				"repquota -P -n /resolved/quota-mount",
+				"chattr +P -p 42 ",
+				"setquota -P 42 1024 2048 0 0 /resolved/quota-mount",
+			},
+		},
 	}
 
-	script := GenerateQuotaApplyScript(cfg)
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			root := t.TempDir()
+			parentDir := filepath.Join(root, "host", "base")
+			volumeDir := "pvc-abc123"
+			if err := os.MkdirAll(filepath.Join(parentDir, volumeDir), 0o755); err != nil {
+				t.Fatal(err)
+			}
+			hostPrefix := filepath.Join(root, "host-root")
+			namespacePath := filepath.Join(hostPrefix, "proc", "1", "ns", "mnt")
+			if err := os.MkdirAll(filepath.Dir(namespacePath), 0o755); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(namespacePath, nil, 0o644); err != nil {
+				t.Fatal(err)
+			}
 
-	// Host paths for quota tools (must NOT be the /host/... bind-mount path).
-	// Match whole assignment lines so CONTAINER_PARENT_PATH does not false-positive.
-	if !hasAssignment(script, "PARENT_PATH", "/var/openebs/local") {
-		t.Errorf("expected host PARENT_PATH, got:\n%s", script)
-	}
-	if !hasAssignment(script, "VOLUME_PATH", "/var/openebs/local/pvc-abc123") {
-		t.Errorf("expected host VOLUME_PATH, got:\n%s", script)
-	}
-	if hasAssignment(script, "PARENT_PATH", "/host/var/openebs/local") {
-		t.Errorf("PARENT_PATH must not use the pod bind-mount path:\n%s", script)
-	}
-	if hasAssignment(script, "VOLUME_PATH", "/host/var/openebs/local/pvc-abc123") {
-		t.Errorf("VOLUME_PATH must not use the pod bind-mount path:\n%s", script)
-	}
+			binDir := filepath.Join(root, "bin")
+			if err := os.Mkdir(binDir, 0o755); err != nil {
+				t.Fatal(err)
+			}
+			writeFakeCommand(t, binDir, "nsenter", `printf 'nsenter %s\n' "$*" >> "$COMMAND_LOG"
+while [ "$#" -gt 0 ]; do
+    if [ "$1" = "--" ]; then shift; break; fi
+    shift
+done
+"$@"`)
+			writeFakeCommand(t, binDir, "findmnt", `printf 'findmnt %s\n' "$*" >> "$COMMAND_LOG"
+printf '/resolved/quota-mount\n'`)
+			writeFakeCommand(t, binDir, "stat", `printf '%s\n' "$FAKE_FS"`)
+			for name, body := range tc.commands {
+				writeFakeCommand(t, binDir, name, body)
+			}
 
-	// nsenter into the host mount namespace via the /host bind-mount of proc.
-	if !strings.Contains(script, "HOST_MOUNT_NS='/host/proc/1/ns/mnt'") {
-		t.Errorf("expected HOST_MOUNT_NS for nsenter, got:\n%s", script)
-	}
-	if !strings.Contains(script, `host_exec() { nsenter --mount="$HOST_MOUNT_NS" -- "$@"; }`) {
-		t.Errorf("expected nsenter-based host_exec, got:\n%s", script)
-	}
-	if !strings.Contains(script, `host_exec xfs_quota -x -c "project -s -p $VOLUME_PATH $PID" "$PARENT_PATH"`) {
-		t.Errorf("expected xfs_quota via host_exec, got:\n%s", script)
-	}
-	if !strings.Contains(script, `host_exec xfs_quota -x -c "limit -p bsoft=$XFS_SOFT bhard=$XFS_HARD $PID" "$PARENT_PATH"`) {
-		t.Errorf("expected xfs_quota limit via host_exec, got:\n%s", script)
-	}
-	if !strings.Contains(script, `host_exec setquota -P $PID $EXT_SOFT $EXT_HARD 0 0 "$PARENT_PATH"`) {
-		t.Errorf("expected setquota via host_exec, got:\n%s", script)
-	}
-	if !strings.Contains(script, `FS=$(host_exec stat -f -c %T "$VOLUME_PATH")`) {
-		t.Errorf("expected stat via host_exec, got:\n%s", script)
+			script := GenerateQuotaApplyScript(QuotaScriptConfig{
+				ParentDir:          parentDir,
+				VolumeDir:          volumeDir,
+				SoftLimitGrace:     "1024k",
+				HardLimitGrace:     "2048k",
+				HostPathPrefix:     hostPrefix,
+				ContainerParentDir: filepath.Join(root, "container", "base"),
+			})
+			log := runGeneratedScript(t, script, binDir, "FAKE_FS="+tc.fs)
+			for _, want := range tc.wantLog {
+				if !strings.Contains(log, want) {
+					t.Errorf("command log missing %q:\n%s", want, log)
+				}
+			}
+		})
 	}
 }
 
-func TestGenerateQuotaCleanupScript_UsesNsenterWithHostPaths(t *testing.T) {
-	cfg := QuotaScriptConfig{
-		ParentDir:      "/var/openebs/local",
-		VolumeDir:      "pvc-abc123",
-		HostPathPrefix: "/host",
+func TestGenerateQuotaCleanupScript_DoesNotRequireHostNamespaceWithoutProjectQuota(t *testing.T) {
+	root := t.TempDir()
+	containerParent := filepath.Join(root, "container", "base")
+	volumeDir := "pvc-abc123"
+	containerVolume := filepath.Join(containerParent, volumeDir)
+	if err := os.MkdirAll(containerVolume, 0o755); err != nil {
+		t.Fatal(err)
 	}
 
-	script := GenerateQuotaCleanupScript(cfg)
+	binDir := filepath.Join(root, "bin")
+	if err := os.Mkdir(binDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	writeFakeCommand(t, binDir, "stat", `printf 'xfs\n'`)
+	writeFakeCommand(t, binDir, "xfs_io", `printf 'xfs_io %s\n' "$*" >> "$COMMAND_LOG"
+printf 'projid = 0\n'`)
+	writeFakeCommand(t, binDir, "nsenter", `printf 'nsenter %s\n' "$*" >> "$COMMAND_LOG"
+exit 99`)
 
-	if !strings.Contains(script, "HOST_MOUNT_NS='/host/proc/1/ns/mnt'") {
-		t.Errorf("expected HOST_MOUNT_NS for nsenter, got:\n%s", script)
+	script := GenerateQuotaCleanupScript(QuotaScriptConfig{
+		ParentDir:          "/var/openebs/local",
+		VolumeDir:          volumeDir,
+		HostPathPrefix:     filepath.Join(root, "missing-host-root"),
+		ContainerParentDir: containerParent,
+	})
+	log := runGeneratedScript(t, script, binDir)
+	if strings.Contains(log, "nsenter ") {
+		t.Fatalf("cleanup entered the host namespace without a project quota:\n%s", log)
 	}
-	if !strings.Contains(script, `host_exec() { nsenter --mount="$HOST_MOUNT_NS" -- "$@"; }`) {
-		t.Errorf("expected nsenter-based host_exec, got:\n%s", script)
+	if _, err := os.Stat(containerVolume); !os.IsNotExist(err) {
+		t.Fatalf("container-visible volume was not removed: %v", err)
 	}
-	if !strings.Contains(script, `host_exec xfs_io -c "chproj -D 0" "$VOLUME_PATH"`) {
-		t.Errorf("expected xfs_io chproj -D via host_exec, got:\n%s", script)
+}
+
+func TestGenerateQuotaCleanupScript_ClearsQuotaAgainstMountPoint(t *testing.T) {
+	root := t.TempDir()
+	containerParent := filepath.Join(root, "container", "base")
+	volumeDir := "pvc-abc123"
+	containerVolume := filepath.Join(containerParent, volumeDir)
+	if err := os.MkdirAll(containerVolume, 0o755); err != nil {
+		t.Fatal(err)
 	}
-	if strings.Contains(script, `chproj -R`) {
-		t.Errorf("chproj -R hangs on pipes; develop uses -D, got:\n%s", script)
+	hostPrefix := filepath.Join(root, "host-root")
+	namespacePath := filepath.Join(hostPrefix, "proc", "1", "ns", "mnt")
+	if err := os.MkdirAll(filepath.Dir(namespacePath), 0o755); err != nil {
+		t.Fatal(err)
 	}
-	if !strings.Contains(script, `host_exec xfs_quota -x -c "limit -p bsoft=0 bhard=0 $ID" "$PARENT_PATH"`) {
-		t.Errorf("expected xfs_quota cleanup via host_exec, got:\n%s", script)
+	if err := os.WriteFile(namespacePath, nil, 0o644); err != nil {
+		t.Fatal(err)
 	}
-	if !strings.Contains(script, `host_exec rm -rf "$VOLUME_PATH"`) {
-		t.Errorf("expected rm via host_exec, got:\n%s", script)
+
+	binDir := filepath.Join(root, "bin")
+	if err := os.Mkdir(binDir, 0o755); err != nil {
+		t.Fatal(err)
 	}
-	// Must not pass /host-prefixed paths to quota tools.
-	if hasAssignment(script, "PARENT_PATH", "/host/var/openebs/local") {
-		t.Errorf("PARENT_PATH must be the host path, not the bind-mount path:\n%s", script)
+	writeFakeCommand(t, binDir, "stat", `printf 'xfs\n'`)
+	writeFakeCommand(t, binDir, "xfs_io", `printf 'xfs_io %s\n' "$*" >> "$COMMAND_LOG"
+case "$*" in
+*"-c stat"*) printf 'projid = 41\n' ;;
+esac`)
+	writeFakeCommand(t, binDir, "nsenter", `printf 'nsenter %s\n' "$*" >> "$COMMAND_LOG"
+while [ "$#" -gt 0 ]; do
+    if [ "$1" = "--" ]; then shift; break; fi
+    shift
+done
+"$@"`)
+	writeFakeCommand(t, binDir, "findmnt", `printf 'findmnt %s\n' "$*" >> "$COMMAND_LOG"
+printf '/resolved/quota-mount\n'`)
+	writeFakeCommand(t, binDir, "xfs_quota", `printf 'xfs_quota %s\n' "$*" >> "$COMMAND_LOG"`)
+
+	script := GenerateQuotaCleanupScript(QuotaScriptConfig{
+		ParentDir:          "/var/openebs/local",
+		VolumeDir:          volumeDir,
+		HostPathPrefix:     hostPrefix,
+		ContainerParentDir: containerParent,
+	})
+	log := runGeneratedScript(t, script, binDir)
+	if !strings.Contains(log, "xfs_quota -x -c limit -p bsoft=0 bhard=0 41 /resolved/quota-mount") {
+		t.Errorf("quota limit was not cleared against the containing mount point:\n%s", log)
 	}
-	if !hasAssignment(script, "PARENT_PATH", "/var/openebs/local") {
-		t.Errorf("expected host PARENT_PATH, got:\n%s", script)
+	for _, command := range []string{"stat ", "xfs_io ", "rm "} {
+		if strings.Contains(log, "nsenter --mount="+namespacePath+" -- "+command) {
+			t.Errorf("container-local cleanup command %q entered the host namespace:\n%s", command, log)
+		}
+	}
+	if _, err := os.Stat(containerVolume); !os.IsNotExist(err) {
+		t.Fatalf("container-visible volume was not removed: %v", err)
 	}
 }
 
@@ -279,6 +382,31 @@ func TestGenerateQuotaApplyScript_UseHostLockOnContainerPath(t *testing.T) {
 	if strings.Contains(script, `LOCKFILE="$PARENT_PATH/.openebs-quota.lock"`) {
 		t.Errorf("lockfile must not use PARENT_PATH (host path):\n%s", script)
 	}
+}
+
+func writeFakeCommand(t *testing.T, dir, name, body string) {
+	t.Helper()
+	contents := "#!/bin/sh\nset -eu\n" + body + "\n"
+	if err := os.WriteFile(filepath.Join(dir, name), []byte(contents), 0o755); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func runGeneratedScript(t *testing.T, script, binDir string, extraEnv ...string) string {
+	t.Helper()
+	logPath := filepath.Join(t.TempDir(), "commands.log")
+	cmd := exec.Command("bash", "-c", script)
+	cmd.Env = append(os.Environ(), "PATH="+binDir+":"+os.Getenv("PATH"), "COMMAND_LOG="+logPath)
+	cmd.Env = append(cmd.Env, extraEnv...)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("generated script failed: %v\n%s\nscript:\n%s", err, output, script)
+	}
+	log, err := os.ReadFile(logPath)
+	if err != nil && !os.IsNotExist(err) {
+		t.Fatal(err)
+	}
+	return string(log)
 }
 
 func TestQuotaPaths(t *testing.T) {

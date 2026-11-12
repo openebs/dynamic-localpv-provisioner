@@ -14,10 +14,10 @@ import (
 //   - When HostPathPrefix is set (typically "/host"), the script runs quota tools
 //     via nsenter into the host mount namespace so XFS/EXT4 project quota resolves
 //     the real host mount. Bind-mounted pod paths alone are not sufficient.
-//   - CONTAINER_PARENT_PATH is used only for flock lockfiles, which must be
-//     opened from the container mount namespace. It is ContainerParentDir
-//     when set; otherwise HostPathPrefix+ParentDir, or ParentDir when the
-//     prefix is empty.
+//   - CONTAINER_PARENT_PATH and CONTAINER_VOLUME_PATH are the same paths as
+//     seen in the container. They are used for locking, filesystem detection,
+//     project ID inspection, and directory removal, none of which needs host
+//     namespace access.
 type QuotaScriptConfig struct {
 	// ParentDir is the base directory path as seen on the host
 	// (e.g., "/var/openebs/local").
@@ -34,10 +34,9 @@ type QuotaScriptConfig struct {
 	// host /proc at "/host/proc". Empty disables nsenter (paths are used
 	// as-is in the current mount namespace).
 	HostPathPrefix string
-	// ContainerParentDir, when set, is the flock lockfile directory as seen
-	// in the container (e.g. HelperPod "/data", which already bind-mounts
-	// ParentDir). When empty, the path is derived from HostPathPrefix and
-	// ParentDir.
+	// ContainerParentDir, when set, is ParentDir as seen in the container
+	// (e.g. HelperPod "/data", which already bind-mounts ParentDir). When
+	// empty, the path is derived from HostPathPrefix and ParentDir.
 	ContainerParentDir string
 	// UseHostLock serializes the script via flock on a lockfile in the parent
 	// directory. Set for HelperPod mode; NodeDeployment relies on an in-process
@@ -46,7 +45,8 @@ type QuotaScriptConfig struct {
 }
 
 // quotaPaths resolves host and container-visible paths from cfg.
-// hostParent/hostVolume are used with nsenter; containerParent is for flock.
+// hostParent/hostVolume are used by host-namespace quota tools;
+// containerParent is used for locking and container-local filesystem access.
 func quotaPaths(cfg QuotaScriptConfig) (hostParent, hostVolume, containerParent string) {
 	hostParent = cfg.ParentDir
 	hostVolume = filepath.Join(cfg.ParentDir, cfg.VolumeDir)
@@ -123,17 +123,19 @@ host_exec() { "$@"; }
 `
 	}
 	return fmt.Sprintf(`HOST_MOUNT_NS=%s
-if [ ! -e "$HOST_MOUNT_NS" ]; then
-    echo "host mount namespace not found at $HOST_MOUNT_NS; cannot run filesystem quota tools against the host mount" >&2
-    exit 1
-fi
-if ! command -v nsenter >/dev/null 2>&1; then
-    echo "nsenter(1) not found in PATH; required to enter host mount namespace for quota operations" >&2
-    exit 1
-fi
-# Run a command in the host mount namespace so project-quota tools resolve
-# the real host XFS/EXT4 mount (pod bind-mount paths are not sufficient).
-host_exec() { nsenter --mount="$HOST_MOUNT_NS" -- "$@"; }
+# Validate namespace access only when a host-namespace command is required.
+# Ordinary volume cleanup remains available to unprivileged NodeDeployment pods.
+host_exec() {
+    if [ ! -e "$HOST_MOUNT_NS" ]; then
+        echo "host mount namespace not found at $HOST_MOUNT_NS; cannot run filesystem quota tools against the host mount" >&2
+        return 1
+    fi
+    if ! command -v nsenter >/dev/null 2>&1; then
+        echo "nsenter(1) not found in PATH; required to enter host mount namespace for quota operations" >&2
+        return 1
+    fi
+    nsenter --mount="$HOST_MOUNT_NS" -- "$@"
+}
 `, shellQuote(hostMountNS))
 }
 
@@ -142,6 +144,7 @@ host_exec() { nsenter --mount="$HOST_MOUNT_NS" -- "$@"; }
 // with the configured limits.
 func GenerateQuotaApplyScript(cfg QuotaScriptConfig) string {
 	hostParent, hostVolume, containerParent := quotaPaths(cfg)
+	containerVolume := filepath.Join(containerParent, cfg.VolumeDir)
 	// EXT4 setquota expects plain numbers (KB blocks), not the 'k' suffix.
 	extSoft := strings.TrimSuffix(cfg.SoftLimitGrace, "k")
 	extHard := strings.TrimSuffix(cfg.HardLimitGrace, "k")
@@ -150,6 +153,7 @@ func GenerateQuotaApplyScript(cfg QuotaScriptConfig) string {
 PARENT_PATH=%s
 VOLUME_PATH=%s
 CONTAINER_PARENT_PATH=%s
+CONTAINER_VOLUME_PATH=%s
 XFS_SOFT=%s
 XFS_HARD=%s
 EXT_SOFT=%s
@@ -158,6 +162,7 @@ EXT_HARD=%s
 		shellQuote(hostParent),
 		shellQuote(hostVolume),
 		shellQuote(containerParent),
+		shellQuote(containerVolume),
 		shellQuote(cfg.SoftLimitGrace),
 		shellQuote(cfg.HardLimitGrace),
 		shellQuote(extSoft),
@@ -171,15 +176,18 @@ EXT_HARD=%s
 // quota and delete the volume directory.
 func GenerateQuotaCleanupScript(cfg QuotaScriptConfig) string {
 	hostParent, hostVolume, containerParent := quotaPaths(cfg)
+	containerVolume := filepath.Join(containerParent, cfg.VolumeDir)
 
 	header := fmt.Sprintf(`set -e
 PARENT_PATH=%s
 VOLUME_PATH=%s
 CONTAINER_PARENT_PATH=%s
+CONTAINER_VOLUME_PATH=%s
 `,
 		shellQuote(hostParent),
 		shellQuote(hostVolume),
 		shellQuote(containerParent),
+		shellQuote(containerVolume),
 	)
 
 	return header + hostExecPrologue(hostMountNSPath(cfg)) + quotaLockPrologue(cfg.UseHostLock) + cleanupScriptBody
@@ -189,45 +197,61 @@ CONTAINER_PARENT_PATH=%s
 // arrive via shell variables set by the generated header. Filesystem tools
 // run through host_exec so they see the host mount table.
 const applyScriptBody = `
+MOUNT_PATH=$(host_exec findmnt -n -o TARGET --target "$PARENT_PATH")
+if [ -z "$MOUNT_PATH" ]; then
+    echo "could not resolve mount point containing $PARENT_PATH" >&2
+    exit 1
+fi
 FS=$(host_exec stat -f -c %T "$VOLUME_PATH")
 
 if [[ "$FS" == "xfs" ]]; then
-    # Allocate the next project ID and bind it to the volume.
-    PID=$(host_exec xfs_quota -x -c 'report -h' "$PARENT_PATH" 2>/dev/null | tail -2 | awk 'NR==1{print substr ($1,2)}+0' || echo "0")
+    # Disable project-name resolution so the first report field remains #ID.
+    PID=$(host_exec xfs_quota -x -c 'report -h -n' "$MOUNT_PATH" 2>/dev/null | tail -2 | awk 'NR==1{print substr ($1,2)}+0' || echo "0")
     PID=$((PID + 1))
-    host_exec xfs_quota -x -c "project -s -p $VOLUME_PATH $PID" "$PARENT_PATH"
-    host_exec xfs_quota -x -c "limit -p bsoft=$XFS_SOFT bhard=$XFS_HARD $PID" "$PARENT_PATH"
+    host_exec xfs_quota -x -c "project -s -p $VOLUME_PATH $PID" "$MOUNT_PATH"
+    host_exec xfs_quota -x -c "limit -p bsoft=$XFS_SOFT bhard=$XFS_HARD $PID" "$MOUNT_PATH"
 elif [[ "$FS" == "ext2/ext3" ]]; then
-    PID=$(host_exec repquota -P "$PARENT_PATH" 2>/dev/null | tail -3 | awk 'NR==1{print substr ($1,2)}+0' || echo "0")
+    PID=$(host_exec repquota -P -n "$MOUNT_PATH" 2>/dev/null | tail -3 | awk 'NR==1{print substr ($1,2)}+0' || echo "0")
     PID=$((PID + 1))
     host_exec chattr +P -p $PID "$VOLUME_PATH"
     # setquota -P expects plain numbers (KB blocks).
-    host_exec setquota -P $PID $EXT_SOFT $EXT_HARD 0 0 "$PARENT_PATH"
+    host_exec setquota -P $PID $EXT_SOFT $EXT_HARD 0 0 "$MOUNT_PATH"
 else
     echo "Unsupported filesystem type: $FS"
-    host_exec rm -rf "$VOLUME_PATH"
+    rm -rf "$CONTAINER_VOLUME_PATH"
     exit 1
 fi`
 
 // cleanupScriptBody is the static body of the quota-cleanup script. All
-// inputs arrive via shell variables set by the generated header. Filesystem
-// tools run through host_exec so they see the host mount table.
+// inputs arrive via shell variables set by the generated header. Detection,
+// project-ID inspection, and removal use the container-visible bind mount so
+// ordinary cleanup does not require host mount namespace access.
 const cleanupScriptBody = `
-FS=$(host_exec stat -f -c %T "$VOLUME_PATH" 2>/dev/null || echo "unknown")
+FS=$(stat -f -c %T "$CONTAINER_VOLUME_PATH" 2>/dev/null || echo "unknown")
 
 if [[ "$FS" == "xfs" ]]; then
-    ID=$(host_exec xfs_io -c stat "$VOLUME_PATH" 2>/dev/null | awk '/projid/{print $3}' | head -1)
+    ID=$(xfs_io -c stat "$CONTAINER_VOLUME_PATH" 2>/dev/null | awk '/projid/{print $3}' | head -1)
     echo "projid=$ID"
     if [ -n "$ID" ] && [ "$ID" != "0" ]; then
         # -D (not -R): skip special files such as pipes; xfs_io hangs on them.
-        host_exec xfs_io -c "chproj -D 0" "$VOLUME_PATH" 2>/dev/null || true
-        host_exec xfs_quota -x -c "limit -p bsoft=0 bhard=0 $ID" "$PARENT_PATH" 2>/dev/null || true
+        xfs_io -c "chproj -D 0" "$CONTAINER_VOLUME_PATH" 2>/dev/null || true
+        MOUNT_PATH=$(host_exec findmnt -n -o TARGET --target "$PARENT_PATH" 2>/dev/null || true)
+        if [ -n "$MOUNT_PATH" ]; then
+            host_exec xfs_quota -x -c "limit -p bsoft=0 bhard=0 $ID" "$MOUNT_PATH" 2>/dev/null || true
+        else
+            echo "could not clear XFS quota for project $ID: host mount point unavailable" >&2
+        fi
     fi
 elif [[ "$FS" == "ext2/ext3" ]]; then
-    ID=$(host_exec lsattr -pd "$VOLUME_PATH"/ 2>/dev/null | awk '{print $1}')
+    ID=$(lsattr -pd "$CONTAINER_VOLUME_PATH"/ 2>/dev/null | awk '{print $1}')
     if [ -n "$ID" ] && [ "$ID" != "0" ]; then
-        host_exec setquota -P $ID 0 0 0 0 "$PARENT_PATH" 2>/dev/null || true
+        MOUNT_PATH=$(host_exec findmnt -n -o TARGET --target "$PARENT_PATH" 2>/dev/null || true)
+        if [ -n "$MOUNT_PATH" ]; then
+            host_exec setquota -P $ID 0 0 0 0 "$MOUNT_PATH" 2>/dev/null || true
+        else
+            echo "could not clear EXT4 quota for project $ID: host mount point unavailable" >&2
+        fi
     fi
 fi
 
-host_exec rm -rf "$VOLUME_PATH"`
+rm -rf "$CONTAINER_VOLUME_PATH"`
