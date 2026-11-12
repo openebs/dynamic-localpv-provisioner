@@ -251,12 +251,13 @@ func TestGenerateQuotaApplyScript_WithoutHostPrefix_NoNsenter(t *testing.T) {
 
 func TestGenerateQuotaApplyScript_UseHostLockOnContainerPath(t *testing.T) {
 	cfg := QuotaScriptConfig{
-		ParentDir:      "/var/openebs/local",
-		VolumeDir:      "pvc-abc123",
-		SoftLimitGrace: "1024k",
-		HardLimitGrace: "2048k",
-		HostPathPrefix: "/host",
-		UseHostLock:    true,
+		ParentDir:          "/var/openebs/local",
+		VolumeDir:          "pvc-abc123",
+		SoftLimitGrace:     "1024k",
+		HardLimitGrace:     "2048k",
+		HostPathPrefix:     "/host",
+		ContainerParentDir: "/data",
+		UseHostLock:        true,
 	}
 
 	script := GenerateQuotaApplyScript(cfg)
@@ -265,8 +266,8 @@ func TestGenerateQuotaApplyScript_UseHostLockOnContainerPath(t *testing.T) {
 	if !strings.Contains(script, `LOCKFILE="$CONTAINER_PARENT_PATH/.openebs-quota.lock"`) {
 		t.Errorf("expected lockfile under CONTAINER_PARENT_PATH, got:\n%s", script)
 	}
-	if !strings.Contains(script, "CONTAINER_PARENT_PATH='/host/var/openebs/local'") {
-		t.Errorf("expected container parent under /host, got:\n%s", script)
+	if !strings.Contains(script, "CONTAINER_PARENT_PATH='/data'") {
+		t.Errorf("expected container parent at the /data bind-mount, got:\n%s", script)
 	}
 	// Must not lock on the host path variable (invisible without nsenter).
 	if strings.Contains(script, `LOCKFILE="$PARENT_PATH/.openebs-quota.lock"`) {
@@ -296,15 +297,16 @@ func TestQuotaPaths(t *testing.T) {
 			wantHostMountNS:     "/host/proc/1/ns/mnt",
 		},
 		{
-			name: "helper pod style with host prefix",
+			name: "helper pod flock uses data mount",
 			cfg: QuotaScriptConfig{
-				ParentDir:      "/var/openebs/local",
-				VolumeDir:      "pvc-2",
-				HostPathPrefix: HostPathPrefix,
+				ParentDir:          "/var/openebs/local",
+				VolumeDir:          "pvc-2",
+				HostPathPrefix:     HostPathPrefix,
+				ContainerParentDir: "/data",
 			},
 			wantHostParent:      "/var/openebs/local",
 			wantHostVolume:      "/var/openebs/local/pvc-2",
-			wantContainerParent: "/host/var/openebs/local",
+			wantContainerParent: "/data",
 			wantHostMountNS:     "/host/proc/1/ns/mnt",
 		},
 		{
