@@ -219,12 +219,13 @@ func (p *Provisioner) createCleanupPod(ctx context.Context, pOpts *HelperPodOpti
 
 	config.taints = pOpts.selectedNodeTaints
 
-	// Generate cleanup script using shared utility
-	// Helper pod mounts parentDir at /data, so use /data as the parent path
+	// Generate cleanup script using shared utility.
+	// ParentDir is the host path; HostPathPrefix lets the script flock via the
+	// /host bind-mount and run quota tools via nsenter into the host mount ns.
 	cleanupScript := GenerateQuotaCleanupScript(QuotaScriptConfig{
-		ParentDir:      "/data",
+		ParentDir:      config.parentDir,
 		VolumeDir:      config.volumeDir,
-		HostPathPrefix: "",   // No prefix needed, /data is the mount point
+		HostPathPrefix: HostPathPrefix,
 		UseHostLock:    true, // serialize against concurrent helper pods
 	})
 
@@ -281,14 +282,15 @@ func (p *Provisioner) createQuotaPod(ctx context.Context, pOpts *HelperPodOption
 		return err
 	}
 
-	// Generate quota script using shared utility
-	// Helper pod mounts parentDir at /data, so use /data as the parent path
+	// Generate quota script using shared utility.
+	// ParentDir is the host path; HostPathPrefix lets the script flock via the
+	// /host bind-mount and run quota tools via nsenter into the host mount ns.
 	quotaScript := GenerateQuotaApplyScript(QuotaScriptConfig{
-		ParentDir:      "/data",
+		ParentDir:      config.parentDir,
 		VolumeDir:      config.volumeDir,
 		SoftLimitGrace: config.pOpts.softLimitGrace,
 		HardLimitGrace: config.pOpts.hardLimitGrace,
-		HostPathPrefix: "",   // No prefix needed, /data is the mount point
+		HostPathPrefix: HostPathPrefix,
 		UseHostLock:    true, // serialize project-ID allocation
 	})
 
@@ -310,7 +312,12 @@ func (p *Provisioner) launchPod(ctx context.Context, config podConfig) (*corev1.
 	// the helper pod need to be launched in privileged mode. This is because in CoreOS
 	// nodes, pods without privileged access cannot write to the host directory.
 	// Helper pods need to create and delete directories on the host.
+	// Privileged is also required for nsenter into the host mount namespace when
+	// applying/cleaning XFS/EXT4 project quotas.
 	privileged := true
+	// HostToContainer so nested mounts on the host (e.g. the XFS base path)
+	// are visible under /host for flock and nsenter path checks.
+	hostMountPropagation := corev1.MountPropagationHostToContainer
 
 	helperPod, err := pod.NewBuilder().
 		WithName(config.podName + "-" + config.pOpts.name).
@@ -330,6 +337,14 @@ func (p *Provisioner) launchPod(ctx context.Context, config podConfig) (*corev1.
 						ReadOnly:  false,
 						MountPath: "/data/",
 					},
+					{
+						// Host root: enables nsenter --mount=/host/proc/1/ns/mnt
+						// and container-visible paths for flock lockfiles.
+						Name:             "host-root",
+						ReadOnly:         false,
+						MountPath:        HostPathPrefix,
+						MountPropagation: &hostMountPropagation,
+					},
 				}).
 				WithImagePullPolicy(config.pOpts.imagePullPolicy).
 				WithPrivilegedSecurityContext(&privileged),
@@ -339,6 +354,11 @@ func (p *Provisioner) launchPod(ctx context.Context, config podConfig) (*corev1.
 			volume.NewBuilder().
 				WithName("data").
 				WithHostDirectory(config.parentDir),
+		).
+		WithVolumeBuilder(
+			volume.NewBuilder().
+				WithName("host-root").
+				WithHostDirectory("/"),
 		).
 		WithHostNetwork(config.pOpts.hostNetwork).
 		Build()
