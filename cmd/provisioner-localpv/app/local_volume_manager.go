@@ -109,8 +109,9 @@ func (vm *LocalVolumeManager) DeleteVolume(ctx context.Context, req *VolumeReque
 		return fmt.Errorf("failed to extract paths: %v", err)
 	}
 
-	// Generate cleanup script using shared utility
-	// Node deployment mode accesses host filesystem via HostPathPrefix
+	// Generate cleanup script using shared utility.
+	// ParentDir is the host path; HostPathPrefix enables nsenter into the host
+	// mount namespace (XFS/EXT4 project quota must not run against /host/... paths).
 	cleanupScript := GenerateQuotaCleanupScript(QuotaScriptConfig{
 		ParentDir:      parentDir,
 		VolumeDir:      volumeDir,
@@ -262,8 +263,9 @@ func (vm *LocalVolumeManager) validateLimits(softLimitGrace, hardLimitGrace stri
 
 // applyQuotaByFilesystem applies quota based on the filesystem type
 func (vm *LocalVolumeManager) applyQuotaByFilesystem(ctx context.Context, parentDir, volumeDir, softLimitGrace, hardLimitGrace string) error {
-	// Generate quota script using shared utility
-	// Node deployment mode accesses host filesystem via HostPathPrefix
+	// Generate quota script using shared utility.
+	// ParentDir is the host path; HostPathPrefix enables nsenter into the host
+	// mount namespace (XFS/EXT4 project quota must not run against /host/... paths).
 	script := GenerateQuotaApplyScript(QuotaScriptConfig{
 		ParentDir:      parentDir,
 		VolumeDir:      volumeDir,
