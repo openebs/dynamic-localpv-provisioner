@@ -219,3 +219,53 @@ func TestConcurrentLocalVolumeOperationsSerialize(t *testing.T) {
 		t.Errorf("local volume operations overlapped: %d ran at once, want 1", maxDepth)
 	}
 }
+
+// TestApplyQuotaDefaultsLimitsToPVCSize covers node-deployment mode with a
+// quota-enabled StorageClass that sets neither softLimitGrace nor
+// hardLimitGrace. Both limits must default to the PVC capacity, as they do in
+// helper-pod mode. A limit of "0k" tells xfs_quota and setquota to remove the
+// limit, which leaves the volume without any quota.
+func TestApplyQuotaDefaultsLimitsToPVCSize(t *testing.T) {
+	binDir := t.TempDir()
+	scriptFile := filepath.Join(t.TempDir(), "script")
+
+	// Stub sh records the script it is asked to run ("sh -c <script>").
+	stub := "#!/bin/sh\n" +
+		"printf '%s' \"$2\" > " + scriptFile + "\n"
+	if err := os.WriteFile(filepath.Join(binDir, "sh"), []byte(stub), 0o755); err != nil {
+		t.Fatalf("writing the sh stub: %v", err)
+	}
+	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
+
+	vm := NewLocalVolumeManager()
+	err := vm.ApplyQuota(context.Background(), &VolumeRequest{
+		Name:       "pvc-1",
+		Path:       "/var/openebs/local/pvc-1",
+		PVCStorage: 1 << 30, // 1Gi
+	})
+	if err != nil {
+		t.Fatalf("ApplyQuota: %v", err)
+	}
+
+	raw, err := os.ReadFile(scriptFile)
+	if err != nil {
+		t.Fatalf("the quota script never ran: %v", err)
+	}
+	script := string(raw)
+	for _, want := range []string{
+		"XFS_SOFT='1048576k'",
+		"XFS_HARD='1048576k'",
+		"EXT_SOFT='1048576'",
+		"EXT_HARD='1048576'",
+	} {
+		if !strings.Contains(script, want) {
+			t.Errorf("quota script does not set %s; got header:\n%s", want, scriptHeader(script))
+		}
+	}
+}
+
+// scriptHeader returns the variable assignments at the top of a quota script.
+func scriptHeader(script string) string {
+	lines := strings.SplitN(script, "\n", 8)
+	return strings.Join(lines[:len(lines)-1], "\n")
+}
