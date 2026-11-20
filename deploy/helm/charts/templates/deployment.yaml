@@ -53,6 +53,10 @@ spec:
       - name: {{ template "localpv.fullname" . }}
         image: "{{ include "localpv.common.image" (dict "imageRoot" .Values.localpv.image "global" .Values.global "override" .Values.globalImageRegistryOverride) }}"
         imagePullPolicy: {{ default .Values.localpv.image.pullPolicy .Values.global.imagePullPolicy }}
+        {{- with .Values.localpv.securityContext }}
+        securityContext:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
         resources:
 {{ toYaml .Values.localpv.resources | indent 10 }}
         env:
