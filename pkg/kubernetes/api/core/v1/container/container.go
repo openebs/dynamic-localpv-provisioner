@@ -277,6 +277,22 @@ func (b *Builder) WithImagePullPolicy(policy corev1.PullPolicy) *Builder {
 	return b
 }
 
+// WithTerminationMessagePolicy sets the termination message policy of the container
+func (b *Builder) WithTerminationMessagePolicy(policy corev1.TerminationMessagePolicy) *Builder {
+	if len(policy) == 0 {
+		b.errors = append(
+			b.errors,
+			errors.New(
+				"failed to build container object: missing terminationmessagepolicy",
+			),
+		)
+		return b
+	}
+
+	b.con.TerminationMessagePolicy = policy
+	return b
+}
+
 // WithPrivilegedSecurityContext sets securitycontext of the container
 func (b *Builder) WithPrivilegedSecurityContext(privileged *bool) *Builder {
 	if privileged == nil {

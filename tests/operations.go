@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	. "github.com/onsi/gomega"
@@ -232,6 +233,29 @@ func (ops *Operations) IsPVCBoundEventually(namespace string, pvcName string) bo
 			Get(context.TODO(), pvcName, metav1.GetOptions{})
 		Expect(err).ShouldNot(HaveOccurred())
 		return pvc.NewForAPIObject(volume).IsBound()
+	},
+		90, 5).
+		Should(BeTrue())
+}
+
+// IsPVCEventPresentEventually checks if the pvc eventually has an event with
+// the given reason whose message contains the given text
+func (ops *Operations) IsPVCEventPresentEventually(namespace, pvcName, reason, message string) bool {
+	return Eventually(func() bool {
+		events, err := ops.EventClient.WithNamespace(namespace).
+			List(context.TODO(), metav1.ListOptions{
+				FieldSelector: fmt.Sprintf(
+					"involvedObject.kind=PersistentVolumeClaim,involvedObject.name=%s,reason=%s",
+					pvcName, reason,
+				),
+			})
+		Expect(err).ShouldNot(HaveOccurred())
+		for _, e := range events.Items {
+			if strings.Contains(e.Message, message) {
+				return true
+			}
+		}
+		return false
 	},
 		90, 5).
 		Should(BeTrue())
